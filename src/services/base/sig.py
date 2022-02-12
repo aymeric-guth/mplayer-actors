@@ -1,0 +1,30 @@
+from enum import Enum, auto
+
+
+class Sig(Enum):
+    INIT = auto()
+    LOGIN = auto()
+    LOGIN_SUCCESS = auto()
+    LOGIN_FAILURE = auto()
+    NETWORK_FAILURE = auto()
+    EXT = auto()
+    EXT_GET = auto()
+    EXT_SET = auto()
+    EXT_SUCCESS = auto()
+    FILES_LIST = auto()
+    REGISTER = auto()
+    PATH_GET = auto()
+    PATH_SET = auto()
+    FILES_SET = auto()
+    FILES_GET = auto()
+    PARSE = auto()
+    CWD_GET = auto()
+    REFRESH = auto()
+    SIGINT = auto()
+    NONE = auto()
+    ERROR = auto()
+    FILES_REINDEX = auto()
+    PLAY = auto()
+    PLAY_ALL = auto()
+    PLAY_RANGE = auto()
+    
