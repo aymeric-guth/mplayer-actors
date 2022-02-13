@@ -1,38 +1,38 @@
-from typing import Any, TypeVar
+from typing import TypeVar
 from queue import Queue
 
+from .base_actor import BaseActor
 from .message import Message
+from .actor_system import actor_system
 
 
 T = TypeVar('T', bound='Actor')
 
 
-class Actor:
-    def __init__(self) -> None:
+class Actor(BaseActor):
+    def __init__(self, pid: int, name:str='', parent: T=None) -> None:
+        super().__init__(pid, name)
+        self.parent = parent
         self.DEBUG = 0
         self.mq = Queue()
-        self._addr = {}
-        self.name = self.__class__.__name__
 
     def run(self) -> None:
+        while 1:
+            (sender, msg) = self.mq.get()
+            self.debug(sender, msg)
+            self.dispatch(sender, msg)
+            self.mq.task_done()
+
+    def dispatch(self, sender: T, msg: Message) -> None:
         ...
 
-    def post(self, actor: T, message: Message) -> None:
-        self.mq.put((actor, message))
+    def post(self, sender: int, msg: Message) -> None:
+        self.mq.put((sender, msg))
 
-    def __repr__(self) -> str:
-        return f'Actor(name={self.name}, ...)'
-    
-    def register(self, actor: T) -> None:
-        if actor.name not in self._addr:
-            self._addr.update({actor.name: actor})
-
-    def get_actor(self, actor: str) -> T:
-        res = self._addr.get(actor)
-        if res is None:
-            raise Exception(f'self={self} actor={actor} addr={self._addr}')
-        return res
-
-    def debug(self, msg: Message, actor: T) -> None:
+    def debug(self, sender: T, msg: Message) -> None:
+        sender = actor_system.get_actor(sender)
         if self.DEBUG:
-            print(f'{self=}\n{actor=}\n{msg=}\n')
+            print(f'{self=} {sender=} {msg=}')
+
+    def __del__(self) -> None:
+        actor_system.terminate(self)
