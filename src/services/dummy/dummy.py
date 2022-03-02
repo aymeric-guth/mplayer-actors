@@ -45,17 +45,17 @@ class Dummy(Actor):
             self.mq.task_done()
 
     def dispatch(self, sender, msg) -> None:
-        match msg.sig:
-            case Sig.INIT:
+        match msg:
+            case Message(Sig.INIT):
                 ...
             
-            case Sig.PING:
+            case Message(Sig.PING):
                 return sender, Message(sig=Sig.PONG)
 
-            case Sig.PONG:
+            case Message(Sig.PONG):
                 ...
 
-            case Sig.DISPATCH_ERROR:
+            case Message(Sig.DISPATCH_ERROR):
                 print('Could not deliver message to actor')
 
             case _:

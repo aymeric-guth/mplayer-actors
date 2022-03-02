@@ -27,12 +27,17 @@ from contextlib import contextmanager
 import collections
 import re
 import traceback
+from pathlib import Path
 
 import locale
 lc, enc = locale.getlocale(locale.LC_NUMERIC)
 locale.setlocale(locale.LC_NUMERIC, 'C')
 
-sofile = '/opt/local/lib/libmpv.1.109.0.dylib'
+# sofile = Path(__file__).parent / 'libmpv.a'
+# sofile = '/opt/local/lib/libmpv.1.109.0.dylib'
+
+sofile = ctypes.util.find_library('mpv')
+# print(sofile)
 backend = CDLL(sofile)
 fs_enc = sys.getfilesystemencoding()
 
@@ -517,7 +522,7 @@ _mpv_create = backend.mpv_create
 _handle_func('mpv_create_client',           [c_char_p],                                 MpvHandle, notnull_errcheck)
 _handle_func('mpv_client_name',             [],                                         c_char_p, errcheck=None)
 _handle_func('mpv_initialize',              [],                                         c_int, ec_errcheck)
-_handle_func('mpv_detach_destroy',          [],                                         None, errcheck=None)
+# _handle_func('mpv_detach_destroy',          [],                                         None, errcheck=None)
 _handle_func('mpv_terminate_destroy',       [],                                         None, errcheck=None)
 _handle_func('mpv_load_config_file',        [c_char_p],                                 c_int, ec_errcheck)
 _handle_func('mpv_get_time_us',             [],                                         c_ulonglong, errcheck=None)
@@ -870,7 +875,7 @@ class MPV(object):
                         self._message_handlers[target](*args)
 
                 if eid == MpvEventID.SHUTDOWN:
-                    _mpv_detach_destroy(self._event_handle)
+                    # _mpv_detach_destroy(self._event_handle)
                     return
 
             except Exception as e:

@@ -2,5 +2,5 @@ mypy>=0.920
 pytest>=6.2.5
 pylint>=2.12.2
 httpx>=0.22.0
-rich>=11.1.0
-PyQt5>=5.15.6
+rich>=11.2.0
+pyobjc-framework-Cocoa>=8.3

@@ -6,8 +6,11 @@ import copy
 from dataclasses import dataclass
 from typing import Any
 
+from src.services.base import message
+from ...utils import clamp
 
-from ..base import Actor, Message, Sig, actor_system, sanity_check
+
+from ..base import Actor, Message, Sig, actor_system
 
 from .mpv import (
     _mpv_set_option_string, 
@@ -23,6 +26,7 @@ from .mpv import (
     _mpv_set_property_string,
     _mpv_terminate_destroy,
     _mpv_coax_proptype,
+    _mpv_observe_property,
     MpvRenderContext,
     _make_node_str_list,
     MpvFormat
@@ -43,25 +47,24 @@ class MPVEventWrapper:
 class MPVEvent(Actor):
     def __init__(self, pid: int, name='',parent: Actor=None, **kwargs) -> None:
         super().__init__(pid, name, parent)
-        self.DEBUG = 0
+        self.DEBUG = 1
         self.handle = kwargs.get('handle')
         self.event_handle = _mpv_create_client(self.handle, b'py_event_handler')
-        # self.event_thread = Thread(target=self.event_runner, daemon=True).start()
 
     def run(self) -> None:
         while 1:
             event = _mpv_wait_event(self.handle, -1).contents
             e = copy.deepcopy(event.as_dict())
             e.update({'name': copy.deepcopy(repr(event.event_id))})
-            # print(f'Got new event: event={e}')
-            actor_system.send(self.parent, Message(sig=Sig.MPV_EVENT, args=MPVEventWrapper(**e)))
+            actor_system.send(self.parent, Message(Sig.MPV_EVENT, MPVEventWrapper(**e)))
 
 
 class MPV(Actor):
     def __init__(self, pid: int, name='',parent: Actor=None, **kwargs) -> None:
-        super().__init__(pid, name, parent)
-        self.DEBUG = 1
+        super().__init__(pid, name, parent, **kwargs)
+        self.DEBUG = 0
         self.state = 0
+        self._volume = 100
         lc, enc = locale.getlocale(locale.LC_NUMERIC)
         locale.setlocale(locale.LC_NUMERIC, 'C')
 
@@ -80,7 +83,24 @@ class MPV(Actor):
         # mpv_set_option_string(self.handle, b'script-opts', b'osc-layout=box,osc-seekbarstyle=bar,osc-deadzonesize=0,osc-minmousemove=3')
 
         _mpv_initialize(self.handle)
-        self.event_loop = actor_system.create_actor(MPVEvent, handle=self.handle)
+        self._event_loop = actor_system.create_actor(MPVEvent, handle=self.handle)
+        self.post(None, Message(Sig.INIT))
+
+    @property
+    def event_loop(self) -> Any:
+        return self._event_loop.event_handle
+
+    @event_loop.setter
+    def event_loop(self, value) -> None:
+        raise TypeError
+
+    @property
+    def volume(self) -> int:
+        return self._volume
+
+    @volume.setter
+    def volume(self, value: int) -> None:
+        self._volume = clamp(0, 100)(value)
 
     async def command_async(self, *args) -> int:
         args = [c_uint64(0xffff), (c_char_p*len(args))(*args)]
@@ -89,6 +109,10 @@ class MPV(Actor):
     def command(self, *args) -> int:
         args = (c_char_p*len(args))(*args)
         return _mpv_command(self.handle, args)
+
+        # args = [name.encode('utf-8')] + [ (arg if type(arg) is bytes else str(arg).encode('utf-8'))
+        #         for arg in args if arg is not None ] + [None]
+        # _mpv_command(self.handle, (c_char_p*len(args))(*args))
 
     def set_property(self, name: str, value: list|dict|set|str):
         ename = name.encode('utf-8')
@@ -100,64 +124,144 @@ class MPV(Actor):
 
     def terminate(self) -> None:
         self.handle, handle = None, self.handle
-        _mpv_terminate_destroy(handle)
+        self.event_loop.handle = None
+        # _mpv_terminate_destroy(handle)
         self.event_thread.join()
 
-    @sanity_check
+    def observe_property(self, name: str) -> None:
+        _mpv_observe_property(self.event_loop, hash(name) & 0xffffffffffffffff, name.encode('utf-8'), MpvFormat.NODE)
+
     def dispatch(self, sender: Actor, msg: Message) -> None:
-        match msg.sig:
-            case Sig.MPV_EVENT:
-                # print(f'processing MPV_EVENT: event={msg.args}')
-                match msg.args.event_id:
+        # actor_system.send('Logger', Message(Sig.PUSH, f'Got new Message: {msg=}'))
+        # print(f'Got new Message: {msg=}')
+        match msg:
+            case Message(sig=Sig.MPV_EVENT, args=args):
+                actor_system.send('Logger', Message(Sig.PUSH, f'processing MPV_EVENT: event={msg.args}'))
+                match args.event_id:
                     case MpvEventID.NONE:
                         ...
+                    case MpvEventID.SHUTDOWN:
+                        ...
+                    case MpvEventID.LOG_MESSAGE:
+                        ...
+                    case MpvEventID.GET_PROPERTY_REPLY:
+                        ...
+                    case MpvEventID.SET_PROPERTY_REPLY:
+                        ...
+                    case MpvEventID.COMMAND_REPLY:
+                        ...
+                    case MpvEventID.START_FILE:
+                        self.post(None, Message(sig=Sig.STATE_CHANGE, args=1))
                     case MpvEventID.END_FILE:
+                        ...
+                    case MpvEventID.FILE_LOADED:
+                        ...
+                    case MpvEventID.TRACKS_CHANGED:
+                        ...
+                    case MpvEventID.TRACK_SWITCHED:
                         ...
                     case MpvEventID.IDLE:
                         self.post(None, Message(sig=Sig.STATE_CHANGE, args=4))
                     case MpvEventID.PAUSE:
                         self.post(None, Message(sig=Sig.STATE_CHANGE, args=2))
-                    case MpvEventID.PLAYBACK_RESTART:
-                        self.post(None, Message(sig=Sig.STATE_CHANGE, args=1))
                     case MpvEventID.UNPAUSE:
                         self.post(None, Message(sig=Sig.STATE_CHANGE, args=1))
-                    case _:
+                    case MpvEventID.TICK:
+                        ...
+                    case MpvEventID.SCRIPT_INPUT_DISPATCH:
+                        ...
+                    case MpvEventID.CLIENT_MESSAGE:
+                        ...
+                    case MpvEventID.VIDEO_RECONFIG:
+                        ...
+                    case MpvEventID.AUDIO_RECONFIG:
+                        ...
+                    case MpvEventID.METADATA_UPDATE:
+                        ...
+                    case MpvEventID.SEEK:
+                        ...
+                        # actor_system.send('Display', Message(Sig.SEEK))
+                    case MpvEventID.PLAYBACK_RESTART:
+                        self.post(None, Message(sig=Sig.STATE_CHANGE, args=1))
+                    case MpvEventID.PROPERTY_CHANGE:
+                        actor_system.send('Logger', Message(Sig.PUSH, f'processing MPV_EVENT: event={msg.args}'))
+                    case MpvEventID.CHAPTER_CHANGE:
+                        ...
+                    case MpvEventID.QUEUE_OVERFLOW:
+                        ...
+                    case MpvEventID.HOOK:
                         ...
 
-            case Sig.INIT:
-                ...
+            case Message(sig=Sig.INIT, args=args):
+                self.observe_property('volume')
+                self.observe_property('stream-end')
+                self.observe_property('stream-duration')
+                self.observe_property('duration')
+                # percent-pos
+                # time-pos
+                # time-start
+                # time-remaining
+                # ao-volume
 
-            case Sig.STATE_CHANGE:
-                self.state = msg.args
+            case Message(sig=Sig.STATE_CHANGE, args=state):
+                self.state = state
                 if self.state == 4:
                     self.post(None, Message(sig=Sig.DONE))
 
-            case Sig.PLAY_ALL:
-                path = msg.args
+            case Message(sig=Sig.PLAY_ALL, args=path):
                 args = [b'loadfile', path.encode('utf-8'), b'replace', b'', None]
+                self.set_property('pause', 'no')
                 self.command(*args)
 
-            case Sig.PLAY_PAUSE:
+            case Message(sig=Sig.PLAY_PAUSE, args=None):
                 if self.state == 1:
                     self.set_property('pause', 'yes')
+                    self.post(None, Message(sig=Sig.STATE_CHANGE, args=2))
                 elif self.state == 2:
                     self.set_property('pause', 'no')
+                    self.post(None, Message(sig=Sig.STATE_CHANGE, args=1))
 
-            case Sig.VOLUME:
-                self.set_property('volume', msg.args)
+            case Message(sig=Sig.VOLUME, args=args):
+                if args is not None:
+                    self.volume = msg.args
+                self.set_property('volume', self.volume)
+            
+            case Message(sig=Sig.VOLUME_INC, args=args):
+                self.volume += args
+                actor_system.send(self, Message(sig=Sig.VOLUME))
 
-            case Sig.STOP:
+            case Message(sig=Sig.STOP, args=None):
                 args = [b'stop', b'', None]
                 self.command(*args)
 
-            case Sig.DONE:
-                actor_system.send(self.parent, Message(sig=Sig.DONE))
+            case Message(sig=Sig.SEEK, args=args):
+                p = str(args).encode('utf-8')
+                args = [b'seek', p, b'relative', b'default-precise', None]
+                self.command(*args)
+                
+                # def seek(self, amount, reference="relative", precision="default-precise"):
+                #     """Mapped mpv seek command, see man mpv(1)."""
+                #     self.command('seek', amount, reference, precision)
 
-            case Sig.SIGINT:
+            case Message(sig=Sig.DONE, args=args) as msg:
+                actor_system.send(self.parent, msg)
+
+            case Message(sig=Sig.SIGINT, args=None):
                 self.terminate()
                 actor_system.send(self.parent, Message(sig=Sig.DONE))
                 self.parent = None
                 raise SystemExit
 
+            case Message(sig=Sig.POISON, args=None):
+                self.terminate()
+                raise Exception
+
             case _:
                 raise SystemExit(f'{msg=}')
+# -- Install configuration: "Release"
+# -- Installing: /usr/local/lib/pkgconfig/dumb.pc
+# -- Installing: /usr/local/include/dumb.h
+# -- Installing: /usr/local/lib/libdumb.a
+
+# SDL2
+# argtable2

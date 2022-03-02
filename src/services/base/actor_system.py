@@ -1,14 +1,14 @@
+from typing import Any
 from threading import Thread, Lock
+from queue import Queue
 from functools import wraps
+from venv import create
 
 from .utils import SingletonMeta
 from .message import Message
 from .sig import Sig
-from .base_actor import BaseActor
+from .base_actor import BaseActor, ActorGeneric
 import sys
-
-
-ActorGeneric = int|str|BaseActor|type
 
 
 def inject_caller(func):
@@ -25,27 +25,15 @@ def inject_caller(func):
     return inner
 
 
-def sanity_check(func):
-    @wraps(func)
-    def inner(*args, **kwargs):
-        try:
-            return func(*args, **kwargs)
-        except Exception:
-            raise
-            # actor, *_ = args
-            # actor_system.create_actor(actor.__class__)
-            # actor_system.terminate(actor)
-    return inner
-
-
-class ActorSystem(metaclass=SingletonMeta):
+class ActorSystem(BaseActor, metaclass=SingletonMeta):
     pid = 0
     pid_l = Lock()
 
-    def __init__(self) -> None:
+    def __init__(self, pid: int, name: str='') -> None:
+        super().__init__(pid, name)
         self._registry: dict[int, BaseActor] = {}
         self._threads: dict[int, Thread] = {}
-        self.pid = self.get_pid()
+        self.mq: Queue[tuple[BaseActor, Message]] = Queue()
         # remontage d'un acteur qui a quité?
 
     @inject_caller
@@ -53,15 +41,19 @@ class ActorSystem(metaclass=SingletonMeta):
         '''
         (sender) envoie un message à un acteur (receiver)
         '''        
-        r = self.get_actor(receiver)
         s = self.get_actor(sender)
+        r = self.get_actor(receiver)
         match [s, r]:
             case [None, None]:
                 # sender = main thread, receiver = does not exists
                 ...
             case [a, None]:
                 # sender = actor, receiver = does not exists
-                s.post(sender=None, msg=Message(sig=Sig.DISPATCH_ERROR))
+                if isinstance(receiver, type):
+                    actor = self.create_actor(receiver)
+                    actor.post(sender=s, msg=msg)
+                else:
+                    s.post(sender=None, msg=Message(sig=Sig.DISPATCH_ERROR))
             case [None, b]:
                 # sender = main thread, receiver = actor
                 r.post(sender=None, msg=msg)
@@ -110,7 +102,6 @@ class ActorSystem(metaclass=SingletonMeta):
         else:
             return None
 
-
     @inject_caller
     def create_actor(
         self, 
@@ -118,35 +109,39 @@ class ActorSystem(metaclass=SingletonMeta):
         cls: type, 
         *, 
         name='', 
+        pid: int=-1,
         **kwargs
     ) -> BaseActor:
-        pid = self.get_pid()
+        if pid <= -1:
+            pid = ActorSystem.get_pid()
         actor = cls(pid=pid, name=name, parent=parent, **kwargs)
         t = Thread(target=actor.run, daemon=True)
         self._registry.update({pid: actor})
         self._threads.update({pid: t})
         t.start()
+        # self.send('Logger', Message(Sig.PUSH, f'Successfully regenerated {actor}'))
         return actor
 
-    def terminate(self, actor: BaseActor) -> None:
-        a = self.get_actor(actor)
-        if a is not None:
-            t = self._threads.get(a.pid)
-            t.stop()
-            t = None
-            a = None
+    def dispatch(self, sender: BaseActor, msg: Message) -> None:
+        match msg:
+            case Message(sig=Sig.SIGINT):
+                pid = sender.pid
+                cls = sender.__class__
+                parent = sender.parent
+                kwargs = sender.kwargs.copy()
+                name = sender.name
 
-    def get_pid(self) -> int:
+                t = self._threads.get(pid)
+                t._stop()
+                # self.send('Logger', Message(Sig.PUSH, f'Trying to regenerate Actor(pid={pid}, cls={cls}, parent={parent}, name={name}, kwargs={kwargs})'))
+                return self.create_actor(cls, name=name, pid=pid, **kwargs)
+
+    @staticmethod
+    def get_pid() -> int:
         with ActorSystem.pid_l:
             value = ActorSystem.pid
             ActorSystem.pid += 1
         return value
 
-    def __del__(self) -> None:
-        for pid, actor in self._registry.items():
-            t = self._threads.get(pid)
-            if t is not None:
-                t.stop()
 
-
-actor_system = ActorSystem()
+actor_system = ActorSystem(pid=ActorSystem.get_pid())

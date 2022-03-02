@@ -1,6 +1,9 @@
-from typing import Any
+from typing import Any, TypeVar
 
 from .sig import Sig
+
+
+T = TypeVar('T', bound='Message')
 
 
 class Message:
@@ -9,7 +12,7 @@ class Message:
         self._args = args
 
     def __repr__(self) -> str:
-        return f'Message(sig={self.sig}, args={repr(self.args)[:100]})'
+        return f'Message(sig={self.sig}, args={repr(type(self.args))})'
 
     @property
     def sig(self) -> Sig:
@@ -26,3 +29,9 @@ class Message:
     @args.setter
     def args(self, value: Any) -> None:
         raise TypeError('Property is immutable')
+
+    def __lshift__(self, other: Sig) -> T:
+        return self.__class__(sig=other, args=self)
+
+    # def __rshift__(self, other: Sig) -> T:
+    #     return self.__class__(sig=other, args=self)

@@ -23,8 +23,7 @@ ROOT = ( "shared", )
 MUSIC_PATH = ( "shared", "Audio" )
 VIDEO_PATH = ( "shared", "Video" )
 MUSIC_TODO = ( "shared", "Audio", "Music.ToDo", "1st Pass", )
-
-extensions_audio = {".mp3", ".flac", ".m4a", ".ogg", '.wav'}
+extensions_audio = {".mp3", ".flac", ".m4a", ".ogg", '.wav', '.spc', '.mod', '.gym', '.nsf', '.nsfe', '.gbs', '.ay', '.kss', '.hes', '.vgm', '.sa'}
 extensions_video = {".mkv", ".avi", ".mp4", '.wmv'}
 
 extensions_all = extensions_audio | extensions_video

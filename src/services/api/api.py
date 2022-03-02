@@ -10,8 +10,8 @@ from .constants import AUTH, NAS
 
 
 class API(Actor):
-    def __init__(self, pid: int, name='',parent: Actor=None) -> None:
-        super().__init__(pid, name, parent)
+    def __init__(self, pid: int, name='', parent: Actor=None, **kwargs) -> None:
+        super().__init__(pid, name, parent, **kwargs)
         self.DEBUG = 0
         self.username = USERNAME
         self.password = PASSWORD
@@ -19,8 +19,14 @@ class API(Actor):
         self.extensions = extensions_all
 
     def dispatch(self, sender: Actor, msg: Message) -> None:
-        match msg.sig:
-            case Sig.LOGIN:
+        match msg:
+            # check token valid
+            # login + persist token
+            #
+            # case Message(sig=Sig.INIT, args=args):
+            #     self.post(self, Message(Sig.LOGIN))
+
+            case Message(sig=Sig.LOGIN, args=args):
                 try:
                     response = httpx.post(
                         url=AUTH.LOGIN, 
@@ -39,7 +45,7 @@ class API(Actor):
                     else:
                         actor_system.send(sender, Message(sig=Sig.LOGIN_SUCCESS))
 
-            case Sig.EXT_SET:
+            case Message(sig=Sig.EXT_SET, args=args):
                 try:
                     response = httpx.patch(
                         url=NAS.EXT,
@@ -55,7 +61,7 @@ class API(Actor):
                     else:
                         actor_system.send(sender, Message(sig=Sig.EXT_SET))
 
-            case Sig.FILES_GET:
+            case Message(sig=Sig.FILES_GET, args=args):
                 try:
                     with open('cache.pckl', 'rb') as f:
                         data = pickle.load(f)
@@ -77,7 +83,7 @@ class API(Actor):
                                 pickle.dump(data, f)
                 actor_system.send('Dispatcher', Message(sig=Sig.FILES_GET, args=data))
             
-            case Sig.FILES_REINDEX:
+            case Message(sig=Sig.FILES_REINDEX, args=args):
                 response: httpx.Response = httpx.patch(
                     url=NAS.FILES, 
                     headers=helpers.get_headers(self.token),
@@ -85,7 +91,8 @@ class API(Actor):
                 )
                 if response.status_code != 200:
                     raise Exception(f'{response.json()}')
-                actor_system.send(sender, Message(sig=Sig.FILES_GET))
+                self.post(sender, Message(sig=Sig.FILES_GET))
+                # actor_system.send(sender, Message(sig=Sig.FILES_GET))
 
             case _:
                 raise SystemExit(f'{msg=}')

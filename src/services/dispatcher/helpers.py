@@ -1,5 +1,6 @@
 from typing import List, Any
 import logging
+import re
 
 from ..base import Message, Sig, Actor, actor_system
 from .. import settings
@@ -7,8 +8,7 @@ from ...utils import clamp
 
 
 def eval_cmd(cmd: str) -> tuple[str, Message]:
-    state = ''
-    print(f'eval_cmd got new cmd={cmd}')
+    # actor_system.send('Logger', Message(Sig.PUSH, f'eval_cmd got new cmd={cmd}'))
     match cmd.split(' '):
         case ['..']:
             # goes back 1 node
@@ -70,14 +70,14 @@ def eval_cmd(cmd: str) -> tuple[str, Message]:
                 case _:
                     ...
 
-        case ['space']:
-            return 'MediaDispatcher', Message(sig=Sig.PLAY_PAUSE)
+        # case ['space']:
+        #     return 'MediaDispatcher', Message(sig=Sig.PLAY_PAUSE)
 
-        case ['next']:
-            return 'MediaDispatcher', Message(sig=Sig.NEXT)
+        # case ['next']:
+        #     return 'MediaDispatcher', Message(sig=Sig.NEXT)
         
-        case ['previous']:
-            return 'MediaDispatcher', Message(sig=Sig.PREVIOUS)
+        # case ['previous']:
+        #     return 'MediaDispatcher', Message(sig=Sig.PREVIOUS)
 
         case ['volume' | 'v', value] if value.isdigit():
             # set volume to value
@@ -88,5 +88,14 @@ def eval_cmd(cmd: str) -> tuple[str, Message]:
             # goes value nodes up
             ...
 
+        case ['open']:
+            return 'External', Message(sig=Sig.OPEN)
+
+        case ['?', p] if p:
+            return 'Files', Message(sig=Sig.SEARCH, args=p)
+
+        case ['?*', p] if p:
+            return 'Files', Message(sig=Sig.SEARCH_ALL, args=p)
+
         case _:
-            return 'Display', Message(sig=Sig.ERROR, args=f'Invalid command: {cmd}')
+            return 'Display', Message(sig=Sig.POPUP, args=f'Invalid command: {cmd}')

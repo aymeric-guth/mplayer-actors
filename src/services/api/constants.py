@@ -12,4 +12,3 @@ class NAS(object):
     FILES = f"{BASE_NAS}/files"
     PLAYBACK = f"{BASE_NAS}/playback"
     EXT = f"{BASE_NAS}/extensions"
-

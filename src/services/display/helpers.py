@@ -85,21 +85,21 @@ def string_format(dir_list: list[Any], files_list: list[Any], display_width: int
     blank = display_width * ' '
 
     str_object = []
-    str_object.append(padding)
+    # str_object.append(padding)
     str_object.append(format_line('DIRS', '0', pad, display_width))
-    str_object.append(padding)
+    # str_object.append(padding)
 
     for i, v in enumerate(dir_list[1:]):
         str_object.append(format_line(v, i+1, pad, display_width))
 
-    str_object.append(padding)
+    # str_object.append(padding)
     str_object.append(format_line('FILES', '0', pad, display_width))
-    str_object.append(padding)
+    # str_object.append(padding)
 
     for i, v in enumerate(files_list[1:]):
         str_object.append(format_line(v[0], i+1, pad, display_width))
-    if files_list[1:]:
-        str_object.append(padding)
+    # if files_list[1:]:
+    #     str_object.append(padding)
 
     return str_object, padding, blank
 

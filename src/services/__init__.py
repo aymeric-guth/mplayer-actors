@@ -11,3 +11,5 @@ from .files import Files
 from .input import Input
 from .media_dispatcher import MediaDispatcher
 from .mpv import MPV
+from .external import External
+from .logger import Logger

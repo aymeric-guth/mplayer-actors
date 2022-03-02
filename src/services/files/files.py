@@ -12,9 +12,9 @@ from . import helpers
 # search all dirs
 
 class Files(Actor):
-    def __init__(self, pid: int, name='',parent: Actor=None) -> None:
-        super().__init__(pid, name, parent)
-        self.DEBUG = 0 
+    def __init__(self, pid: int, name='',parent: Actor=None, **kwargs) -> None:
+        super().__init__(pid, name, parent, **kwargs)
+        self.DEBUG = 0
         self.mount_point = MOUNT_POINT[:]
         self.extensions = extensions_all
         self.files_tree = defaultdict(list)
@@ -27,9 +27,13 @@ class Files(Actor):
             case Sig.INIT:
                 ...
 
+            case Sig.CWD_GET:
+                actor_system.send(sender, Message(sig=Sig.CWD_GET, args=helpers.get_kwargs(self)))
+
             case Sig.FILES_SET:
                 self.files_tree.clear()
                 self.dir_tree.clear()
+
                 for r in msg.args:
                     path = r.get('path')
                     file_name = r.get('filename')
@@ -42,6 +46,26 @@ class Files(Actor):
                         key = formated_path[:i+1]
                         self.dir_tree[key[:-1]].add(key[-1])
                 self.post(None, Message(sig=Sig.PATH_SET, args=ROOT))
+
+            case Sig.SEARCH:
+                query = msg.args
+                self.path_full = f"{self.mount_point}{'/'.join(self.path[1:])}/"
+                path = tuple(self.path)               
+                self.dirs = [ 
+                    i for i in list(self.dir_tree.get(path, []))
+                    if i and query.lower() in i.lower()
+                ]
+                self.files = [ 
+                    i for i in list(self.files_tree.get(path, []))
+                    if i and query.lower() in i[0].lower()
+                ]
+                self.dirs.sort()
+                self.files.sort()
+                self.dirs.insert(0, "..")
+                self.files.insert(0, "")
+                self.len_dir = len(self.dirs)
+                self.len_files = len(self.files)
+                actor_system.send('Display', Message(sig=Sig.CWD_GET, args=helpers.get_kwargs(self)))
 
             case Sig.FILES_GET:
                 match msg.args:
@@ -67,6 +91,10 @@ class Files(Actor):
                                 ...
                         elif param < len(self.dirs):
                             self.path.append(f"{self.dirs[param]}")
+                        elif self.files[1:] and param < len(self.files):
+                            f, e = self.files[param]
+                            args = [f'{self.path_full}{f}{e}',]
+                            actor_system.send('MediaDispatcher', Message(sig=Sig.FILES_GET, args=args))
                         else:
                             actor_system.send('Display', Message(sig=Sig.ERROR, args=f'Invalid selection: {param}'))
                             return
