@@ -283,3 +283,5 @@ cython_debug/
 pymakr.conf
 .atom/
 settings.py
+.activate.sh
+.deactivate.sh
