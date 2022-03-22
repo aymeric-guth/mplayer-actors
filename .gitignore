@@ -281,5 +281,5 @@ cython_debug/
 .vscode/
 
 pymakr.conf
-docs/
 .atom/
+settings.py

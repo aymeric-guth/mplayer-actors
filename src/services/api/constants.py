@@ -1,4 +1,5 @@
 BASE_URL = "https://ars-virtualis.org/api"
+# BASE_URL = "http://192.168.1.200:8080/api"
 BASE_NAS = f"{BASE_URL}/nas"
 BASE_AUTH = f"{BASE_URL}/authentication"
 

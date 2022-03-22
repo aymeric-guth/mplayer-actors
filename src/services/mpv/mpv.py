@@ -33,11 +33,8 @@ import locale
 lc, enc = locale.getlocale(locale.LC_NUMERIC)
 locale.setlocale(locale.LC_NUMERIC, 'C')
 
-# sofile = Path(__file__).parent / 'libmpv.a'
-# sofile = '/opt/local/lib/libmpv.1.109.0.dylib'
-
-sofile = ctypes.util.find_library('mpv')
-# print(sofile)
+# sofile = ctypes.util.find_library('mpv')
+sofile = '/opt/x86_64-apple-darwin18/lib/libmpv.dylib'
 backend = CDLL(sofile)
 fs_enc = sys.getfilesystemencoding()
 

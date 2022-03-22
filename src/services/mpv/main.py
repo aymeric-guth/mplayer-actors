@@ -77,7 +77,7 @@ class MPV(Actor):
         _mpv_set_option_string(self.handle, b'audio-display', b'no')
         _mpv_set_option_string(self.handle, b'input-default-bindings', b'yes')
         _mpv_set_option_string(self.handle, b'input-vo-keyboard', b'yes')
-        _mpv_set_option_string(self.handle, b'osc', b'yes')
+        # _mpv_set_option_string(self.handle, b'osc', b'yes')
         # mpv_load_config_file(self.handle, str(path).encode('utf-8'))
         # mpv_set_option_string(self.handle, b'vo', b'opengl')
         # mpv_set_option_string(self.handle, b'script-opts', b'osc-layout=box,osc-seekbarstyle=bar,osc-deadzonesize=0,osc-minmousemove=3')
@@ -258,10 +258,3 @@ class MPV(Actor):
 
             case _:
                 raise SystemExit(f'{msg=}')
-# -- Install configuration: "Release"
-# -- Installing: /usr/local/lib/pkgconfig/dumb.pc
-# -- Installing: /usr/local/include/dumb.h
-# -- Installing: /usr/local/lib/libdumb.a
-
-# SDL2
-# argtable2
