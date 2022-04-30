@@ -12,19 +12,23 @@ from .constants import AUTH, NAS
 class API(Actor):
     def __init__(self, pid: int, name='', parent: Actor=None, **kwargs) -> None:
         super().__init__(pid, name, parent, **kwargs)
-        self.DEBUG = 0
+        self.LOG = 0
         self.username = USERNAME
         self.password = PASSWORD
         self.token = None
         self.extensions = extensions_all
+        self.post(self, Message(sig=Sig.INIT))
 
     def dispatch(self, sender: Actor, msg: Message) -> None:
         match msg:
-            # check token valid
-            # login + persist token
-            #
-            # case Message(sig=Sig.INIT, args=args):
-            #     self.post(self, Message(Sig.LOGIN))
+            case Message(sig=Sig.INIT, args=args):
+                self.post(self, Message(Sig.LOGIN))
+
+            case Message(sig=Sig.LOGIN_SUCCESS, args=args):
+                self.post(self, Message(Sig.EXT_SET))
+
+            case Message(sig=Sig.LOGIN_FAILURE, args=args):
+                actor_system.send('Dispatcher', Message(sig=Sig.LOGIN_FAILURE, args=str(err)))
 
             case Message(sig=Sig.LOGIN, args=args):
                 try:
@@ -37,7 +41,7 @@ class API(Actor):
                         timeout=20.0
                     )
                 except httpx.NetworkError as err:
-                    actor_system.send(sender, Message(sig=Sig.NETWORK_FAILURE, args=str(err)))
+                    actor_system.send('Dispatcher', Message(sig=Sig.NETWORK_FAILURE, args=str(err)))
                 else:
                     self.token = response.json().get('token')
                     if self.token is None:
@@ -54,12 +58,12 @@ class API(Actor):
                         timeout=10.0
                     )
                 except httpx.NetworkError as err:
-                    actor_system.send(sender, Message(sig=Sig.NETWORK_FAILURE))
+                    actor_system.send('Dispatcher', Message(sig=Sig.NETWORK_FAILURE))
                 else:
                     if response.status_code != 200:
-                        actor_system.send(sender, Message(sig=Sig.NETWORK_FAILURE, args=response.json()))
+                        actor_system.send('Dispatcher', Message(sig=Sig.NETWORK_FAILURE, args=response.json()))
                     else:
-                        actor_system.send(sender, Message(sig=Sig.EXT_SET))
+                        actor_system.send(sender, Message(sig=Sig.FILES_GET))
 
             case Message(sig=Sig.FILES_GET, args=args):
                 try:
@@ -81,7 +85,7 @@ class API(Actor):
                             data = response.json()
                             with open('cache.pckl', 'wb') as f:
                                 pickle.dump(data, f)
-                actor_system.send('Dispatcher', Message(sig=Sig.FILES_GET, args=data))
+                actor_system.send('Files', Message(sig=Sig.FILES_NEW, args=data))
             
             case Message(sig=Sig.FILES_REINDEX, args=args):
                 response: httpx.Response = httpx.patch(

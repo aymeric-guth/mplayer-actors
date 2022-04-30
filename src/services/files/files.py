@@ -14,7 +14,7 @@ from . import helpers
 class Files(Actor):
     def __init__(self, pid: int, name='',parent: Actor=None, **kwargs) -> None:
         super().__init__(pid, name, parent, **kwargs)
-        self.DEBUG = 0
+        self.LOG = 0
         self.mount_point = MOUNT_POINT[:]
         self.extensions = extensions_all
         self.files_tree = defaultdict(list)
@@ -23,18 +23,18 @@ class Files(Actor):
         self.path_full = f"{self.mount_point}{'/'.join(self.path[1:])}/"
 
     def dispatch(self, sender: Actor, msg: Message) -> None:
-        match msg.sig:
-            case Sig.INIT:
-                ...
+        match msg:
+            # case Message(sig=Sig.INIT, args=args):
+            #     actor_system.send('API', Message(sig=Sig.FILES_GET))
 
-            case Sig.CWD_GET:
+            case Message(sig=Sig.CWD_GET, args=args):
                 actor_system.send(sender, Message(sig=Sig.CWD_GET, args=helpers.get_kwargs(self)))
 
-            case Sig.FILES_SET:
+            case Message(sig=Sig.FILES_NEW, args=args):
                 self.files_tree.clear()
                 self.dir_tree.clear()
 
-                for r in msg.args:
+                for r in args:
                     path = r.get('path')
                     file_name = r.get('filename')
                     extension = r.get('extension')
@@ -45,19 +45,18 @@ class Files(Actor):
                     for i, v in enumerate(formated_path):
                         key = formated_path[:i+1]
                         self.dir_tree[key[:-1]].add(key[-1])
-                self.post(None, Message(sig=Sig.PATH_SET, args=ROOT))
+                self.post(self, Message(sig=Sig.PATH_SET, args=ROOT))
 
-            case Sig.SEARCH:
-                query = msg.args
+            case Message(sig=Sig.SEARCH, args=args):
                 self.path_full = f"{self.mount_point}{'/'.join(self.path[1:])}/"
                 path = tuple(self.path)               
                 self.dirs = [ 
                     i for i in list(self.dir_tree.get(path, []))
-                    if i and query.lower() in i.lower()
+                    if i and args.lower() in i.lower()
                 ]
                 self.files = [ 
                     i for i in list(self.files_tree.get(path, []))
-                    if i and query.lower() in i[0].lower()
+                    if i and args.lower() in i[0].lower()
                 ]
                 self.dirs.sort()
                 self.files.sort()
@@ -67,8 +66,8 @@ class Files(Actor):
                 self.len_files = len(self.files)
                 actor_system.send('Display', Message(sig=Sig.CWD_GET, args=helpers.get_kwargs(self)))
 
-            case Sig.FILES_GET:
-                match msg.args:
+            case Message(sig=Sig.FILES_GET, args=args):
+                match args:
                     case [p1] if isinstance(p1, int) and p1 >= 0 and p1 < len(self.files):
                         args = [ f'{self.path_full}{f}{e}' for f, e in self.files[p1:] ]
                     case [p1, p2]:
@@ -81,8 +80,8 @@ class Files(Actor):
                         ...
                 actor_system.send(sender, Message(sig=Sig.FILES_GET, args=args))
 
-            case Sig.PATH_SET:
-                match msg.args:
+            case Message(sig=Sig.PATH_SET, args=args):
+                match args:
                     case param if isinstance(param, int):
                         if not param:
                             if len(self.path) > 1:

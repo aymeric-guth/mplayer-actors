@@ -53,4 +53,9 @@ class Sig(Enum):
     DRAW_SCREEN = auto()
     DRAW_FILES = auto()
     PROMPT = auto()
-
+    MEDIA_META = auto()
+    RESIZE = auto()
+    FILES_NEW = auto()
+    PLAYBACK_OVERLAY = auto()
+    SMB_MOUNT = auto()
+    SMB_PING = auto()

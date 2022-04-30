@@ -14,8 +14,8 @@ from .constants import num_mapping, Key
 class Input(Actor):
     def __init__(self, pid: int, name='', parent: Actor=None, **kwargs) -> None:
         super().__init__(pid, name, parent, **kwargs)
-        self.DEBUG = 0
-        self.prompt_mode = 0
+        self.LOG = 1
+        self._prompt_mode = 0
         self.buff: list[str] = []
 
     def run(self) -> None:
@@ -28,8 +28,8 @@ class Input(Actor):
                     # KEY_ENTER ?
                     case 10:
                         self.prompt_mode = 0
-                        actor_system.send('Dispatcher', Message(sig=Sig.PARSE, args=''.join(self.buff.copy())))
-                        self.buff.append('\n')
+                        actor_system.send('Dispatcher', Message(sig=Sig.PARSE, args=''.join(self.buff)))
+                        continue
                     # KEY_BACKSPACE ?
                     case 127:
                         if self.buff:
@@ -40,31 +40,19 @@ class Input(Actor):
                 actor_system.send('Display', Message(sig=Sig.PROMPT, args=self.buff.copy()))
                 continue
 
-            # actor_system.send('Logger', Message(Sig.PUSH, f'{self} got new c={c}'))
             match c:
                 case -1:
                     ...
 
                 case 0:
                     ...
-                
-                case curses.KEY_RESIZE | curses.KEY_REFRESH:
-                    actor_system.send('Display', Message(sig=Sig.REFRESH))
 
                 case Key.COLON:
-                    self.prompt_mode = 1
                     self.buff.clear()
-                    actor_system.send('Display', Message(sig=Sig.PROMPT))
-
-                # case Key.COLON:
-                #     cmd = draw_prompt()
-                #     actor_system.send('Dispatcher', Message(sig=Sig.PARSE, args=cmd.decode('utf-8')))
+                    self.prompt_mode = 1
 
                 case Key.q | Key.Q:
                     return 0
-                
-                case Key.d | Key.D:
-                    actor_system.send('Display', Message(sig=Sig.LOGS))
 
                 case Key.r | Key.R:
                     actor_system.send('Dispatcher', Message(sig=Sig.PARSE, args='refresh'))
@@ -96,6 +84,9 @@ class Input(Actor):
                             arg = 10
                     actor_system.send('MediaDispatcher', Message(sig=Sig.VOLUME_INC, args=arg))
 
+                case (Key.d | Key.D):
+                    actor_system.send('Display', Message(sig=Sig.PLAYBACK_OVERLAY))
+
                 case Key.c:
                     actor_system.send('Display', Message(Sig.POISON))
 
@@ -113,6 +104,12 @@ class Input(Actor):
 
                 case p if p in num_mapping:
                     actor_system.send('Dispatcher', Message(sig=Sig.PARSE, args=num_mapping[p]))
+    
+    @property
+    def prompt_mode(self) -> int:
+        return self._prompt_mode
 
-            actor_system.send('Display', Message(sig=Sig.REFRESH))
-
+    @prompt_mode.setter
+    def prompt_mode(self, value) -> None:
+        self._prompt_mode = value
+        actor_system.send('Display', Message(sig=Sig.PROMPT, args=self._prompt_mode))

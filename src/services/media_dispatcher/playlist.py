@@ -15,10 +15,10 @@ class Playlist:
         return len(self.container)
     
     def prev(self) -> str:
-        print(f'prev call {self.p=}')
+        # print(f'prev call {self.p=}')
         if self.p > 0:
             self.p -= 1
-            print(f'prev branch {self.p=}')
+            # print(f'prev branch {self.p=}')
         return self.container[self.p]
     
     def next(self) -> str:
@@ -27,6 +27,9 @@ class Playlist:
         else:
             self.p += 1
             return self.container[self.p]
+
+    def pos(self) -> tuple[int, int]:
+        return (self.p + 1, len(self.container))
 
 # creation de la playlist 6 elements
 # next renvoi element 0

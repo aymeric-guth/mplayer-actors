@@ -37,8 +37,13 @@ class Actor(BaseActor):
         self.kwargs = kwargs.copy()
 
     def logger(self, sender: ActorGeneric, msg: Message) -> None:
-        s = actor_system.get_actor(sender)
-        actor_system.send('Logger', Message(Sig.PUSH, f'sender={s!r} receiver={self!r} msg={msg!r}'))
+        if self.LOG:
+            s = actor_system.get_actor(sender)
+            actor_system.send('Logger', Message(Sig.PUSH, f'sender={s!r} receiver={self!r} msg={msg!r}'))
+
+    def log_msg(self, msg: str) ->None:
+        if self.LOG:
+            actor_system.send('Logger', Message(Sig.PUSH, msg))
 
     def handler(self, err) -> None:
         actor_system.send('Logger', Message(Sig.PUSH, args=f'Actor={self} encountered a failure: {err}'))

@@ -31,6 +31,7 @@ class ActorSystem(BaseActor, metaclass=SingletonMeta):
 
     def __init__(self, pid: int, name: str='') -> None:
         super().__init__(pid, name)
+        self.LOG = 0
         self._registry: dict[int, BaseActor] = {}
         self._threads: dict[int, Thread] = {}
         self.mq: Queue[tuple[BaseActor, Message]] = Queue()
@@ -74,19 +75,19 @@ class ActorSystem(BaseActor, metaclass=SingletonMeta):
 
         match actor:
             case actor if isinstance(actor, int):
-                if self.DEBUG: print(f'get_actor matched pid: {actor=}')
+                if self.LOG: print(f'get_actor matched pid: {actor=}')
                 return self._registry.get(actor)
 
             case actor if isinstance(actor, str):
-                if self.DEBUG: print(f'get_actor matched name|classname: {actor=}')
+                if self.LOG: print(f'get_actor matched name|classname: {actor=}')
                 func = lambda a: actor == a.name
 
             case actor if isinstance(actor, type) and issubclass(actor, BaseActor):
-                if self.DEBUG: print(f'get_actor matched class: {actor=}')
+                if self.LOG: print(f'get_actor matched class: {actor=}')
                 func = lambda a: actor is a.__class__
 
             case actor if isinstance(actor, BaseActor):
-                if self.DEBUG: print(f'get_actor matched instance: {actor=}')
+                if self.LOG: print(f'get_actor matched instance: {actor=}')
                 func = lambda a: actor is a
 
             case actor if actor is None:
@@ -133,7 +134,7 @@ class ActorSystem(BaseActor, metaclass=SingletonMeta):
 
                 t = self._threads.get(pid)
                 t._stop()
-                # self.send('Logger', Message(Sig.PUSH, f'Trying to regenerate Actor(pid={pid}, cls={cls}, parent={parent}, name={name}, kwargs={kwargs})'))
+                self.send('Logger', Message(Sig.PUSH, f'Trying to regenerate Actor(pid={pid}, cls={cls}, parent={parent}, name={name}, kwargs={kwargs})'))
                 return self.create_actor(cls, name=name, pid=pid, **kwargs)
 
     @staticmethod

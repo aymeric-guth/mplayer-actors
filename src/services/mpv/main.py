@@ -47,7 +47,7 @@ class MPVEventWrapper:
 class MPVEvent(Actor):
     def __init__(self, pid: int, name='',parent: Actor=None, **kwargs) -> None:
         super().__init__(pid, name, parent)
-        self.DEBUG = 1
+        self.LOG = 0
         self.handle = kwargs.get('handle')
         self.event_handle = _mpv_create_client(self.handle, b'py_event_handler')
 
@@ -62,8 +62,8 @@ class MPVEvent(Actor):
 class MPV(Actor):
     def __init__(self, pid: int, name='',parent: Actor=None, **kwargs) -> None:
         super().__init__(pid, name, parent, **kwargs)
-        self.DEBUG = 0
-        self.state = 0
+        self.LOG = 1
+        self._state = 0
         self._volume = 100
         lc, enc = locale.getlocale(locale.LC_NUMERIC)
         locale.setlocale(locale.LC_NUMERIC, 'C')
@@ -84,7 +84,7 @@ class MPV(Actor):
 
         _mpv_initialize(self.handle)
         self._event_loop = actor_system.create_actor(MPVEvent, handle=self.handle)
-        self.post(None, Message(Sig.INIT))
+        self.post(self, Message(Sig.INIT))
 
     @property
     def event_loop(self) -> Any:
@@ -101,6 +101,16 @@ class MPV(Actor):
     @volume.setter
     def volume(self, value: int) -> None:
         self._volume = clamp(0, 100)(value)
+        actor_system.send('Display', Message(sig=Sig.MEDIA_META, args={'player-volume': self._volume}))
+
+    @property
+    def state(self) -> int:
+        return self._state
+
+    @state.setter
+    def state(self, value: int) -> None:
+        self._state = clamp(0, 4)(value)
+        actor_system.send('Display', Message(sig=Sig.MEDIA_META, args={'player-state': self._state}))
 
     async def command_async(self, *args) -> int:
         args = [c_uint64(0xffff), (c_char_p*len(args))(*args)]
@@ -136,7 +146,8 @@ class MPV(Actor):
         # print(f'Got new Message: {msg=}')
         match msg:
             case Message(sig=Sig.MPV_EVENT, args=args):
-                actor_system.send('Logger', Message(Sig.PUSH, f'processing MPV_EVENT: event={msg.args}'))
+                # actor_system.send('Logger', Message(Sig.PUSH, f'processing MPV_EVENT: event={msg.args}'))
+                self.log_msg(f'processing MPV_EVENT: event={msg.args}')
                 match args.event_id:
                     case MpvEventID.NONE:
                         ...
@@ -151,7 +162,7 @@ class MPV(Actor):
                     case MpvEventID.COMMAND_REPLY:
                         ...
                     case MpvEventID.START_FILE:
-                        self.post(None, Message(sig=Sig.STATE_CHANGE, args=1))
+                        self.post(self, Message(sig=Sig.STATE_CHANGE, args=1))
                     case MpvEventID.END_FILE:
                         ...
                     case MpvEventID.FILE_LOADED:
@@ -161,11 +172,11 @@ class MPV(Actor):
                     case MpvEventID.TRACK_SWITCHED:
                         ...
                     case MpvEventID.IDLE:
-                        self.post(None, Message(sig=Sig.STATE_CHANGE, args=4))
+                        self.post(self, Message(sig=Sig.STATE_CHANGE, args=4))
                     case MpvEventID.PAUSE:
-                        self.post(None, Message(sig=Sig.STATE_CHANGE, args=2))
+                        self.post(self, Message(sig=Sig.STATE_CHANGE, args=2))
                     case MpvEventID.UNPAUSE:
-                        self.post(None, Message(sig=Sig.STATE_CHANGE, args=1))
+                        self.post(self, Message(sig=Sig.STATE_CHANGE, args=1))
                     case MpvEventID.TICK:
                         ...
                     case MpvEventID.SCRIPT_INPUT_DISPATCH:
@@ -179,10 +190,9 @@ class MPV(Actor):
                     case MpvEventID.METADATA_UPDATE:
                         ...
                     case MpvEventID.SEEK:
-                        ...
-                        # actor_system.send('Display', Message(Sig.SEEK))
+                        self.post(self, Message(sig=Sig.STATE_CHANGE, args=3))
                     case MpvEventID.PLAYBACK_RESTART:
-                        self.post(None, Message(sig=Sig.STATE_CHANGE, args=1))
+                        self.post(self, Message(sig=Sig.STATE_CHANGE, args=1))
                     case MpvEventID.PROPERTY_CHANGE:
                         actor_system.send('Logger', Message(Sig.PUSH, f'processing MPV_EVENT: event={msg.args}'))
                     case MpvEventID.CHAPTER_CHANGE:
@@ -197,6 +207,7 @@ class MPV(Actor):
                 self.observe_property('stream-end')
                 self.observe_property('stream-duration')
                 self.observe_property('duration')
+                self.post(self, Message(sig=Sig.VOLUME, args=100))
                 # percent-pos
                 # time-pos
                 # time-start
@@ -206,9 +217,9 @@ class MPV(Actor):
             case Message(sig=Sig.STATE_CHANGE, args=state):
                 self.state = state
                 if self.state == 4:
-                    self.post(None, Message(sig=Sig.DONE))
+                    self.post(self, Message(sig=Sig.DONE))
 
-            case Message(sig=Sig.PLAY_ALL, args=path):
+            case Message(sig=Sig.PLAY, args=path):
                 args = [b'loadfile', path.encode('utf-8'), b'replace', b'', None]
                 self.set_property('pause', 'no')
                 self.command(*args)
@@ -216,14 +227,14 @@ class MPV(Actor):
             case Message(sig=Sig.PLAY_PAUSE, args=None):
                 if self.state == 1:
                     self.set_property('pause', 'yes')
-                    self.post(None, Message(sig=Sig.STATE_CHANGE, args=2))
+                    self.post(self, Message(sig=Sig.STATE_CHANGE, args=2))
                 elif self.state == 2:
                     self.set_property('pause', 'no')
-                    self.post(None, Message(sig=Sig.STATE_CHANGE, args=1))
+                    self.post(self, Message(sig=Sig.STATE_CHANGE, args=1))
 
             case Message(sig=Sig.VOLUME, args=args):
                 if args is not None:
-                    self.volume = msg.args
+                    self.volume = args
                 self.set_property('volume', self.volume)
             
             case Message(sig=Sig.VOLUME_INC, args=args):

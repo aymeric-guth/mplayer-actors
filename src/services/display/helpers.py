@@ -12,8 +12,9 @@ from .constants import character_encoding as ce
 from ...fix_encoding import Str
 from ...wcurses import stdscr, _draw_screen, draw_popup, draw_overlay
 
+from .constants import PROMPT
 
-PROMPT = ' >>> '
+
 
 def display_len(string: str) -> int:
         offset = 0
@@ -196,8 +197,10 @@ def get_term_dimensions(
 
 
 
-def draw_files(self, height, width, y_ofst, x_ofst):
+def draw_files(self, height: int, width: int, y_ofst: int, x_ofst: int) -> None:
     if not height:
+        return
+    if not self.files_buff:
         return
     (dir_list, files_list) = self.files_buff
 
@@ -221,7 +224,7 @@ def draw_files(self, height, width, y_ofst, x_ofst):
     win.noutrefresh()
 
 
-def draw_cmd(self, height, width, y_ofst, x_ofst):
+def draw_cmd(self, height: int, width: int, y_ofst: int, x_ofst: int) -> None:
     if not height:
         return
     if self.cmd_buff and self.cmd_buff[-1] == '\n':
@@ -233,4 +236,19 @@ def draw_cmd(self, height, width, y_ofst, x_ofst):
     s = f'{PROMPT}{"".join(self.cmd_buff)}'
     win.addstr(1, 1, s)
     win.move(1, len(s) + 1)
+    win.noutrefresh()
+
+
+def draw_playback(self, height: int, width: int, y_ofst: int, x_ofst: int) -> None:
+    if not height:
+        return
+
+    win = curses.newwin(height, width, y_ofst, x_ofst)
+    win.addstr(1, 1, f'File: {self.media_meta.file}')
+    current, total = self.media_meta.pos
+    win.addstr(2, 1, f'Position: {current}/{total}')
+    media_state = f'Media State: {self.media_meta.state}'
+    win.addstr(3, 1, media_state)
+    win.addstr(3, 2 + len(media_state), f'| Volume: {self.media_meta.volume}')
+    win.box()
     win.noutrefresh()

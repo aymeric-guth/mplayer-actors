@@ -13,13 +13,12 @@ def main():
     actor_system = ActorSystem()
     logger = actor_system.create_actor(Logger)
     dispatcher = actor_system.create_actor(Dispatcher)
-    # api = actor_system.create_actor(API)
+    api = actor_system.create_actor(API)
     display = actor_system.create_actor(Display)
     files = actor_system.create_actor(Files)
     input = actor_system.create_actor(Input)
     media_dispatcher = actor_system.create_actor(MediaDispatcher)
     external = actor_system.create_actor(External)
-    actor_system.send(dispatcher, Message(Sig.INIT))
     actor_system.run()
 
 

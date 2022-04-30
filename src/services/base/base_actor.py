@@ -2,8 +2,13 @@ from typing import TypeVar
 import traceback
 import sys
 from queue import Queue
+import traceback
 
 from .message import Message
+
+import sys
+from inspect import currentframe, getframeinfo, trace
+
 
 
 T = TypeVar('T', bound='BaseActor')
@@ -17,18 +22,22 @@ class BaseActor:
             self._name = name
         else:
             self._name = self.__class__.__name__
-        self.DEBUG = 0
+        self.LOG = 0
         self.mq = Queue()
 
     def run(self) -> None:
         while 1:
             (sender, msg) = self.mq.get()
-            if self.DEBUG == 1:
+            if self.LOG == 1:
                 self.logger(sender, msg)
             try:
                 self.dispatch(sender, msg)
             except Exception as err:
-                self.handler(f'{err} {sys.exc_info()[2]}')
+                # frameinfo = getframeinfo(currentframe())
+                # exc_info = str(sys.exc_info()[2]) + '\n' + repr(frameinfo)
+                # print(sys.exc_info()[2])
+                # traceback.format_exc()                
+                self.handler(f'{err} {trace(1)[-1]}')
                 raise SystemExit
             else:
                 self.mq.task_done()
