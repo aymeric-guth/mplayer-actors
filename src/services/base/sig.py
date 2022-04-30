@@ -48,4 +48,8 @@ class Sig(Enum):
     PUSH = auto()
     GET = auto()
     POISON = auto()
+    DRAW_PLAYBACK = auto()
+    DRAW_PROMPT = auto()
+    DRAW_SCREEN = auto()
+    DRAW_MAIN = auto()
     

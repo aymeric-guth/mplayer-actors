@@ -7,104 +7,97 @@ from ..base import Actor, Message, Sig, actor_system
 from ..base.actor_system import ActorGeneric
 from ...wcurses import stdscr, draw_prompt, draw_popup
 
+from .constants import num_mapping, Key
 
-num_mapping: dict[int, int] = {
-    49: '1', 
-    50: '2', 
-    51: '3', 
-    52: '4', 
-    53: '5', 
-    54: '6', 
-    55: '7', 
-    56: '8', 
-    57: '9', 
-    48: '10', 
-    33: '11', 
-    64: '12', 
-    35: '13', 
-    36: '14', 
-    37: '15', 
-    94: '16', 
-    38: '17', 
-    42: '18', 
-    40: '19', 
-    41: '20'
-}
 
 
 class Input(Actor):
     def __init__(self, pid: int, name='', parent: Actor=None, **kwargs) -> None:
         super().__init__(pid, name, parent, **kwargs)
         self.DEBUG = 0
+        self.prompt_mode = 0
+        self.buff: list[str] = []
 
     def run(self) -> None:
         while 1:
             c = stdscr.getch()
-            # actor_system.send('Logger', Message(Sig.PUSH, f'{self} got new c={c}'))
+            if c == -1:
+                continue
+            elif self.prompt_mode:
+                self.buff.append(c)
+                actor_system.send('Display', Message(sig=Sig.DRAW_PROMPT, args=self.buff.copy()))
+                if c == curses.KEY_ENTER:
+                    self.buff.clear()
+                    self.prompt_mode = 0
+                continue
 
+            # actor_system.send('Logger', Message(Sig.PUSH, f'{self} got new c={c}'))
             match c:
+                case -1:
+                    ...
+
                 case 0:
                     ...
                 
                 case curses.KEY_RESIZE | curses.KEY_REFRESH:
                     actor_system.send('Display', Message(sig=Sig.REFRESH))
-        
-                case 58:
-                    cmd = draw_prompt()
-                    actor_system.send('Dispatcher', Message(sig=Sig.PARSE, args=cmd.decode('utf-8')))
 
-                case 113 | 81:
+                case Key.COLON:
+                    actor_system.send('Display', Message(sig=Sig.PROMPT_REQUEST))
+                    self.prompt_mode = 1
+
+                # case Key.COLON:
+                #     cmd = draw_prompt()
+                #     actor_system.send('Dispatcher', Message(sig=Sig.PARSE, args=cmd.decode('utf-8')))
+
+                case Key.q | Key.Q:
                     return 0
                 
-                case 100:
+                case Key.d | Key.D:
                     actor_system.send('Display', Message(sig=Sig.LOGS))
 
-                # r - R
-                case 114 | 82:
+                case Key.r | Key.R:
                     actor_system.send('Dispatcher', Message(sig=Sig.PARSE, args='refresh'))
-                # p - P
-                case 112 | 80:
+
+                case Key.p | Key.P:
                     actor_system.send('Dispatcher', Message(sig=Sig.PARSE, args='play'))
-                # alt + h
-                case 153:
+
+                case Key.ALT_H:
                     actor_system.send('MediaDispatcher', Message(sig=Sig.PREVIOUS))
-                # alt + l
-                case 172:
+
+                case Key.ALT_L:
                     actor_system.send('MediaDispatcher', Message(sig=Sig.NEXT))
-                # spacebar
-                case 32:
+
+                case Key.SPACE:
                     actor_system.send('MediaDispatcher', Message(sig=Sig.PLAY_PAUSE))
-                case 46:
+
+                case Key.DOT:
                     actor_system.send('Dispatcher', Message(sig=Sig.PARSE, args='..'))
 
-                case (72 | 76 | 74 | 75) as p:
+                case (Key.H | Key.L | Key.J | Key.K) as p:
                     match p:
-                        # H
-                        case 72:
+                        case Key.H:
                             arg = -5
-                        # L
-                        case 76:
+                        case Key.L:
                             arg = 5
-                        # J
-                        case 74:
+                        case Key.J:
                             arg = -10
-                        # K
-                        case 75:
+                        case Key.K:
                             arg = 10
                     actor_system.send('MediaDispatcher', Message(sig=Sig.VOLUME_INC, args=arg))
 
-                case 99:
+                case Key.c:
                     actor_system.send('Display', Message(Sig.POISON))
 
-                case (curses.KEY_LEFT | 104 | curses.KEY_RIGHT | 108 | curses.KEY_UP | 107 | curses.KEY_DOWN | 106) as p:
+                case (curses.KEY_LEFT | Key.h | curses.KEY_RIGHT | Key.l | curses.KEY_UP | Key.k | curses.KEY_DOWN | Key.j) as p:
                     match p:
-                        case curses.KEY_LEFT | 104:
+                        case curses.KEY_LEFT | Key.h:
                             arg = -5
-                        case curses.KEY_RIGHT | 108:
+                        case curses.KEY_RIGHT | Key.l:
                             arg = 5
-                        case curses.KEY_UP | 107:
+                        case curses.KEY_UP | Key.k:
                             arg = 60
-                        case curses.KEY_DOWN | 106:
+                        case curses.KEY_DOWN | Key.j:
                             arg = -60
                     actor_system.send('MediaDispatcher', Message(sig=Sig.SEEK, args=arg))
 
