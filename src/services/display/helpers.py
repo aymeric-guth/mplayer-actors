@@ -3,13 +3,17 @@ import os
 from typing import Any
 from math import ceil
 from itertools import zip_longest
+import curses
 
 from rich.text import Text
 from rich.console import Console
 
 from .constants import character_encoding as ce
 from ...fix_encoding import Str
+from ...wcurses import stdscr, _draw_screen, draw_popup, draw_overlay
 
+
+PROMPT = ' >>> '
 
 def display_len(string: str) -> int:
         offset = 0
@@ -189,3 +193,44 @@ def get_term_dimensions(
         display_width = term_x // display_mode
 
         return display_mode, term_blank, display_width
+
+
+
+def draw_files(self, height, width, y_ofst, x_ofst):
+    if not height:
+        return
+    (dir_list, files_list) = self.files_buff
+
+    len_dir = len(dir_list) - 1
+    len_files = len(files_list) - 1
+    total_y_len = len_dir + len_files + 6
+    display_mode = ceil(total_y_len / (height - 1))
+    display_mode = 1 if not display_mode else display_mode
+
+    term_blank = 0
+    if width % display_mode != 0:
+        term_blank = width % display_mode
+    display_width = width // display_mode
+
+    (str_object, padding, blank) = string_format(dir_list, files_list, display_width)
+
+    win = curses.newwin(height, width, y_ofst, x_ofst)
+    # win.clear()
+    draw_screen = _draw_screen(win, height, width)
+    draw_screen(str_object, display_mode, term_blank)
+    win.noutrefresh()
+
+
+def draw_cmd(self, height, width, y_ofst, x_ofst):
+    if not height:
+        return
+    if self.cmd_buff and self.cmd_buff[-1] == '\n':
+        return
+
+    win = curses.newwin(height, width, y_ofst, x_ofst)
+    win.box()
+    curses.curs_set(1)
+    s = f'{PROMPT}{"".join(self.cmd_buff)}'
+    win.addstr(1, 1, s)
+    win.move(1, len(s) + 1)
+    win.noutrefresh()

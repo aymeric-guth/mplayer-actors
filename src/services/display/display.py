@@ -1,6 +1,8 @@
-from audioop import reverse
+from cmd import PROMPT
 import curses
+from typing import Any
 from math import ceil
+import time
 
 from rich.console import Console
 
@@ -10,6 +12,7 @@ from . import helpers
 from ...wcurses import stdscr, _draw_screen, draw_popup, draw_overlay
 
 PLAYBACK_HEIGHT = 5
+CMD_HEIGHT = 3
 
 
 class Display(Actor):
@@ -17,9 +20,13 @@ class Display(Actor):
         super().__init__(pid, name, parent, **kwargs)
         self.DEBUG = 0
         self.LOGS = 0
+        self.files_overlay = 1
         self.playback_overlay = 0
         self.cmd_overlay = 0
         self.cmd_buff: list[str] = []
+        self.files_buff: list[Any] = []
+        self.files_win = None
+        self.cmd_win = None
 
     def dispatch(self, sender: Actor, msg: Message) -> None:
         match msg:
@@ -45,58 +52,73 @@ class Display(Actor):
 
             case Message(sig=Sig.CWD_GET, args=args):
                 dir_list, files_list = args.get('dir_list'), args.get('files_list')
-                max_height, max_width = stdscr.getmaxyx()
-                height = max_height if not self.playback_overlay else max_height - PLAYBACK_HEIGHT
-                # width = width // 2 if self.LOGS else width
-                width = 0 if self.LOGS else max_width
+                self.files_buff = [dir_list, files_list]
+                self.post(None, Message(sig=Sig.DRAW_SCREEN))
 
-                len_dir = len(dir_list) - 1
-                len_files = len(files_list) - 1
-                total_y_len = len_dir + len_files + 6
-                display_mode = ceil(total_y_len / (height - 1))
-                display_mode = 1 if not display_mode else display_mode
-
-                term_blank = 0
-                if width % display_mode != 0:
-                    term_blank = width % display_mode
-                display_width = width // display_mode
-
-                # (display_mode, term_blank, display_width) = helpers.get_term_dimensions(dir_list, files_list)
-                (str_object, padding, blank) = helpers.string_format(dir_list, files_list, display_width)
-
-                # height, width = stdscr.getmaxyx()
-                main_win = curses.newwin(height, width, 0, 0)
-               
-                draw_screen = _draw_screen(main_win, height, width)
-                main_win.clear()
-                draw_screen(str_object, display_mode, term_blank)
-                main_win.refresh()
-                # disp(display_mode, term_blank, str_object, padding, blank)
-                if self.playback_overlay:
-                    self.post(None, Message(sig=Sig.DRAW_PLAYBACK, args={'width': width, 'height': height}))
-
-            case Message(sig=Sig.DRAW_PLAYBACK, args=args):
-                width = args.get('width')
-                height = args.get('height')
-                playback_win = curses.newwin(PLAYBACK_HEIGHT, width, height, 0)
-                playback_win.clear()
-                playback_win.box()
-                playback_win.refresh()
-
-            case Message(sig=Sig.PROMPT_REQUEST, args=args) if args is None:
+            case Message(sig=Sig.PROMPT, args=args) if args is None:
                 # initialisation de la fenetre du prompt
                 self.cmd_overlay = 1
                 self.post(None, Message(sig=Sig.DRAW_SCREEN))
 
-            case Message(sig=Sig.PROMPT_REQUEST, args=args):
-                # ajout ou supression d'un caractère de la fenetre du prompt
-                if args[-1] == '\n':
-                    self.cmd_buff.clear()
-                    self.cmd_overlay = 0
-                    self.post(None, Message(sig=Sig.DRAW_SCREEN))
+            case Message(sig=Sig.PROMPT, args=args) if args and args[-1] == '\n':
+                # ajout ou supression d'un caractère de la fenetre du prompt                
+                self.cmd_buff.clear()
+                self.cmd_overlay = 0
+                curses.curs_set(0)
+                self.post(None, Message(sig=Sig.DRAW_SCREEN))
+
+            case Message(sig=Sig.PROMPT, args=args):
+                self.cmd_buff = args.copy()
+                self.post(None, Message(sig=Sig.DRAW_SCREEN))
+
+
+            case Message(sig=Sig.DRAW_SCREEN):
+                max_height, max_width = stdscr.getmaxyx()
+                # stdscr.clear()
+                if self.cmd_overlay:
+                    cmd_width = max_width
+                    cmd_height = CMD_HEIGHT
                 else:
-                    self.cmd_buff = args.copy()
-                    self.post(None, Message(sig=Sig.DRAW_SCREEN))
+                    cmd_width = 0
+                    cmd_height = 0
+
+                if self.playback_overlay:
+                    playback_width = max_width
+                    playback_height = PLAYBACK_HEIGHT
+                else:
+                    playback_width = 0
+                    playback_height = 0
+
+                if self.files_overlay:
+                    files_width = max_width
+                    files_height = max_height - cmd_height - playback_height
+                else:
+                    files_width = 0
+                    files_height = 0
+
+                files_x_ofst = 0
+                files_y_ofst = 0
+                playback_x_ofst = 0
+                playback_y_ofst = files_height
+                cmd_x_ofst = 0
+                cmd_y_ofst = files_height + playback_height
+
+                helpers.draw_files(self, files_height, files_width, files_y_ofst, files_x_ofst)
+                helpers.draw_cmd(self, cmd_height, cmd_width, cmd_y_ofst, cmd_x_ofst)
+                curses.doupdate()
+                
+
+            case Message(sig=Sig.DRAW_PLAYBACK, args=args):
+                (height, width, y_ofst, x_ofst) = args
+                if not height:
+                    return
+
+                # width = args.get('width')
+                # height = args.get('height')
+                # playback_win = curses.newwin(PLAYBACK_HEIGHT, width, height, 0)
+                # playback_win.clear()
+                # playback_win.box()
+                # playback_win.refresh()
 
             case Message(sig=Sig.POPUP, args=args):
                 draw_popup(args)
@@ -107,7 +129,8 @@ class Display(Actor):
                 # draw_overlay(val)
 
             case Message(sig=Sig.ERROR, args=args):
-                actor_system.send('Display', Message(Sig.LOGS, args))
+                ...
+                # actor_system.send('Display', Message(Sig.LOGS, args))
 
             case Message(sig=Sig.POISON, args=args):
                 raise Exception(f'{msg!r}')

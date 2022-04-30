@@ -49,7 +49,8 @@ class Sig(Enum):
     GET = auto()
     POISON = auto()
     DRAW_PLAYBACK = auto()
-    DRAW_PROMPT = auto()
+    DRAW_CMD = auto()
     DRAW_SCREEN = auto()
-    DRAW_MAIN = auto()
-    
+    DRAW_FILES = auto()
+    PROMPT = auto()
+

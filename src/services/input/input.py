@@ -24,11 +24,20 @@ class Input(Actor):
             if c == -1:
                 continue
             elif self.prompt_mode:
-                self.buff.append(c)
-                actor_system.send('Display', Message(sig=Sig.DRAW_PROMPT, args=self.buff.copy()))
-                if c == curses.KEY_ENTER:
-                    self.buff.clear()
-                    self.prompt_mode = 0
+                match c:
+                    # KEY_ENTER ?
+                    case 10:
+                        self.prompt_mode = 0
+                        actor_system.send('Dispatcher', Message(sig=Sig.PARSE, args=''.join(self.buff.copy())))
+                        self.buff.append('\n')
+                    # KEY_BACKSPACE ?
+                    case 127:
+                        if self.buff:
+                            self.buff.pop(-1)
+                    case _:
+                        self.buff.append(chr(c))
+                    
+                actor_system.send('Display', Message(sig=Sig.PROMPT, args=self.buff.copy()))
                 continue
 
             # actor_system.send('Logger', Message(Sig.PUSH, f'{self} got new c={c}'))
@@ -43,8 +52,9 @@ class Input(Actor):
                     actor_system.send('Display', Message(sig=Sig.REFRESH))
 
                 case Key.COLON:
-                    actor_system.send('Display', Message(sig=Sig.PROMPT_REQUEST))
                     self.prompt_mode = 1
+                    self.buff.clear()
+                    actor_system.send('Display', Message(sig=Sig.PROMPT))
 
                 # case Key.COLON:
                 #     cmd = draw_prompt()
