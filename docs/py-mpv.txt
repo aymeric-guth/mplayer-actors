@@ -1,0 +1,12 @@
+dissonances:
+* import de libmpv
+* __repr__ de MpvEventID, utilisé l'ancien pour afficher le nom de l'enum et pas son code
+
+
+ce qui est utile:
+* le mapping ctypes de toutes les fonctions de libmpv
+* les types de libmpv qui vont avec
+
+
+bugs:
+* conversion de mpv_node vers python_dict avec la class MpvEvent qui merde sur reply_userdata, peut renvoyer un nombre négatif alors que normalement pas possible (uint64_t)

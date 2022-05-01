@@ -48,3 +48,6 @@ class Sig(Enum):
     SMB_MOUNT = auto()
     SMB_PING = auto()
     TEST = auto()
+    VOLUME_CHANGE = auto()
+    PLAYBACK_CHANGE = auto()
+    POS_CHANGE = auto()

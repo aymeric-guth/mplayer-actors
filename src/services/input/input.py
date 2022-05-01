@@ -23,7 +23,8 @@ class Input(Actor):
             c = stdscr.getch()
             if c == -1:
                 continue
-            elif self.prompt_mode:
+            self.log_msg(f'Got new input c={c}')
+            if self.prompt_mode:
                 match c:
                     case Key.ENTER:
                         self.prompt_mode = 0

@@ -33,6 +33,15 @@ class MediaDispatcher(Actor):
                 actor_system.send('Display', Message(sig=Sig.MEDIA_META, args={'file': args}))
                 actor_system.send('Display', Message(sig=Sig.MEDIA_META, args={'pos': self.pl.pos()}))
 
+            case Message(sig=Sig.PLAYBACK_CHANGE, args=args) as msg:
+                actor_system.send('Display', Message(sig=Sig.MEDIA_META, args={'player-state': args}))
+
+            case Message(sig=Sig.VOLUME_CHANGE, args=args) as msg:
+                actor_system.send('Display', Message(sig=Sig.MEDIA_META, args={'player-volume': args}))
+
+            case Message(sig=Sig.POS_CHANGE, args=args) as msg:
+                actor_system.send('Display', Message(sig=Sig.MEDIA_META, args={'playback': args}))
+
             case Message(sig=Sig.VOLUME, args=args) as msg:
                 actor_system.send('MPV', msg)
 

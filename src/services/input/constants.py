@@ -1,4 +1,4 @@
-num_mapping: dict[int, int] = {
+num_mapping: dict[int, str] = {
     49: '1', 
     50: '2', 
     51: '3', 

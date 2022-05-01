@@ -1,13 +1,14 @@
 import locale
 from threading import Thread
 from pathlib import Path
-from ctypes import c_char_p, c_uint64, c_int
+from ctypes import c_char_p, c_uint64, c_int, pointer, POINTER, c_void_p, sizeof, cast, create_string_buffer
 import copy
 from dataclasses import dataclass
 from typing import Any
 
 from src.services.base import message
 from ...utils import clamp
+from ..settings import VOLUME_DEFAULT
 
 
 from ..base import Actor, Message, Sig, actor_system
@@ -20,18 +21,20 @@ from .mpv import (
     _mpv_command_async,
     _mpv_command,
     _mpv_wait_event,
-    MpvEvent,
+    # MpvEvent,
     MpvEventID,
     _mpv_set_property,
     _mpv_set_property_string,
     _mpv_terminate_destroy,
     _mpv_coax_proptype,
-    _mpv_observe_property,
     MpvRenderContext,
     _make_node_str_list,
     MpvFormat,
     backend,
-    MpvHandle
+    MpvHandle,
+    _mpv_event_to_node,
+    _mpv_free_node_contents,
+    MpvNode
 )
 
 mpv_observe_property = getattr(backend, 'mpv_observe_property')
@@ -49,22 +52,41 @@ class MPVEventWrapper:
     event: Any
 
     def __repr__(self) -> str:
-        return f'MPVEventWrapper(name={self.name}, event_id={self.event_id})'
+        return f'MPVEventWrapper(name={self.name}, event_id={self.event_id}, error={self.error}, reply_userdata={self.reply_userdata}, event={self.event})'
+
+
+@dataclass(frozen=True)
+class MpvEvent:
+    event: str
+    id: int
+    name: str
+    data: Any
+
+    def __repr__(self) -> str:
+        return f'MpvEvent(event={self.event}, id={self.id}, name={self.name}, data={self.data})'
 
 
 class MPVEvent(Actor):
     def __init__(self, pid: int, name='',parent: Actor|None=None, **kwargs) -> None:
         super().__init__(pid, name, parent)
-        self.LOG = 0
+        self.LOG = 1
         self.handle = kwargs.get('handle')
         self.event_handle = _mpv_create_client(self.handle, b'py_event_handler')
 
     def run(self) -> None:
         while 1:
-            event = _mpv_wait_event(self.handle, -1).contents
-            e = copy.deepcopy(event.as_dict())
-            e.update({'name': copy.deepcopy(repr(event.event_id))})
-            actor_system.send(self.parent, Message(Sig.MPV_EVENT, MPVEventWrapper(**e)))
+            mpv_event = _mpv_wait_event(self.handle, -1).contents            
+            out = cast(create_string_buffer(sizeof(MpvNode)), POINTER(MpvNode))
+            _mpv_event_to_node(out, pointer(mpv_event))
+            rv = out.contents.node_value(decoder=lambda b: b.decode('utf-8'))
+            event = MpvEvent(
+                event=rv.get('event'),
+                id=mpv_event.reply_userdata,
+                name=rv.get('name'),
+                data=rv.get('data')
+            )
+            _mpv_free_node_contents(out)
+            actor_system.send(self.parent, Message(sig=Sig.MPV_EVENT, args=event))
 
 
 class MPV(Actor):
@@ -72,26 +94,20 @@ class MPV(Actor):
         super().__init__(pid, name, parent, **kwargs)
         self.LOG = 0
         self._state = 0
-        self._volume = 100
+        self._volume: int|float
         lc, enc = locale.getlocale(locale.LC_NUMERIC)
         locale.setlocale(locale.LC_NUMERIC, 'C')
-
         self.handle = _mpv_create()
 
         # istr = lambda o: ('yes' if o else 'no') if type(o) is bool else str(o)
-        # print(k.replace('_', '-').encode('utf-8'), istr(v).encode('utf-8'))
-        # wid, *_ = kwargs.get('wid')
-        # mpv_set_option_string(self.handle, b'wid', wid)
         _mpv_set_option_string(self.handle, b'audio-display', b'no')
         _mpv_set_option_string(self.handle, b'input-default-bindings', b'yes')
         _mpv_set_option_string(self.handle, b'input-vo-keyboard', b'yes')
-        # _mpv_set_option_string(self.handle, b'osc', b'yes')
         # mpv_load_config_file(self.handle, str(path).encode('utf-8'))
-        # mpv_set_option_string(self.handle, b'vo', b'opengl')
-        # mpv_set_option_string(self.handle, b'script-opts', b'osc-layout=box,osc-seekbarstyle=bar,osc-deadzonesize=0,osc-minmousemove=3')
 
         _mpv_initialize(self.handle)
         self._event_loop = actor_system.create_actor(MPVEvent, handle=self.handle)
+        self.observed_properties: dict[int, Sig] = {}
         self.post(self, Message(Sig.INIT))
 
     def log_msg(self, msg: str) ->None:
@@ -112,7 +128,6 @@ class MPV(Actor):
     @volume.setter
     def volume(self, value: int|float) -> None:
         self._volume = clamp(0, 100)(value)
-        actor_system.send('Display', Message(sig=Sig.MEDIA_META, args={'player-volume': self._volume}))
 
     @property
     def state(self) -> int:
@@ -121,7 +136,7 @@ class MPV(Actor):
     @state.setter
     def state(self, value: int) -> None:
         self._state = int(clamp(0, 4)(value))
-        actor_system.send('Display', Message(sig=Sig.MEDIA_META, args={'player-state': self._state}))
+        actor_system.send(self.parent, Message(sig=Sig.PLAYBACK_CHANGE, args=self._state))
 
     async def command_async(self, *args) -> int:
         args = [c_uint64(0xffff), (c_char_p*len(args))(*args)]
@@ -146,80 +161,57 @@ class MPV(Actor):
     def terminate(self) -> None:
         self.handle, handle = None, self.handle
         self.event_loop.handle = None
-        # _mpv_terminate_destroy(handle)
-        self.event_thread.join()
+        self.event_loop.join()
+        _mpv_terminate_destroy(handle)
 
-    def observe_property(self, name: str) -> None:
-        # self.handle
-        mpv_observe_property(self.handle, hash(name) & 0xffffffffffffffff, name.encode('utf-8'), MpvFormat.NODE)
-        # _mpv_observe_property(self.event_loop, hash(name) & 0xffffffffffffffff, name.encode('utf-8'), MpvFormat.NODE)
+    def observe_property(self, name: str) -> None:      
+        property_id = hash(name) & 0xffffffffffffffff
+        if property_id not in self.observed_properties:
+            mpv_observe_property(self.handle, property_id, name.encode('utf-8'), MpvFormat.NODE)
+            # self.observed_properties.update({property_id: sig})
 
     def dispatch(self, sender: Actor, msg: Message) -> None:
-        # actor_system.send('Logger', Message(Sig.PUSH, f'Got new Message: {msg=}'))
-        # print(f'Got new Message: {msg=}')
         match msg:
             case Message(sig=Sig.MPV_EVENT, args=args):
-                self.log_msg(f'processing MPV_EVENT: event={msg.args}')
-                match args.event_id:
-                    case MpvEventID.NONE:
-                        ...
-                    case MpvEventID.SHUTDOWN:
-                        ...
-                    case MpvEventID.LOG_MESSAGE:
-                        ...
-                    case MpvEventID.GET_PROPERTY_REPLY:
-                        ...
-                    case MpvEventID.SET_PROPERTY_REPLY:
-                        ...
-                    case MpvEventID.COMMAND_REPLY:
-                        ...
-                    case MpvEventID.START_FILE:
-                        self.post(self, Message(sig=Sig.STATE_CHANGE, args=1))
-                    case MpvEventID.END_FILE:
-                        ...
-                    case MpvEventID.FILE_LOADED:
-                        ...
-                    case MpvEventID.TRACKS_CHANGED:
-                        ...
-                    case MpvEventID.TRACK_SWITCHED:
-                        ...
-                    case MpvEventID.IDLE:
-                        self.post(self, Message(sig=Sig.STATE_CHANGE, args=4))
-                    case MpvEventID.PAUSE:
-                        self.post(self, Message(sig=Sig.STATE_CHANGE, args=2))
-                    case MpvEventID.UNPAUSE:
-                        self.post(self, Message(sig=Sig.STATE_CHANGE, args=1))
-                    case MpvEventID.TICK:
-                        ...
-                    case MpvEventID.SCRIPT_INPUT_DISPATCH:
-                        ...
-                    case MpvEventID.CLIENT_MESSAGE:
-                        ...
-                    case MpvEventID.VIDEO_RECONFIG:
-                        ...
-                    case MpvEventID.AUDIO_RECONFIG:
-                        ...
-                    case MpvEventID.METADATA_UPDATE:
-                        ...
-                    case MpvEventID.SEEK:
-                        self.post(self, Message(sig=Sig.STATE_CHANGE, args=3))
-                    case MpvEventID.PLAYBACK_RESTART:
-                        self.post(self, Message(sig=Sig.STATE_CHANGE, args=1))
-                    case MpvEventID.PROPERTY_CHANGE:
-                        actor_system.send('Logger', Message(Sig.PUSH, f'processing MPV_EVENT: event={msg.args}'))
-                    case MpvEventID.CHAPTER_CHANGE:
-                        ...
-                    case MpvEventID.QUEUE_OVERFLOW:
-                        ...
-                    case MpvEventID.HOOK:
-                        ...
+                match args:
+                    case MpvEvent(event=event, id=0, name=None, data=None):
+                        self.log_msg(f'Processing base event: {args}')
+                        match event:
+                            case 'playback-restart' | 'start-file':
+                                self.post(self, Message(sig=Sig.STATE_CHANGE, args=1))
+                            case 'idle':
+                                self.post(self, Message(sig=Sig.STATE_CHANGE, args=4))
+                            case 'pause':
+                                self.post(self, Message(sig=Sig.STATE_CHANGE, args=2))
+                            case 'unpause':
+                                self.post(self, Message(sig=Sig.STATE_CHANGE, args=1))
+                            case 'seek':
+                                self.post(self, Message(sig=Sig.STATE_CHANGE, args=3))
+
+                    case MpvEvent(event=event, id=_id, name=name, data=data):
+                        self.log_msg(f'Processing propery-change event: {args}')
+                        match event:
+                            case 'property-change':
+                                match name:
+                                    case 'volume':
+                                        actor_system.send(self.parent, Message(sig=Sig.VOLUME_CHANGE, args=data))
+                                    case 'percent-pos':
+                                        actor_system.send(self.parent, Message(sig=Sig.POS_CHANGE, args=data))
+                                # sig = self.observed_properties.get(args.id)
+                                # self.post(self, Message())
+
+                    case event:
+                        self.log_msg(f'Unkown event: {args}')
+
 
             case Message(sig=Sig.INIT, args=args):
                 self.observe_property('volume')
+                self.observe_property('percent-pos')
+                
                 # self.observe_property('stream-end')
                 # self.observe_property('stream-duration')
                 # self.observe_property('duration')
-                self.post(self, Message(sig=Sig.VOLUME, args=100))
+                self.post(self, Message(sig=Sig.VOLUME, args=VOLUME_DEFAULT))
                 # percent-pos
                 # time-pos
                 # time-start
@@ -261,10 +253,6 @@ class MPV(Actor):
                 p = str(args).encode('utf-8')
                 args = [b'seek', p, b'relative', b'default-precise', None]
                 self.command(*args)
-                
-                # def seek(self, amount, reference="relative", precision="default-precise"):
-                #     """Mapped mpv seek command, see man mpv(1)."""
-                #     self.command('seek', amount, reference, precision)
 
             case Message(sig=Sig.DONE, args=args) as msg:
                 actor_system.send(self.parent, msg)

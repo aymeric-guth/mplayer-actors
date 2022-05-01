@@ -33,10 +33,11 @@ class MediaMeta:
         self.file: str = ''
         self.pos: tuple[int, int] = (0, 0)
         self.volume = 0
+        self.playback = 0.
 
 
 class Display(Actor):
-    def __init__(self, pid: int, name='',parent: Actor=None, **kwargs) -> None:
+    def __init__(self, pid: int, name='',parent: Actor|None=None, **kwargs) -> None:
         super().__init__(pid, name, parent, **kwargs)
         self.LOG = 0
         self.files_overlay = 1
@@ -78,6 +79,8 @@ class Display(Actor):
                         self.media_meta.pos = p
                     case {'player-volume': p}:
                         self.media_meta.volume = p
+                    case {'playback' : p}:
+                        self.media_meta.playback = p
                 self.post(self, Message(sig=Sig.DRAW_SCREEN))
 
             case Message(sig=Sig.DRAW_SCREEN):

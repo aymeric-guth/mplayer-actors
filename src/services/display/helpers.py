@@ -161,6 +161,9 @@ def draw_playback(self, height: int, width: int, y_ofst: int, x_ofst: int) -> No
     win.addstr(2, 1, f'Position: {current}/{total}')
     media_state = f'Media State: {self.media_meta.state}'
     win.addstr(3, 1, media_state)
-    win.addstr(3, 2 + len(media_state), f'| Volume: {self.media_meta.volume}')
+    volume = f' | Volume: {self.media_meta.volume}%'
+    win.addstr(3, 1 + len(media_state), volume)
+    playback = f' | {self.media_meta.playback:.1f}%'
+    win.addstr(3, 1 + len(media_state) + len(volume), playback)
     win.box()
     win.noutrefresh()
