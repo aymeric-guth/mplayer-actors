@@ -23,7 +23,7 @@ class BaseActor:
         else:
             self._name = self.__class__.__name__
         self.LOG = 0
-        self.mq = Queue()
+        self.mq: Queue = Queue()
 
     def run(self) -> None:
         while 1:

@@ -1,0 +1,11 @@
+https://docs.python.org/3/howto/curses.html
+https://github.com/prometheus/client_python
+
+# libmpv
+https://github.com/mpv-player/mpv/blob/master/DOCS/man/libmpv.rst
+https://github.com/mpv-player/mpv-examples
+
+https://mpv.io/manual/master/#list-of-input-commands
+https://mpv.io/manual/master/#properties
+https://mpv.io/manual/master/#property-expansion
+https://mpv.io/manual/master/#options

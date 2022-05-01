@@ -94,7 +94,7 @@ def _draw_screen(win, height, width):
 
         if isinstance(s, list) or isinstance(s, deque):
             ####
-            buffer = []
+            buffer: list[str] = []
             for sub in s:
                 if len(buffer) < (display_mode - 1):
                     buffer.append(sub)

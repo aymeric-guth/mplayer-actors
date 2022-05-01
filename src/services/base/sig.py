@@ -47,3 +47,4 @@ class Sig(Enum):
     PLAYBACK_OVERLAY = auto()
     SMB_MOUNT = auto()
     SMB_PING = auto()
+    TEST = auto()

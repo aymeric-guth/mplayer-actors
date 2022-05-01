@@ -27,6 +27,13 @@ class Files(Actor):
             # case Message(sig=Sig.INIT, args=args):
             #     actor_system.send('API', Message(sig=Sig.FILES_GET))
 
+            case Message(sig=Sig.TEST, args=args):
+                actor_system.send('Dispatcher', Message(sig=Sig.PARSE, args='1'))
+                actor_system.send('Dispatcher', Message(sig=Sig.PARSE, args='3'))
+                actor_system.send('Dispatcher', Message(sig=Sig.PARSE, args='1'))
+                actor_system.send('Dispatcher', Message(sig=Sig.PARSE, args='1'))
+                actor_system.send('Dispatcher', Message(sig=Sig.PARSE, args='1'))
+
             case Message(sig=Sig.CWD_GET, args=args):
                 actor_system.send(sender, Message(sig=Sig.CWD_GET, args=helpers.get_kwargs(self)))
 
@@ -46,6 +53,7 @@ class Files(Actor):
                         key = formated_path[:i+1]
                         self.dir_tree[key[:-1]].add(key[-1])
                 self.post(self, Message(sig=Sig.PATH_SET, args=ROOT))
+                self.post(self, Message(sig=Sig.TEST))
 
             case Message(sig=Sig.SEARCH, args=args):
                 self.path_full = f"{self.mount_point}{'/'.join(self.path[1:])}/"

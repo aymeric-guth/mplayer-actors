@@ -1,9 +1,10 @@
 from ..base import Actor, Message, Sig, actor_system
 from .helpers import eval_cmd
 from ..api import API
+from ...utils import SingletonMeta
 
 
-class Dispatcher(Actor):
+class Dispatcher(Actor, metaclass=SingletonMeta):
     def __init__(self, pid: int, name='',parent: Actor=None, **kwargs) -> None:
         super().__init__(pid, name, parent, **kwargs)
         self.LOG = 0

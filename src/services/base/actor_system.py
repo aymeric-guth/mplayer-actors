@@ -29,7 +29,7 @@ class ActorSystem(BaseActor, metaclass=SingletonMeta):
     pid = 0
     pid_l = Lock()
 
-    def __init__(self, pid: int, name: str='') -> None:
+    def __init__(self, pid: int=0, name: str='') -> None:
         super().__init__(pid, name)
         self.LOG = 0
         self._registry: dict[int, BaseActor] = {}
@@ -62,7 +62,7 @@ class ActorSystem(BaseActor, metaclass=SingletonMeta):
                 # sender = actor, receiver = actor
                 r.post(sender=s.pid, msg=msg)
 
-    def get_actor(self, actor: ActorGeneric) -> BaseActor:
+    def get_actor(self, actor: ActorGeneric) -> BaseActor|None:
         '''
         renvoie l'instance d'un acteur
         valeurs possibles pour récupérer l'instance d'un acteur:

@@ -38,7 +38,7 @@ class MediaMeta:
 class Display(Actor):
     def __init__(self, pid: int, name='',parent: Actor=None, **kwargs) -> None:
         super().__init__(pid, name, parent, **kwargs)
-        self.LOG = 1
+        self.LOG = 0
         self.files_overlay = 1
         self.playback_overlay = 1
         self.cmd_overlay = 0

@@ -8,7 +8,7 @@ from ..settings import ALLOWED_SHARES, MOUNT_POINT, SMB_USER, SMB_PASS, SMB_ADDR
 class External(Actor):
     def __init__(self, pid: int, name='', parent: Actor=None, **kwargs) -> None:
         super().__init__(pid, name, parent, **kwargs)
-        self.LOG = 1
+        self.LOG = 0
         self.post(self, Message(sig=Sig.INIT))
 
     def dispatch(self, sender, msg) -> None:

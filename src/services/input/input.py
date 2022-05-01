@@ -14,7 +14,7 @@ from .constants import num_mapping, Key
 class Input(Actor):
     def __init__(self, pid: int, name='', parent: Actor=None, **kwargs) -> None:
         super().__init__(pid, name, parent, **kwargs)
-        self.LOG = 1
+        self.LOG = 0
         self._prompt_mode = 0
         self.buff: list[str] = []
 

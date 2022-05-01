@@ -1,7 +1,7 @@
 import locale
 from threading import Thread
 from pathlib import Path
-from ctypes import c_char_p, c_uint64
+from ctypes import c_char_p, c_uint64, c_int
 import copy
 from dataclasses import dataclass
 from typing import Any
@@ -29,8 +29,16 @@ from .mpv import (
     _mpv_observe_property,
     MpvRenderContext,
     _make_node_str_list,
-    MpvFormat
+    MpvFormat,
+    backend,
+    MpvHandle
 )
+
+mpv_observe_property = getattr(backend, 'mpv_observe_property')
+mpv_observe_property.argtypes = [MpvHandle, c_uint64, c_char_p, MpvFormat]
+mpv_observe_property.restype = c_int
+
+
 
 @dataclass(frozen=True)
 class MPVEventWrapper:
@@ -45,7 +53,7 @@ class MPVEventWrapper:
 
 
 class MPVEvent(Actor):
-    def __init__(self, pid: int, name='',parent: Actor=None, **kwargs) -> None:
+    def __init__(self, pid: int, name='',parent: Actor|None=None, **kwargs) -> None:
         super().__init__(pid, name, parent)
         self.LOG = 0
         self.handle = kwargs.get('handle')
@@ -60,9 +68,9 @@ class MPVEvent(Actor):
 
 
 class MPV(Actor):
-    def __init__(self, pid: int, name='',parent: Actor=None, **kwargs) -> None:
+    def __init__(self, pid: int, name='',parent: Actor|None=None, **kwargs) -> None:
         super().__init__(pid, name, parent, **kwargs)
-        self.LOG = 1
+        self.LOG = 0
         self._state = 0
         self._volume = 100
         lc, enc = locale.getlocale(locale.LC_NUMERIC)
@@ -72,7 +80,7 @@ class MPV(Actor):
 
         # istr = lambda o: ('yes' if o else 'no') if type(o) is bool else str(o)
         # print(k.replace('_', '-').encode('utf-8'), istr(v).encode('utf-8'))
-        wid, *_ = kwargs.get('wid')
+        # wid, *_ = kwargs.get('wid')
         # mpv_set_option_string(self.handle, b'wid', wid)
         _mpv_set_option_string(self.handle, b'audio-display', b'no')
         _mpv_set_option_string(self.handle, b'input-default-bindings', b'yes')
@@ -86,6 +94,9 @@ class MPV(Actor):
         self._event_loop = actor_system.create_actor(MPVEvent, handle=self.handle)
         self.post(self, Message(Sig.INIT))
 
+    def log_msg(self, msg: str) ->None:
+        actor_system.send('Logger', Message(Sig.PUSH, msg))
+
     @property
     def event_loop(self) -> Any:
         return self._event_loop.event_handle
@@ -95,11 +106,11 @@ class MPV(Actor):
         raise TypeError
 
     @property
-    def volume(self) -> int:
+    def volume(self) -> int|float:
         return self._volume
 
     @volume.setter
-    def volume(self, value: int) -> None:
+    def volume(self, value: int|float) -> None:
         self._volume = clamp(0, 100)(value)
         actor_system.send('Display', Message(sig=Sig.MEDIA_META, args={'player-volume': self._volume}))
 
@@ -109,7 +120,7 @@ class MPV(Actor):
 
     @state.setter
     def state(self, value: int) -> None:
-        self._state = clamp(0, 4)(value)
+        self._state = int(clamp(0, 4)(value))
         actor_system.send('Display', Message(sig=Sig.MEDIA_META, args={'player-state': self._state}))
 
     async def command_async(self, *args) -> int:
@@ -139,14 +150,15 @@ class MPV(Actor):
         self.event_thread.join()
 
     def observe_property(self, name: str) -> None:
-        _mpv_observe_property(self.event_loop, hash(name) & 0xffffffffffffffff, name.encode('utf-8'), MpvFormat.NODE)
+        # self.handle
+        mpv_observe_property(self.handle, hash(name) & 0xffffffffffffffff, name.encode('utf-8'), MpvFormat.NODE)
+        # _mpv_observe_property(self.event_loop, hash(name) & 0xffffffffffffffff, name.encode('utf-8'), MpvFormat.NODE)
 
     def dispatch(self, sender: Actor, msg: Message) -> None:
         # actor_system.send('Logger', Message(Sig.PUSH, f'Got new Message: {msg=}'))
         # print(f'Got new Message: {msg=}')
         match msg:
             case Message(sig=Sig.MPV_EVENT, args=args):
-                # actor_system.send('Logger', Message(Sig.PUSH, f'processing MPV_EVENT: event={msg.args}'))
                 self.log_msg(f'processing MPV_EVENT: event={msg.args}')
                 match args.event_id:
                     case MpvEventID.NONE:
@@ -204,9 +216,9 @@ class MPV(Actor):
 
             case Message(sig=Sig.INIT, args=args):
                 self.observe_property('volume')
-                self.observe_property('stream-end')
-                self.observe_property('stream-duration')
-                self.observe_property('duration')
+                # self.observe_property('stream-end')
+                # self.observe_property('stream-duration')
+                # self.observe_property('duration')
                 self.post(self, Message(sig=Sig.VOLUME, args=100))
                 # percent-pos
                 # time-pos

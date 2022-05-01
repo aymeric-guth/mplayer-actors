@@ -1,2 +1,0 @@
-https://docs.python.org/3/howto/curses.html
-https://github.com/prometheus/client_python
