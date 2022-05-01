@@ -1,11 +1,7 @@
 import sys
-from src.services import display, media_dispatcher
-from src.services.base.message import Message
-from .services import Message, Sig, Actor
 
 from .services import ActorSystem, Dispatcher, API, Display, Files, Input, External, Logger, MediaDispatcher
 from .wcurses import deinit
-import curses
 
 
 
