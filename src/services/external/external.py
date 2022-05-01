@@ -47,5 +47,11 @@ class External(Actor):
                             mount_point
                         ])
 
+            # case Message(sig=Sig.SET_CACHE, args=args):
+            #     ...
+
+            # case Message(sig=Sig.GET_CACHE, args=args):
+            #     ...
+
             case _:
                 ...

@@ -3,3 +3,4 @@ from .character_encoding import accents_non_standard, pattern_dubious_modifiers,
 PLAYBACK_HEIGHT = 5
 CMD_HEIGHT = 3
 PROMPT = ' >>> '
+# PROMPT = ' (cmd) '

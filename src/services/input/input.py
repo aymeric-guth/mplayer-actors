@@ -25,13 +25,12 @@ class Input(Actor):
                 continue
             elif self.prompt_mode:
                 match c:
-                    # KEY_ENTER ?
-                    case 10:
+                    case Key.ENTER:
                         self.prompt_mode = 0
                         actor_system.send('Dispatcher', Message(sig=Sig.PARSE, args=''.join(self.buff)))
+                        self.buff.clear()
                         continue
-                    # KEY_BACKSPACE ?
-                    case 127:
+                    case Key.BACKSPACE:
                         if self.buff:
                             self.buff.pop(-1)
                     case _:
@@ -48,7 +47,6 @@ class Input(Actor):
                     ...
 
                 case Key.COLON:
-                    self.buff.clear()
                     self.prompt_mode = 1
 
                 case Key.q | Key.Q:

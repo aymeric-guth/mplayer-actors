@@ -44,3 +44,5 @@ class Key:
     k = 107
     j = 106
     COLON = 58
+    ENTER = 10
+    BACKSPACE = 127

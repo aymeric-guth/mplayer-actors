@@ -113,53 +113,7 @@ def _draw_screen(win, height, width):
 
         else:
             raise TypeError
-
-            # if display_mode == 1:
-            #     for sub in s:
-            #         win.addstr(idx, 0, sub[:width])
-            #         idx += 1
-            #         idx = idx % height
-
-            # elif display_mode == 2:
-            #     buffer = []
-            #     for sub in s:
-            #         if not buffer:
-            #             buffer.append(sub)
-            #             continue
-            #         else:
-            #             buffer.append(sub)
-            #             win.addstr(idx, 0, f"{''.join(buffer)}{' ' * term_blank}"[:width])
-            #             idx += 1
-            #             idx = idx % height
-            #             buffer.clear()
-
-            # elif display_mode == 3:
-            #     buffer = []
-            #     for sub in s:
-            #         if len(buffer) < 2:
-            #             buffer.append(sub)
-            #         else:
-            #             buffer.append(sub)
-            #             win.addstr(idx, 0, f"{''.join(buffer)}{' ' * term_blank}"[:width])
-            #             idx += 1
-            #             idx = idx % height
-            #             buffer.clear()
-
-            # elif display_mode == 4:
-            #     buffer = []
-            #     for sub in s:
-            #         if len(buffer) < 3:
-            #             buffer.append(sub)
-            #         else:
-            #             buffer.append(sub)
-            #             win.addstr(idx, 0, f"{''.join(buffer)}{' ' * term_blank}"[:width])
-            #             idx += 1
-            #             idx = idx % height
-            #             buffer.clear()
-
     return inner
 
-# def draw_logs():
-#     ...
 
 init()
