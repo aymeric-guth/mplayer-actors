@@ -2,7 +2,7 @@ import os
 import subprocess
 from pathlib import Path
 
-from .config import Config
+from .external.config import Config
 
 
 path = Path(__file__).parent.parent

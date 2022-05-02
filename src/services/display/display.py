@@ -1,12 +1,9 @@
 from cmd import PROMPT
 import curses
 from typing import Any
-from math import ceil
-import time
 from pathlib import Path
 from signal import signal, SIGWINCH
 
-from rich.console import Console
 
 from ..base import Actor, Message, Sig, actor_system
 from . import helpers

@@ -4,6 +4,8 @@ logs:
 
 refactor Message en dict?
 refactor festion path -> pathlib?
+merge fix_encoding et display.constants.character_encoding
+    belle api fonctionelle?
 
 
 Implémentation:

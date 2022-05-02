@@ -1,15 +1,10 @@
 from typing import Any
-import os
 from typing import Any
 from math import ceil
-from itertools import zip_longest
 import curses
 
-from rich.text import Text
-from rich.console import Console
-
 from .constants import character_encoding as ce
-from ...fix_encoding import Str
+from ...external.fix_encoding import Str
 from ...wcurses import stdscr, _draw_screen, draw_popup, draw_overlay
 
 from .constants import PROMPT
