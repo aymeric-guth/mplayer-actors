@@ -3,6 +3,7 @@ from collections import deque
 from ..base import Actor, Message, Sig, actor_system
 from ..mpv import MPV
 from .playlist import Playlist
+from ...settings import LOOP_DEFAULT
 
 
 class MediaDispatcher(Actor):
@@ -13,6 +14,7 @@ class MediaDispatcher(Actor):
         self.wid = b'\x00\x00\x00\x00'
         self.child = None
         self.pl = None
+        self.loop_mode = LOOP_DEFAULT
         actor_system.create_actor(MPV, wid=self.wid)
        
     def dispatch(self, sender: Actor, msg: Message) -> None:
@@ -32,6 +34,9 @@ class MediaDispatcher(Actor):
                 actor_system.send('MPV', Message(sig=Sig.PLAY, args=args))
                 actor_system.send('Display', Message(sig=Sig.MEDIA_META, args={'file': args}))
                 actor_system.send('Display', Message(sig=Sig.MEDIA_META, args={'pos': self.pl.pos()}))
+
+            case Message(sig=Sig.LOOP, args=args):
+                self.loop_mode = not self.loop_mode
 
             case Message(sig=Sig.PLAYBACK_CHANGE, args=args) as msg:
                 actor_system.send('Display', Message(sig=Sig.MEDIA_META, args={'player-state': args}))

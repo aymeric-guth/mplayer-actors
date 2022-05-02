@@ -2,11 +2,11 @@ import subprocess
 import socket
 
 from ..base import Actor, Message, Sig, actor_system
-from ..settings import ALLOWED_SHARES, MOUNT_POINT, SMB_USER, SMB_PASS, SMB_ADDR, SMB_PORT
+from ...settings import ALLOWED_SHARES, MOUNT_POINT, SMB_USER, SMB_PASS, SMB_ADDR, SMB_PORT
 
 
 class External(Actor):
-    def __init__(self, pid: int, name='', parent: Actor=None, **kwargs) -> None:
+    def __init__(self, pid: int, name='', parent: Actor|None=None, **kwargs) -> None:
         super().__init__(pid, name, parent, **kwargs)
         self.LOG = 0
         self.post(self, Message(sig=Sig.INIT))

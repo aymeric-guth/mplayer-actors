@@ -3,8 +3,7 @@ import logging
 import re
 
 from ..base import Message, Sig, Actor, actor_system
-from .. import settings
-from ...utils import clamp
+from ... import settings
 
 
 def eval_cmd(cmd: str) -> tuple[str, Message]:
@@ -42,8 +41,7 @@ def eval_cmd(cmd: str) -> tuple[str, Message]:
 
         case ['loop' | 'l']:
             # loop mode on / off
-            settings.loop = 1 if settings.loop else 0
-            return 'Dispatcher', Message(sig=Sig.NONE)
+            return 'MediaDispatcher', Message(sig=Sig.LOOP)
 
         case ['quit' | 'q']:
             return 'Dispatcher', Message(sig=Sig.SIGINT)
@@ -81,8 +79,7 @@ def eval_cmd(cmd: str) -> tuple[str, Message]:
 
         case ['volume' | 'v', value] if value.isdigit():
             # set volume to value
-            settings.volume = clamp(lo=0, hi=100)(int(value))
-            return 'MediaDispatcher', Message(sig=Sig.VOLUME, args=settings.volume)
+            return 'MediaDispatcher', Message(sig=Sig.VOLUME, args=int(value))
 
         case ['depth' | 'd', value] if value.isdigit() and int(value) > 0:
             # goes value nodes up
@@ -99,3 +96,5 @@ def eval_cmd(cmd: str) -> tuple[str, Message]:
 
         case _:
             return 'Display', Message(sig=Sig.POPUP, args=f'Invalid command: {cmd}')
+
+    return ('Dispatcher', Message(sig=Sig.ERROR))

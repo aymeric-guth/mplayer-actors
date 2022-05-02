@@ -1,0 +1,13 @@
+logs:
+    messages reçus par un acteur donné + sender
+    messages envoyés par un acteur donné + recipient
+
+refactor Message en dict?
+refactor festion path -> pathlib?
+
+
+Implémentation:
+    loop mode
+        intégration playlist
+        gui
+        event refresh gui

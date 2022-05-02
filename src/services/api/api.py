@@ -5,15 +5,16 @@ import httpx
 from ..base import Actor, Message, Sig, actor_system
 
 from . import helpers
-from ..settings import USERNAME, PASSWORD, extensions_all
+from ...settings import USERNAME, PASSWORD, extensions_all
 from .constants import AUTH, NAS
 
 
 class API(Actor):
-    def __init__(self, pid: int, name='', parent: Actor=None, **kwargs) -> None:
+    def __init__(self, pid: int, name='', parent: Actor|None=None, **kwargs) -> None:
         super().__init__(pid, name, parent, **kwargs)
         self.LOG = 0
         self.username = USERNAME
+        # stockage d'un mdp non crypté dans une globale
         self.password = PASSWORD
         self.token = None
         self.extensions = extensions_all

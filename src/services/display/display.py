@@ -28,12 +28,12 @@ signal(SIGWINCH, resize_handler)
 
 class MediaMeta:
     def __init__(self) -> None:
-        self.LOG = 0
+        self.LOG = 1
         self.state = 0
         self.file: str = ''
         self.pos: tuple[int, int] = (0, 0)
         self.volume = 0
-        self.playback = 0.
+        self.playback = 0
 
 
 class Display(Actor):
@@ -79,7 +79,7 @@ class Display(Actor):
                         self.media_meta.pos = p
                     case {'player-volume': p}:
                         self.media_meta.volume = p
-                    case {'playback' : p}:
+                    case {'playback' : p} if p is not None:
                         self.media_meta.playback = p
                 self.post(self, Message(sig=Sig.DRAW_SCREEN))
 

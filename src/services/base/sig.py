@@ -51,3 +51,4 @@ class Sig(Enum):
     VOLUME_CHANGE = auto()
     PLAYBACK_CHANGE = auto()
     POS_CHANGE = auto()
+    LOOP = auto()

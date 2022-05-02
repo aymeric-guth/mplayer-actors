@@ -3,7 +3,7 @@ import os
 
 
 from ..base import Actor, Message, Sig, actor_system
-from ..settings import MOUNT_POINT, PATH, extensions_all, ROOT
+from ...settings import MOUNT_POINT, extensions_all, ROOT
 from . import helpers
 
 
@@ -12,13 +12,13 @@ from . import helpers
 # search all dirs
 
 class Files(Actor):
-    def __init__(self, pid: int, name='',parent: Actor=None, **kwargs) -> None:
+    def __init__(self, pid: int, name='',parent: Actor|None=None, **kwargs) -> None:
         super().__init__(pid, name, parent, **kwargs)
         self.LOG = 0
         self.mount_point = MOUNT_POINT[:]
         self.extensions = extensions_all
-        self.files_tree = defaultdict(list)
-        self.dir_tree = defaultdict(set)
+        self.files_tree: dict[tuple[str, ...], list[str]] = defaultdict(list)
+        self.dir_tree: dict[tuple[str, ...], set[str]] = defaultdict(set)
         self.path = list(ROOT)
         self.path_full = f"{self.mount_point}{'/'.join(self.path[1:])}/"
 

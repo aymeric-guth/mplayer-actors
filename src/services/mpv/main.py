@@ -8,7 +8,7 @@ from typing import Any
 
 from src.services.base import message
 from ...utils import clamp
-from ..settings import VOLUME_DEFAULT
+from ...settings import VOLUME_DEFAULT
 
 
 from ..base import Actor, Message, Sig, actor_system
@@ -224,6 +224,7 @@ class MPV(Actor):
                     self.post(self, Message(sig=Sig.DONE))
 
             case Message(sig=Sig.PLAY, args=path):
+                self.log_msg(f'Playing: {path}')
                 args = [b'loadfile', path.encode('utf-8'), b'replace', b'', None]
                 self.set_property('pause', 'no')
                 self.command(*args)
@@ -237,6 +238,7 @@ class MPV(Actor):
                     self.post(self, Message(sig=Sig.STATE_CHANGE, args=1))
 
             case Message(sig=Sig.VOLUME, args=args):
+                self.log_msg(f'Got Sig.VOLUME {args=}')
                 if args is not None:
                     self.volume = args
                 self.set_property('volume', self.volume)
