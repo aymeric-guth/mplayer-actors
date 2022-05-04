@@ -28,6 +28,19 @@ def format_line(
     else:
         return f"| {idx} | {s[:left_space-3]}... |"
 
+# def format_line(string: str, indice: int, pad: int, display_width: int) -> str:
+#     string = StrIdeo(str(Str(string)))
+    
+#     indice = f"{indice:0{pad}}"
+#     size_cell_a = len(indice) + 5
+#     size_cell_b = display_width - size_cell_a
+#     left_space = size_cell_b - 2 - len(string)
+
+#     if left_space >= 0:
+#         return f"| {indice} | {string}{' ' * left_space} |"
+#     else:
+#         return f"| {indice} | {string[:left_space-3]}... |"
+
 
 def string_format(
     dir_list: list[Any], 
@@ -37,31 +50,29 @@ def string_format(
     len_dir = len(dir_list)
     len_files = len(files_list)
 
-    pad = 3 if (len_dir+len_files) // 10 > 10 else 2
+    pad = 3 if (len_dir + len_files) // 10 > 10 else 2
     padding = f"*{(display_width-2) * '-'}*"
     blank = display_width * ' '
 
     str_object: list[str] = []
-    # str_object.append(padding)
     str_object.append(format_line('DIRS', 0, pad, display_width))
-    # str_object.append(padding)
-
     for i, v in enumerate(dir_list[1:]):
         str_object.append(format_line(v, i+1, pad, display_width))
 
-    # str_object.append(padding)
     str_object.append(format_line('FILES', 0, pad, display_width))
-    # str_object.append(padding)
-
     for i, v in enumerate(files_list[1:]):
         str_object.append(format_line(v[0], i+1, pad, display_width))
-    # if files_list[1:]:
-    #     str_object.append(padding)
 
     return str_object, padding, blank
 
 
-def draw_files(self, height: int, width: int, y_ofst: int, x_ofst: int) -> None:
+def draw_files(
+    self, 
+    height: int, 
+    width: int, 
+    y_ofst: int, 
+    x_ofst: int
+) -> None:
     if not height:
         return
     if not self.files_buff:
@@ -88,7 +99,13 @@ def draw_files(self, height: int, width: int, y_ofst: int, x_ofst: int) -> None:
     win.noutrefresh()
 
 
-def draw_cmd(self, height: int, width: int, y_ofst: int, x_ofst: int) -> None:
+def draw_cmd(
+    self, 
+    height: int, 
+    width: int, 
+    y_ofst: int, 
+    x_ofst: int
+) -> None:
     if not height:
         return
     if self.cmd_buff and self.cmd_buff[-1] == '\n':
@@ -103,7 +120,13 @@ def draw_cmd(self, height: int, width: int, y_ofst: int, x_ofst: int) -> None:
     win.noutrefresh()
 
 
-def draw_playback(self, height: int, width: int, y_ofst: int, x_ofst: int) -> None:
+def draw_playback(
+    self, 
+    height: int, 
+    width: int, 
+    y_ofst: int, 
+    x_ofst: int
+) -> None:
     if not height:
         return
 

@@ -137,6 +137,9 @@ class Files(Actor):
                 self.len_files = len(self.files)
                 actor_system.send('Display', Message(sig=Sig.CWD_GET, args=helpers.get_kwargs(self)))
 
+            case Message(sig=Sig.AUDIT, args=None):
+                actor_system.send(sender, {'event': 'audit', 'data': self.introspect()})
+
             case _:
                 print(f'Files Could not process {msg=}')
                 raise SystemExit(f'{msg=}')

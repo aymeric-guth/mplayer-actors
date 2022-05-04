@@ -1,4 +1,4 @@
-from typing import TypeVar
+from typing import TypeVar, Any
 
 from .base_actor import BaseActor, ActorGeneric
 from .message import Message
@@ -48,3 +48,12 @@ class Actor(BaseActor):
     def handler(self, err) -> None:
         actor_system.send('Logger', Message(Sig.PUSH, args=f'Actor={self} encountered a failure: {err}'))
         actor_system.post(self, Message(sig=Sig.SIGINT, args=err))
+
+    def introspect(self) -> dict[Any, Any]:
+        return {
+            'actor': repr(self),
+            'log': self.LOG,
+        }.copy()
+
+    def __repr__(self) -> str:
+        return f'{self.__class__.__name__}(pid={self.pid}, parent={self.parent}, kwargs={self.kwargs})'

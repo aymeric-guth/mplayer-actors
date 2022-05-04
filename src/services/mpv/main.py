@@ -175,7 +175,7 @@ class MPV(Actor):
             case Message(sig=Sig.MPV_EVENT, args=args):
                 match args:
                     case MpvEvent(event=event, id=0, name=None, data=None):
-                        self.log_msg(f'Processing base event: {args}')
+                        # self.log_msg(f'Processing base event: {args}')
                         match event:
                             case 'playback-restart' | 'start-file' | 'unpause':
                                 self.post(self, Message(sig=Sig.STATE_CHANGE, args=1))
@@ -195,7 +195,8 @@ class MPV(Actor):
                                     case 'percent-pos':
                                         ...
                                     case _:
-                                        self.log_msg(f'Processing propery-change event: {args}')
+                                        ...
+                                        # self.log_msg(f'Processing propery-change event: {args}')
 
                     case event:
                         self.log_msg(f'Unkown event: {args}')
@@ -216,7 +217,6 @@ class MPV(Actor):
                     self.post(self, Message(sig=Sig.DONE))
 
             case Message(sig=Sig.PLAY, args=path):
-                self.log_msg(f'Playing: {path}')
                 args = [b'loadfile', path.encode('utf-8'), b'replace', b'', None]
                 self.set_property('pause', 'no')
                 self.command(*args)
@@ -230,7 +230,6 @@ class MPV(Actor):
                     self.post(self, Message(sig=Sig.STATE_CHANGE, args=1))
 
             case Message(sig=Sig.VOLUME, args=args):
-                self.log_msg(f'Got Sig.VOLUME {args=}')
                 if args is not None:
                     self.volume = args
                 self.set_property('volume', self.volume)
@@ -260,6 +259,9 @@ class MPV(Actor):
             case Message(sig=Sig.POISON, args=None):
                 self.terminate()
                 raise Exception
+
+            case Message(sig=Sig.AUDIT, args=None):
+                actor_system.send(sender, {'event': 'audit', 'data': self.introspect()})
 
             case _:
                 raise SystemExit(f'{msg=}')

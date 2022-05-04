@@ -25,7 +25,10 @@ class Dispatcher(Actor, metaclass=SingletonMeta):
             case Message(sig=Sig.NETWORK_FAILURE, args=args):
                 self.log_msg(f'NETWORK_FAILURE SIGNAL handler, exiting... {msg=}')
                 raise SystemExit
-            
+
+            case Message(sig=Sig.AUDIT, args=None):
+                actor_system.send(sender, {'event': 'audit', 'data': self.introspect()})
+
             case _:
                 print(f'Default SIGNAL handler, exiting... {msg=}')
                 raise SystemExit

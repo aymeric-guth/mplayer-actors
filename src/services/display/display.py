@@ -127,22 +127,24 @@ class Display(Actor):
                 raise Exception(f'{msg!r}')
 
             case Message(sig=Sig.AUDIT, args=None):
-                data = {
-                    'actor': repr(self),
-                    'log': self.LOG,
-                    'data': {
-                        'files_overlay': self.files_overlay,
-                        'playback_overlay': self.playback_overlay,
-                        'cmd_overlay': self.cmd_overlay,
-                        'cmd_buff': self.cmd_buff.copy(),
-                        'files_buff': self.files_buff.copy(),
-                        'media_meta': self.media_meta.copy(),
-                    }
-                }
-                actor_system.send(sender, {'event': 'audit', 'data': data.copy()})
+                actor_system.send(sender, {'event': 'audit', 'data': self.introspect()})
 
             case _:
                 raise SystemExit(f'{msg=}')
 
-    def terminate(self):
+    def terminate(self) -> None:
         ...
+
+    def introspect(self) -> dict[Any, Any]:
+        return {
+            'actor': repr(self),
+            'log': self.LOG,
+            'data': {
+                'files_overlay': self.files_overlay,
+                'playback_overlay': self.playback_overlay,
+                'cmd_overlay': self.cmd_overlay,
+                'cmd_buff': self.cmd_buff.copy(),
+                'files_buff': self.files_buff.copy(),
+                'media_meta': self.media_meta.copy(),
+            }
+        }.copy()

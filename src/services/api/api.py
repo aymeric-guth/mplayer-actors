@@ -99,5 +99,8 @@ class API(Actor):
                 self.post(sender, Message(sig=Sig.FILES_GET))
                 # actor_system.send(sender, Message(sig=Sig.FILES_GET))
 
+            case Message(sig=Sig.AUDIT, args=None):
+                actor_system.send(sender, {'event': 'audit', 'data': self.introspect()})
+
             case _:
                 raise SystemExit(f'{msg=}')

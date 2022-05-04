@@ -123,10 +123,17 @@ class Introspecter(Actor):
         super().__init__(pid, name, parent)
         self.LOG = 0
         self.childs: dict[str, Actor] = {}
-        addr = socket.getaddrinfo('127.0.0.1', 8081)[0][-1]
-        self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.sock.setblocking(True)
-        self.sock.bind(addr)
+        port = 8081
+        while 1:
+            addr = socket.getaddrinfo('127.0.0.1', 8081)[0][-1]
+            self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            self.sock.setblocking(True)
+            try:
+                self.sock.bind(addr)
+            except OSError:
+                port += 1
+            else:
+                break
         self.sock.listen(1)
 
     def run(self) -> None:

@@ -1,14 +1,14 @@
 from . import character_encoding as ce
 
 
-def display_len(s: str) -> int:
+def display_len(string: str) -> int:
         offset = 0
-        for s in s:
+        for s in string:
             if s in ce.modifier:
                 offset -= 1
             elif s in ce.full_width:
                 offset += 1
-        return len(s) + offset
+        return len(string) + offset
 
 
 class StrIdeo:
