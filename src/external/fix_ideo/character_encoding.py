@@ -1,7 +1,4 @@
-import pickle
 import re
-
-import env
 
 from .emoji_data import emoji
 

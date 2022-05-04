@@ -42,7 +42,8 @@ class Display(Actor):
         self.cmd_overlay = 0
         self.cmd_buff: list[str] = []
         self.files_buff: list[Any] = []
-        self.media_meta = MediaMeta()
+        # self.media_meta = MediaMeta()
+        self.media_meta: dict[str, Any] = {}
 
     def dispatch(self, sender: Actor, msg: Message) -> None:
         match msg:
@@ -67,17 +68,8 @@ class Display(Actor):
                 self.post(self, Message(sig=Sig.DRAW_SCREEN))
 
             case Message(sig=Sig.MEDIA_META, args=args):
-                match args:
-                    case {'player-state': p}:
-                        self.media_meta.state = p
-                    case {'file': p}:
-                        self.media_meta.file = Path(p).name
-                    case {'pos': p}:
-                        self.media_meta.pos = p
-                    case {'player-volume': p}:
-                        self.media_meta.volume = p
-                    case {'playback' : p} if p is not None:
-                        self.media_meta.playback = p
+                k, v = [i for i in args.items()][0]
+                self.media_meta.update({k: v})
                 self.post(self, Message(sig=Sig.DRAW_SCREEN))
 
             case Message(sig=Sig.DRAW_SCREEN):

@@ -1,0 +1,4 @@
+PLAYBACK_HEIGHT = 5
+CMD_HEIGHT = 3
+PROMPT = ' >>> '
+# PROMPT = ' (cmd) '

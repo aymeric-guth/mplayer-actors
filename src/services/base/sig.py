@@ -52,3 +52,8 @@ class Sig(Enum):
     PLAYBACK_CHANGE = auto()
     POS_CHANGE = auto()
     LOOP = auto()
+    PBTIME_CHANGE = auto()
+    PBREM_CHANGE = auto()
+    META = auto()
+    DURATION_CHANGE = auto()
+    WATCHER = auto()

@@ -38,15 +38,6 @@ class MediaDispatcher(Actor):
             case Message(sig=Sig.LOOP, args=args):
                 self.loop_mode = not self.loop_mode
 
-            case Message(sig=Sig.PLAYBACK_CHANGE, args=args) as msg:
-                actor_system.send('Display', Message(sig=Sig.MEDIA_META, args={'player-state': args}))
-
-            case Message(sig=Sig.VOLUME_CHANGE, args=args) as msg:
-                actor_system.send('Display', Message(sig=Sig.MEDIA_META, args={'player-volume': args}))
-
-            case Message(sig=Sig.POS_CHANGE, args=args) as msg:
-                actor_system.send('Display', Message(sig=Sig.MEDIA_META, args={'playback': args}))
-
             case Message(sig=Sig.VOLUME, args=args) as msg:
                 actor_system.send('MPV', msg)
 
@@ -75,6 +66,18 @@ class MediaDispatcher(Actor):
 
             case Message(sig=Sig.SEEK, args=args) as msg:
                 actor_system.send('MPV', msg)
+
+            case Message(sig=Sig.WATCHER, args=args) as msg:
+                actor_system.send('Display', Message(sig=Sig.MEDIA_META, args=args))
+
+            # case Message(sig=Sig.PLAYBACK_CHANGE, args=args) as msg:
+            #     actor_system.send('Display', Message(sig=Sig.MEDIA_META, args={'player-state': args}))
+
+            # case Message(sig=Sig.VOLUME_CHANGE, args=args) as msg:
+            #     actor_system.send('Display', Message(sig=Sig.MEDIA_META, args={'player-volume': args}))
+
+            # case Message(sig=Sig.POS_CHANGE, args=args) as msg:
+            #     actor_system.send('Display', Message(sig=Sig.MEDIA_META, args={'playback': args}))
 
             case _:
                 raise SystemExit(f'{msg=}')

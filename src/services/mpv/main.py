@@ -136,7 +136,7 @@ class MPV(Actor):
     @state.setter
     def state(self, value: int) -> None:
         self._state = int(clamp(0, 4)(value))
-        actor_system.send(self.parent, Message(sig=Sig.PLAYBACK_CHANGE, args=self._state))
+        actor_system.send(self.parent, Message(sig=Sig.WATCHER, args={'player-state': self._state}))
 
     async def command_async(self, *args) -> int:
         args = [c_uint64(0xffff), (c_char_p*len(args))(*args)]
@@ -177,46 +177,38 @@ class MPV(Actor):
                     case MpvEvent(event=event, id=0, name=None, data=None):
                         self.log_msg(f'Processing base event: {args}')
                         match event:
-                            case 'playback-restart' | 'start-file':
+                            case 'playback-restart' | 'start-file' | 'unpause':
                                 self.post(self, Message(sig=Sig.STATE_CHANGE, args=1))
                             case 'idle':
                                 self.post(self, Message(sig=Sig.STATE_CHANGE, args=4))
                             case 'pause':
                                 self.post(self, Message(sig=Sig.STATE_CHANGE, args=2))
-                            case 'unpause':
-                                self.post(self, Message(sig=Sig.STATE_CHANGE, args=1))
                             case 'seek':
                                 self.post(self, Message(sig=Sig.STATE_CHANGE, args=3))
 
                     case MpvEvent(event=event, id=_id, name=name, data=data):
-                        self.log_msg(f'Processing propery-change event: {args}')
                         match event:
                             case 'property-change':
                                 match name:
-                                    case 'volume':
-                                        actor_system.send(self.parent, Message(sig=Sig.VOLUME_CHANGE, args=data))
+                                    case 'volume' | 'playback-time' | 'playtime-remaining' | 'duration' | 'metadata' | 'time-pos':
+                                        actor_system.send(self.parent, Message(sig=Sig.WATCHER, args={name: data}))
                                     case 'percent-pos':
-                                        actor_system.send(self.parent, Message(sig=Sig.POS_CHANGE, args=data))
-                                # sig = self.observed_properties.get(args.id)
-                                # self.post(self, Message())
+                                        ...
+                                    case _:
+                                        self.log_msg(f'Processing propery-change event: {args}')
 
                     case event:
                         self.log_msg(f'Unkown event: {args}')
 
-
             case Message(sig=Sig.INIT, args=args):
                 self.observe_property('volume')
                 self.observe_property('percent-pos')
-                
-                # self.observe_property('stream-end')
-                # self.observe_property('stream-duration')
-                # self.observe_property('duration')
+                self.observe_property('time-pos')
+                self.observe_property('playback-time')
+                self.observe_property('playtime-remaining')
+                self.observe_property('duration')
+                self.observe_property('metadata')
                 self.post(self, Message(sig=Sig.VOLUME, args=VOLUME_DEFAULT))
-                # percent-pos
-                # time-pos
-                # time-start
-                # time-remaining
-                # ao-volume
 
             case Message(sig=Sig.STATE_CHANGE, args=state):
                 self.state = state

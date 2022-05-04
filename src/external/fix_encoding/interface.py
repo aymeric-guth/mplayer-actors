@@ -22,7 +22,8 @@ class Str(object):
         self.SUPPORTED_RANGE: set[str] = merge.SUPPORTED_RANGE
 
         if (self.unique_individual_symbols - (merge.SUPPORTED_RANGE | merge.COMBINING_FULL)):
-            print(f"Non latin character detected: s={self.s}")
+            ...
+            # print(f"Non latin character detected: s={self.s}")
             # raise NotImplementedError("Non latin character detected")
 
         self.wrapped: list[str] = [ i for i in self ]

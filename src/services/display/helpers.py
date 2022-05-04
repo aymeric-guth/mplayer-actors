@@ -2,81 +2,38 @@ from typing import Any
 from typing import Any
 from math import ceil
 import curses
+from pathlib import Path
 
-from .constants import character_encoding as ce
 from ...external.fix_encoding import Str
+from ...external.fix_ideo import StrIdeo
 from ...wcurses import stdscr, _draw_screen, draw_popup, draw_overlay
 
 from .constants import PROMPT
 
 
-
-def display_len(string: str) -> int:
-        offset = 0
-        for s in string:
-            if s in ce.modifier: 
-                offset -= 1
-            elif s in ce.full_width: 
-                offset += 1
-        return len(string) + offset
-
-
-class StrIdeo:
-    def __init__(self, s: str) -> None:
-        if isinstance(s, Str):
-            self.s = str(s)
-        elif isinstance(s, str):
-            self.s = s
-        else:
-            raise NotImplementedError
-
-        self.is_ideo = set(s) & ce.global_ideographic
-        if self.is_ideo:
-            v = self.s[0]
-            last = display_len(v)
-            self.str_map = [ [v,], [last,] ]
-            for v in self.s[1:]:
-                self.str_map[0].append(v)
-                current = display_len(v)
-                self.str_map[1].append(last+current)
-                last += current
-
-    def __bool__(self) -> bool:
-        return self.is_ideo
-
-    def __len__(self) -> int:
-        return display_len(self.s)
-
-    def __str__(self) -> str:
-        return self.s
-
-    def __getitem__(self, value: int|slice) -> str:
-        if not self.__bool__():
-            return self.s[value]
-        assert isinstance(value, slice), (f'{value=} {self.s=}')
-        sentinel = value.stop if value.stop >= 0 else value.stop + len(self)
-        for i, v in enumerate(self.str_map[1]):
-            if v > sentinel:
-                return ''.join(self.str_map[0][:i])
-        else:
-            return self.s
-
-
-def format_line(string: str, indice: int, pad: int, display_width: int) -> str:
-    string = StrIdeo(Str(string))
-    
-    indice = f"{indice:0{pad}}"
-    size_cell_a = len(indice) + 5
+def format_line(
+    string: str, 
+    indice: int, 
+    pad: int, 
+    display_width: int
+) -> str:
+    s: StrIdeo = StrIdeo(str(Str(string)))
+    idx = f"{indice:0{pad}}"
+    size_cell_a = len(idx) + 5
     size_cell_b = display_width - size_cell_a
-    left_space = size_cell_b - 2 - len(string)
+    left_space = size_cell_b - 2 - len(s)
 
     if left_space >= 0:
-        return f"| {indice} | {string}{' ' * left_space} |"
+        return f"| {idx} | {s}{' ' * left_space} |"
     else:
-        return f"| {indice} | {string[:left_space-3]}... |"
+        return f"| {idx} | {s[:left_space-3]}... |"
 
 
-def string_format(dir_list: list[Any], files_list: list[Any], display_width: int) -> list[Any]:
+def string_format(
+    dir_list: list[Any], 
+    files_list: list[Any], 
+    display_width: int
+) -> tuple[list[str], str, str]:
     len_dir = len(dir_list)
     len_files = len(files_list)
 
@@ -84,16 +41,16 @@ def string_format(dir_list: list[Any], files_list: list[Any], display_width: int
     padding = f"*{(display_width-2) * '-'}*"
     blank = display_width * ' '
 
-    str_object = []
+    str_object: list[str] = []
     # str_object.append(padding)
-    str_object.append(format_line('DIRS', '0', pad, display_width))
+    str_object.append(format_line('DIRS', 0, pad, display_width))
     # str_object.append(padding)
 
     for i, v in enumerate(dir_list[1:]):
         str_object.append(format_line(v, i+1, pad, display_width))
 
     # str_object.append(padding)
-    str_object.append(format_line('FILES', '0', pad, display_width))
+    str_object.append(format_line('FILES', 0, pad, display_width))
     # str_object.append(padding)
 
     for i, v in enumerate(files_list[1:]):
@@ -150,15 +107,33 @@ def draw_playback(self, height: int, width: int, y_ofst: int, x_ofst: int) -> No
     if not height:
         return
 
+    player_state = self.media_meta.get('player-state', 0)
+    file = self.media_meta.get('file', '')
+    file = Path(file).name if file else file
+    current, total = self.media_meta.get('pos', (0, 0))
+    volume = self.media_meta.get('volume', 0)
+    # percent_pos = self.media_meta.get('percent-pos', 0.)
+    playback_time = self.media_meta.get('playback-time', 0)
+    playback_time = 0 if playback_time is None else int(playback_time)
+    playtime_remaining = self.media_meta.get('playtime-remaining', 0)
+    playtime_remaining = 0 if playtime_remaining is None else int(playtime_remaining)
+    duration = self.media_meta.get('duration', 0.)
+    duration = 0 if duration is None else int(duration)
+    metadata = self.media_meta.get('metadata', '')
+
     win = curses.newwin(height, width, y_ofst, x_ofst)
-    win.addstr(1, 1, f'File: {self.media_meta.file}')
-    current, total = self.media_meta.pos
+    win.addstr(1, 1, f'File: {file}')
     win.addstr(2, 1, f'Position: {current}/{total}')
-    media_state = f'Media State: {self.media_meta.state}'
+    media_state = f'Media State: {player_state}'
     win.addstr(3, 1, media_state)
-    volume = f' | Volume: {self.media_meta.volume}%'
+    volume = f' | Volume: {volume}%'
     win.addstr(3, 1 + len(media_state), volume)
-    playback = f' | {self.media_meta.playback:.1f}%'
+    playback = f' | Playback: {playback_time:03} / {duration:03} s'
+    # playback = f' | {percent_pos:.1f}%'
     win.addstr(3, 1 + len(media_state) + len(volume), playback)
+
+    # playback_time
+    # playtime_remaining
+    # duration
     win.box()
     win.noutrefresh()
