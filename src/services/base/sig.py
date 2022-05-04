@@ -57,3 +57,4 @@ class Sig(Enum):
     META = auto()
     DURATION_CHANGE = auto()
     WATCHER = auto()
+    AUDIT = auto()

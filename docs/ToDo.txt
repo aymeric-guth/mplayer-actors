@@ -13,3 +13,6 @@ Implémentation:
         intégration playlist
         gui
         event refresh gui
+
+bugs:
+    gui sur display_mode 2+

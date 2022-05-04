@@ -1,7 +1,7 @@
 import sys
 import traceback
 
-from .services import ActorSystem, Dispatcher, API, Display, Files, Input, External, Logger, MediaDispatcher
+from .services import ActorSystem, Dispatcher, API, Display, Files, Input, External, Logger, MediaDispatcher, Introspecter
 from .wcurses import deinit
 
 
@@ -16,6 +16,7 @@ def main():
     actor_system.create_actor(Input)
     actor_system.create_actor(MediaDispatcher)
     actor_system.create_actor(External)
+    actor_system.create_actor(Introspecter)
 
     try:
         actor_system.run()

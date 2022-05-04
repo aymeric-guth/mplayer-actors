@@ -25,7 +25,7 @@ signal(SIGWINCH, resize_handler)
 
 class MediaMeta:
     def __init__(self) -> None:
-        self.LOG = 1
+        self.LOG = 0
         self.state = 0
         self.file: str = ''
         self.pos: tuple[int, int] = (0, 0)
@@ -125,6 +125,21 @@ class Display(Actor):
 
             case Message(sig=Sig.POISON, args=args):
                 raise Exception(f'{msg!r}')
+
+            case Message(sig=Sig.AUDIT, args=None):
+                data = {
+                    'actor': repr(self),
+                    'log': self.LOG,
+                    'data': {
+                        'files_overlay': self.files_overlay,
+                        'playback_overlay': self.playback_overlay,
+                        'cmd_overlay': self.cmd_overlay,
+                        'cmd_buff': self.cmd_buff.copy(),
+                        'files_buff': self.files_buff.copy(),
+                        'media_meta': self.media_meta.copy(),
+                    }
+                }
+                actor_system.send(sender, {'event': 'audit', 'data': data.copy()})
 
             case _:
                 raise SystemExit(f'{msg=}')

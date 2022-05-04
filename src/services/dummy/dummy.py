@@ -2,7 +2,7 @@ from ..base import Actor, Message, Sig, actor_system
 
 
 class Dummy(Actor):
-    def __init__(self, pid: int, name='',parent: Actor=None) -> None:
+    def __init__(self, pid: int, name='',parent: Actor|None=None) -> None:
         super().__init__(pid, name, parent)
 
     def run(self) -> None:

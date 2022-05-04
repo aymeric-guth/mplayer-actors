@@ -9,9 +9,6 @@ async def handle_client(
     print('New connection')
     while 1:
         message = await reader.readline()
-#        patt = b'encountered a failure'
-#        source, cause = message.split(patt)
-#        print((source + patt).decode('utf-8))
         print(message.decode('utf-8')[:-1])
         if not message:
             writer.close()

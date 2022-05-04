@@ -69,7 +69,7 @@ class MpvEvent:
 class MPVEvent(Actor):
     def __init__(self, pid: int, name='',parent: Actor|None=None, **kwargs) -> None:
         super().__init__(pid, name, parent)
-        self.LOG = 1
+        self.LOG = 0
         self.handle = kwargs.get('handle')
         self.event_handle = _mpv_create_client(self.handle, b'py_event_handler')
 
