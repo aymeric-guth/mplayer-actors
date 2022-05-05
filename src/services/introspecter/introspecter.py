@@ -2,9 +2,19 @@ import socket
 import select
 import json
 import traceback
+from enum import Enum, auto
 from typing import Any
 
 from ..base import Actor, Message, Sig, actor_system
+
+
+
+class State(Enum):
+    INIT = auto()
+    POLL = auto()
+    READ_READY = auto()
+    WRITE_READY = auto()
+
 
 
 BUFFSIZE = 4096
@@ -16,6 +26,33 @@ def serialize(data: dict[str, Any]) -> bytes:
 
 def deserialize(data: bytes) -> dict[str, Any]:
     return json.loads(data.decode("utf-8"))
+
+
+class Socket(Actor):
+    def __init__(
+        self,
+        pid: int,
+        name='',
+        parent: Actor|None=None,
+        conn: socket.socket|None=None,
+        data: bytes=b''
+    ) -> None:
+        super().__init__(pid, name, parent)
+        self.LOG = 0
+        if conn is None:
+            raise SystemExit
+        self.conn = conn
+        self.data = data
+
+    def run(self) -> None:
+        try:
+            self.conn.sendall(self.data + b'\n')
+            message = {}
+        except OSError:
+            message = Sig.SIGINT
+        finally:
+            actor_system.send(self.parent, message)
+            raise SystemExit
 
 
 class ResponseHandler(Actor):
@@ -37,9 +74,11 @@ class ResponseHandler(Actor):
     def run(self) -> None:
         try:
             self.conn.sendall(self.data + b'\n')
+            # message = {}
         except OSError:
-            ...
+            message = Sig.SIGINT
         finally:
+            # actor_system.send(self.parent, message)
             raise SystemExit
 
 
@@ -134,15 +173,74 @@ class Introspecter(Actor):
                 port += 1
             else:
                 break
-        self.sock.listen(1)
+        self.sock.listen(5)
 
     def run(self) -> None:
         while 1: 
-            conn, addr = self.sock.accept()
-            actor = actor_system.create_actor(SocketHandler, conn=conn)
+            rr, wr, err = select.select([self.sock], [], [self.sock])
+            for s in rr:
+                conn, addr = s.accept()
+                actor = actor_system.create_actor(SocketHandler, conn=conn)
+            for s in err:
+                try:
+                    s.shutdown(socket.SHUT_RDWR)
+                    s.close()
+                except OSError:
+                    ...
+
             # self.childs.update({addr: actor})
             # if addr not in self.childs:                
             #     actor = actor_system.create_actor(SocketHandler, conn=conn)
             #     self.childs.update({addr: actor})
             # else:
             #     ...
+
+
+
+
+    # def run(self) -> None:
+    #     stack: list[Any] = []
+    #     state = State.INIT
+    #     inputs: list[socket.socket] = [self.sock]
+    #     outputs: list[socket.socket] = []
+
+    #     while 1: 
+    #         match state:
+    #             case State.INIT:
+    #                 ...
+    #             case State.POLL:
+    #                 rr, wr, err = select.select(inputs, outputs, inputs, 0.1)
+    #                 if rr or wr or err:
+    #                     stack.append(rr)
+    #                     (s, *_) = rr
+    #                 else:
+    #                     ...
+    #                     connection, client_address = s.accept()
+    #         connection.setblocking(0)
+    #         inputs.append(connection)
+    #         # Give the connection a queue for data we want to send
+    #         message_queues[connection] = queue.Queue()
+    #                     state = State.READ_READY
+    #                     conn, addr = s.accept()
+    #                     ...
+    #                 if wr:
+    #                     ...
+    #                 if err:
+    #                     ...
+
+    #             case State.READ_READY:
+    #                 ...
+    #             case State.WRITE_READY:
+    #                 ...
+
+            
+    #         for s in rr:
+    #             conn, addr = s.accept()
+    #             actor = actor_system.create_actor(SocketHandler, conn=conn)
+    #         for s in err:
+    #             try:
+    #                 s.shutdown(socket.SHUT_RDWR)
+    #                 s.close()
+    #             except OSError:
+    #                 ...
+

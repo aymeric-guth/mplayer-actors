@@ -5,7 +5,7 @@ from ...utils import SingletonMeta
 
 
 class Dispatcher(Actor, metaclass=SingletonMeta):
-    def __init__(self, pid: int, name='',parent: Actor=None, **kwargs) -> None:
+    def __init__(self, pid: int, name='',parent: Actor|None=None, **kwargs) -> None:
         super().__init__(pid, name, parent, **kwargs)
         self.LOG = 0
 

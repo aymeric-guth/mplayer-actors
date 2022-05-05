@@ -14,5 +14,8 @@ Implémentation:
         gui
         event refresh gui
 
-bugs:
-    gui sur display_mode 2+
+
+api:
+    async messaging
+    request response
+    pub sub

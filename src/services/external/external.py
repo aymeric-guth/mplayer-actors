@@ -45,7 +45,7 @@ class External(Actor):
                             "mount", "-t", "smbfs",
                             f"//{SMB_USER}:{SMB_PASS}@{SMB_ADDR}/{share_name}",
                             mount_point
-                        ])
+                        ], capture_output=True)
 
             # case Message(sig=Sig.SET_CACHE, args=args):
             #     ...

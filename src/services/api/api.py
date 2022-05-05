@@ -1,4 +1,5 @@
 import pickle
+from typing import Optional
 
 import httpx
 
@@ -16,7 +17,7 @@ class API(Actor):
         self.username = USERNAME
         # stockage d'un mdp non crypté dans une globale
         self.password = PASSWORD
-        self.token = None
+        self.token: Optional[str] = None
         self.extensions = extensions_all
         self.post(self, Message(sig=Sig.INIT))
 
@@ -42,10 +43,12 @@ class API(Actor):
                         timeout=20.0
                     )
                 except httpx.NetworkError as err:
+                    # network error, introspection for cause, possible recovery
                     actor_system.send('Dispatcher', Message(sig=Sig.NETWORK_FAILURE, args=str(err)))
                 else:
                     self.token = response.json().get('token')
                     if self.token is None:
+                        # too broad, asses for username or password failure and api failure, recovery possible
                         actor_system.send(sender, Message(sig=Sig.LOGIN_FAILURE, args=response.json()))
                     else:
                         actor_system.send(sender, Message(sig=Sig.LOGIN_SUCCESS))

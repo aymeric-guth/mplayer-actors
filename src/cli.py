@@ -26,7 +26,20 @@ async def main(actor: str) -> int:
     return 0
 
 
+async def _main(message: str) -> int:
+    reader, writer = await asyncio.open_connection('127.0.0.1', 10000)
+    writer.write(message.encode('utf-8'))
+    await writer.drain()
+    # data = await reader.readline()
+    data = await reader.read(BUFFSIZE)
+    print(f'Got response: {data.decode("utf-8")}')
+
+    writer.close()
+    await writer.wait_closed()
+    return 0
+
+
 if __name__ == '__main__':
     if len(sys.argv) != 2:
         raise SystemExit
-    sys.exit(asyncio.run(main(sys.argv[1]), debug=True))
+    sys.exit(asyncio.run(_main(sys.argv[1]), debug=True))

@@ -58,3 +58,9 @@ class Sig(Enum):
     DURATION_CHANGE = auto()
     WATCHER = auto()
     AUDIT = auto()
+
+# 'type': 'event'
+# 'type': 'error'
+# 'type': 'cmd'
+# 'type': 'request'
+# 'type': 'response'
