@@ -10,7 +10,6 @@ class Dummy(Actor):
             (sender, msg) = self.mq.get()
             self.debug(sender, msg)
             (actor, msg) = self.dispatch(sender, msg)
-            # actor_system.send(actor, msg)
             self.mq.task_done()
 
     def dispatch(self, sender, msg) -> None:

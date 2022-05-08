@@ -2,8 +2,10 @@ import socket
 import select
 import json
 import traceback
+from collections import deque
 from enum import Enum, auto
 from typing import Any
+import queue
 
 from ..base import Actor, Message, Sig, actor_system
 
@@ -160,7 +162,7 @@ class SocketHandler(Actor):
 class Introspecter(Actor):
     def __init__(self, pid: int, name='',parent: Actor|None=None, **kwargs) -> None:
         super().__init__(pid, name, parent)
-        self.LOG = 0
+        self.LOG = 1
         self.childs: dict[str, Actor] = {}
         port = 8081
         while 1:
@@ -174,28 +176,140 @@ class Introspecter(Actor):
             else:
                 break
         self.sock.listen(5)
+        
+        self.inputs: deque[socket.socket] = deque([self.sock])
+        # self.inputs: list[socket.socket] = [self.sock]
+        self.outputs: deque[socket.socket] = deque()
+        # self.outputs: list[socket.socket] = []
+        
+        self.sock_map: dict[socket.socket, dict[str, Any]] = {}
+        self.rid_map: dict[int, socket.socket] = {}
+        self.buff: dict[socket.socket, queue.Queue] = {}
+        actor_system.send('Logger', Message(Sig.PUSH, f'actor={self!r} listening on port={port}'))
+        self.post(self, {'state': 'poll'})
+
+    # def run(self) -> None:
+    #     active_read: dict[int, socket.socket] = {}
+    #     active_write: dict[int, socket.socket] = {}
+
+    #     while 1: 
+    #         rr, wr, err = select.select([self.sock], [], [self.sock])
+    #         for s in rr:
+    #             conn, addr = s.accept()
+    #             actor = actor_system.create_actor(SocketHandler, conn=conn)
+    #         for s in wr:
+    #             ...
+    #         for s in err:
+    #             try:
+    #                 s.shutdown(socket.SHUT_RDWR)
+    #                 s.close()
+    #             except OSError:
+    #                 ...
 
     def run(self) -> None:
-        while 1: 
-            rr, wr, err = select.select([self.sock], [], [self.sock])
-            for s in rr:
-                conn, addr = s.accept()
-                actor = actor_system.create_actor(SocketHandler, conn=conn)
-            for s in err:
-                try:
-                    s.shutdown(socket.SHUT_RDWR)
-                    s.close()
-                except OSError:
+        while 1:
+            (sender, msg) = self.mq.get()
+            if self.LOG == 1:
+                self.logger(sender, msg)
+            try:
+                self.dispatch(sender, msg)
+            except Exception as err:
+                self.terminate()
+                # frameinfo = getframeinfo(currentframe())
+                # exc_info = str(sys.exc_info()[2]) + '\n' + repr(frameinfo)
+                # print(sys.exc_info()[2])
+                # traceback.format_exc()                
+                # self.handler(f'{err} {trace(1)[-1]}')
+                raise SystemExit
+            else:
+                self.mq.task_done()
+
+    def logger(self, sender: Actor, msg: Message) -> None:
+        s = actor_system.get_actor(sender)
+        actor_system.send('Logger', Message(Sig.PUSH, f'sender={s!r} receiver={self!r} msg={msg!r}'))
+
+    def dispatch(self, sender: Actor, msg: Message) -> None:
+        match msg:
+            case {'state': 'poll'}:
+                # [*self.inputs, *self.outputs]
+                rr, wr, err = select.select(self.inputs, self.outputs, [])
+                if rr:
+                    s = self.inputs.popleft()
+                    state = 'new-conn' if s is self.sock else 'read-ready'
+                    self.post(self, {'state': state, 'args': s})
+                elif wr:
+                    s = self.outputs.popleft()
+                    self.post(self, {'state': 'write-ready', 'args': s})
+                elif err:
                     ...
+                    # s = self.inputs.popleft()
+                    # self.post(self, {'state': 'error', 'args': s})
+                else:
+                    self.post(self, {'state': 'poll'})
 
-            # self.childs.update({addr: actor})
-            # if addr not in self.childs:                
-            #     actor = actor_system.create_actor(SocketHandler, conn=conn)
-            #     self.childs.update({addr: actor})
-            # else:
-            #     ...
+            case {'state': 'new-conn', 'args': s}:
+                conn, addr = s.accept()
+                conn.setblocking(0)
+                self.inputs.append(conn)
+                self.inputs.append(s)
+                self.post(self, {'state': 'poll'})
 
+            case {'state': 'read-ready', 'args': s}:
+                data = s.recv(BUFFSIZE)
+                if data:
+                    self.outputs.append(s) if s not in self.outputs else None
+                    rid = actor_system.get_rid()
+                    self.rid_map.update({rid: s})
+                    message = deserialize(data)
+                    if message is None:
+                        ...
+                    else:
+                        message.update({'rid': rid})
+                        self.post(self, message)
+                else:
+                    self.outputs.remove(s) if s in self.outputs else None
+                    self.inputs.remove(s) if s in self.inputs else None
+                    s.close()
+                    self.post(self, {'state': 'poll'})
 
+            case {'state': 'write-ready', 'args': s}:
+                resp = self.sock_map.pop(s)
+                if resp is not None:
+                    s.send(serialize(resp))
+                else:
+                    self.outputs.append(s)
+                self.post(self, {'state': 'poll'})
+
+            case {'state': 'error', 'args': s}:
+                if s in self.inputs:
+                    self.inputs.remove(s)
+                if s in self.outputs:
+                    self.outputs.remove(s)
+                s.close()
+                self.post(self, {'state': 'poll'})
+
+            case {'cmd': 'audit', 'actor': name, 'rid': rid}:
+                actor = actor_system.get_actor(name)
+                if actor is not None:
+                    actor_system.send(actor, Message(sig=Sig.AUDIT, args=rid))
+
+            case {'event': 'audit', 'rid': rid, 'data': data} as msg:
+                s = self.rid_map.pop(rid)
+                self.sock_map.update({s: data})
+                self.post(self, {'state': 'poll'})
+
+            case Sig.SIGINT:
+                # self.terminate()
+                raise SystemExit
+
+    def terminate(self):
+        try:
+            self.sock.shutdown(socket.SHUT_RDWR)
+            self.sock.close()
+        except OSError:
+            ...
+        finally:
+            self.conn = None
 
 
     # def run(self) -> None:

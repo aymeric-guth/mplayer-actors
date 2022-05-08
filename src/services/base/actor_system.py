@@ -26,8 +26,10 @@ def inject_caller(func):
 
 
 class ActorSystem(BaseActor, metaclass=SingletonMeta):
-    pid = 0
-    pid_l = Lock()
+    pid: int = 0
+    pid_l: Lock = Lock()
+    rid: int = 0
+    rid_l: Lock = Lock()
 
     def __init__(self, pid: int=0, name: str='') -> None:
         super().__init__(pid, name)
@@ -136,6 +138,13 @@ class ActorSystem(BaseActor, metaclass=SingletonMeta):
                 t._stop()
                 self.send('Logger', Message(Sig.PUSH, f'Trying to regenerate Actor(pid={pid}, cls={cls}, parent={parent}, name={name}, kwargs={kwargs})'))
                 return self.create_actor(cls, name=name, pid=pid, **kwargs)
+
+    @staticmethod
+    def get_rid() -> int:
+        with ActorSystem.rid_l:
+            value = ActorSystem.rid
+            ActorSystem.rid += 1
+        return value
 
     @staticmethod
     def get_pid() -> int:

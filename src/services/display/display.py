@@ -126,8 +126,8 @@ class Display(Actor):
             case Message(sig=Sig.POISON, args=args):
                 raise Exception(f'{msg!r}')
 
-            case Message(sig=Sig.AUDIT, args=None):
-                actor_system.send(sender, {'event': 'audit', 'data': self.introspect()})
+            case Message(sig=Sig.AUDIT, args=rid):
+                actor_system.send(sender, {'event': 'audit', 'rid': rid, 'data': self.introspect()})
 
             case _:
                 raise SystemExit(f'{msg=}')
