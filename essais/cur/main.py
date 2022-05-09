@@ -1,7 +1,6 @@
 from curses import wrapper
-import curses
+import select
 
-from curses import wrapper
 
 def main(stdscr):
     # Clear screen
@@ -11,13 +10,18 @@ def main(stdscr):
         val = stdscr.getch()
         res.append(val)
     return res
-#    files_win = curses.newwin(100, 10, 0, 0)
-#    content = dir(files_win)
-#    for i, v in enumerate(content):
-#        files_win.addstr(i, 0, v)
-#    files_win.refresh()
 
-res = wrapper(main)
-#for i in res:
-print(res)
+def poller(stdscr) -> None:
+    stdscr.nodelay(1)
+    while 1:
+        rr, _, _ = select.select([stdscr.getch], [], [])
+        idx = 0
+        if rr:
+            v = rr[0]
+            stdscr.addstr(idx, 0, v)
+            idx += 1
+            stdscr.refresh()
 
+
+# print(wrapper(main))
+wrapper(poller)

@@ -24,6 +24,7 @@ class BaseActor:
             self._name = self.__class__.__name__
         self.LOG = 0
         self.mq: Queue = Queue()
+        self.subscribers: list[BaseActor] = []
 
     def run(self) -> None:
         while 1:
@@ -76,3 +77,6 @@ class BaseActor:
     def __repr__(self) -> str:
         return f'{self.__class__.__name__}(pid={self.pid})'
         # return f'{self.__class__.__name__}(pid={self.pid}, name={self.name}, ...)'
+    
+    # def __del__(self) -> None:
+    #     raise SystemExit

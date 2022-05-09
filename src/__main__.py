@@ -1,7 +1,6 @@
 import sys
-import traceback
 
-from .services import ActorSystem, Dispatcher, API, Display, Files, Input, External, Logger, MediaDispatcher, Introspecter
+from .services import ActorSystem, Dispatcher, API, Display, Files, Input, External, Logger, MediaDispatcher, SocketServer
 from .wcurses import deinit
 
 
@@ -16,7 +15,7 @@ def main():
     actor_system.create_actor(Input)
     actor_system.create_actor(MediaDispatcher)
     actor_system.create_actor(External)
-    actor_system.create_actor(Introspecter)
+    # actor_system.create_actor(SocketServer)
 
     try:
         actor_system.run()
@@ -29,7 +28,3 @@ def main():
 
 if __name__ == '__main__':
     sys.exit(main())
-
-
-# xy matrix mapping 
-# pour la représentation entre sender receiver et message

@@ -7,17 +7,17 @@ import random
 
 BUFFSIZE = 4096
 
-# def serialize(data: dict[str, Any]) -> bytes:
-#     return json.dumps(data).encode('utf-8')
+def serialize(data: dict[str, Any]) -> bytes:
+    return _serialize(json.dumps(data).encode('utf-8'))
 
-
-# def deserialize(data: bytes) -> dict[str, Any]:
-#     return json.loads(data.decode("utf-8"))
-
-def serialize(data: bytes) -> bytes:
+def _serialize(data: bytes) -> bytes:
     return len(data).to_bytes(length=8, byteorder='big') + data
 
-def deserialize(data: bytes) -> tuple[int, bytes]:
+def deserialize(data: bytes) -> tuple[int, dict[str, Any]]:
+    (size, d) = _deserialize(data)
+    return (size, json.loads(d.decode("utf-8")))
+
+def _deserialize(data: bytes) -> tuple[int, bytes]:
     return (int.from_bytes(data[:8], byteorder='big'), data[8:])
 
 def random_str(n: int) -> bytes:
@@ -40,13 +40,40 @@ async def main() -> int:
     return 0
 
 
+async def _main() -> int:
+    reader, writer = await asyncio.open_connection('127.0.0.1', 8081)
+    message = {'type': 'subscribe', 'actor': 'Display'}
+    
+    test = serialize(message)
+    writer.write(test)
+    await writer.drain()
+    try:
+        while 1:
+            print('client loop')
+            header = await reader.readexactly(8)
+            size = int.from_bytes(header, byteorder='big')
+            data = await reader.readexactly(size)
+            resp = json.loads(data.decode("utf-8"))
+            print(resp)
+
+            message = {'type': 'acknowledge'}
+            writer.write(serialize(message))
+            await writer.drain()
+
+    except Exception as err:
+        print(err)
+    finally:
+        writer.close()
+        await writer.wait_closed()
+        return 0
+
+
 async def runner():
     tasks = []
-    for _ in range(100):
-        tasks.append(asyncio.create_task(main()))
+    for _ in range(1):
+        tasks.append(asyncio.create_task(_main()))
     await asyncio.gather(*tasks)
 
 
 if __name__ == '__main__':
     asyncio.run(runner(), debug=True)
-    # asyncio.run(main(), debug=True)

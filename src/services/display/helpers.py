@@ -1,12 +1,12 @@
-from typing import Any
-from typing import Any
+from typing import Any, Callable
 from math import ceil
 import curses
 from pathlib import Path
+from collections import deque
 
 from ...external.fix_encoding import Str
 from ...external.fix_ideo import StrIdeo
-from ...wcurses import stdscr, _draw_screen, draw_popup, draw_overlay
+from ...utils import clamp
 
 from .constants import PROMPT
 
@@ -46,13 +46,11 @@ def string_format(
     dir_list: list[Any], 
     files_list: list[Any], 
     display_width: int
-) -> tuple[list[str], str, str]:
+) -> list[str]:
     len_dir = len(dir_list)
     len_files = len(files_list)
 
     pad = 3 if (len_dir + len_files) // 10 > 10 else 2
-    padding = f"*{(display_width-2) * '-'}*"
-    blank = display_width * ' '
 
     str_object: list[str] = []
     str_object.append(format_line('DIRS', 0, pad, display_width))
@@ -63,7 +61,40 @@ def string_format(
     for i, v in enumerate(files_list[1:]):
         str_object.append(format_line(v[0], i+1, pad, display_width))
 
-    return str_object, padding, blank
+    return str_object
+
+
+def _draw_screen(
+    win: curses.window, 
+    height: int, 
+    width: int
+) -> Callable[[Any, list[str], int], None]:
+    row = 0
+    col = 0
+    def inner(self, s: list[str], display_mode: int) -> None:
+        nonlocal row
+        nonlocal col
+
+        if not isinstance(s, list) and not isinstance(s, deque):
+            raise TypeError
+
+        max_col = width // display_mode
+
+        for sub in s:
+            try:
+                win.addstr(row, col, sub[:max_col])
+            except Exception:
+                self.LOG = 1
+                self.log_msg(f'{row=} {col=} {max_col=} {display_mode=} {height=} {width=}')
+                self.LOG = 0
+                raise
+
+            col = col + max_col
+            if col > (width - max_col):
+                col = 0
+                row = (row + 1) % height
+
+    return inner
 
 
 def draw_files(
@@ -81,21 +112,17 @@ def draw_files(
 
     len_dir = len(dir_list) - 1
     len_files = len(files_list) - 1
-    total_y_len = len_dir + len_files + 6
-    display_mode = ceil(total_y_len / (height - 1))
+       
+    display_mode = ceil((len_dir + len_files) / height)
+    # total_y_len = len_dir + len_files + 6
+    # display_mode = ceil(total_y_len / height)
     display_mode = 1 if not display_mode else display_mode
-
-    term_blank = 0
-    if width % display_mode != 0:
-        term_blank = width % display_mode
     display_width = width // display_mode
 
-    (str_object, padding, blank) = string_format(dir_list, files_list, display_width)
+    str_object = string_format(dir_list, files_list, display_width)
 
     win = curses.newwin(height, width, y_ofst, x_ofst)
-    # win.clear()
-    draw_screen = _draw_screen(win, height, width)
-    draw_screen(str_object, display_mode, term_blank)
+    _draw_screen(win, height, width)(self, str_object, display_mode)
     win.noutrefresh()
 
 

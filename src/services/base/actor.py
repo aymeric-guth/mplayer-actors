@@ -33,8 +33,9 @@ class Actor(BaseActor):
             self.parent = parent
         else:
             raise SystemExit
-
         self.kwargs = kwargs.copy()
+        # self.LOG = 1
+        # self.log_msg(f'Spawning new {self!r}')
 
     def logger(self, sender: ActorGeneric, msg: Message) -> None:
         if self.LOG:

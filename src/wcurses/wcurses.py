@@ -87,33 +87,4 @@ def draw_overlay(s: str) -> None:
     popup.refresh()
 
 
-def _draw_screen(win, height, width):
-    idx = 0
-    def inner(s: str|list[str], display_mode: int, term_blank: int):
-        nonlocal idx
-
-        if isinstance(s, list) or isinstance(s, deque):
-            ####
-            buffer: list[str] = []
-            for sub in s:
-                if len(buffer) < (display_mode - 1):
-                    buffer.append(sub)
-                else:
-                    buffer.append(sub)
-                    win.addstr(idx, 0, f"{''.join(buffer)}{' ' * term_blank}"[:width])
-                    idx += 1
-                    idx = idx % height
-                    buffer.clear()
-            ####
-            return
-        elif isinstance(s, str):
-            win.addstr(idx, 0, s[:width])
-            idx += 1
-            idx = clamp(0, height-2, idx)
-
-        else:
-            raise TypeError
-    return inner
-
-
 init()

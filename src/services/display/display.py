@@ -8,7 +8,7 @@ from signal import signal, SIGWINCH
 from ..base import Actor, Message, Sig, actor_system
 from . import helpers
 
-from ...wcurses import stdscr, _draw_screen, draw_popup, draw_overlay
+from ...wcurses import stdscr, draw_popup, draw_overlay
 
 from .constants import CMD_HEIGHT, PLAYBACK_HEIGHT
 from curses import initscr, endwin
@@ -38,7 +38,7 @@ class Display(Actor):
         super().__init__(pid, name, parent, **kwargs)
         self.LOG = 0
         self.files_overlay = 1
-        self.playback_overlay = 1
+        self.playback_overlay = 0
         self.cmd_overlay = 0
         self.cmd_buff: list[str] = []
         self.files_buff: list[Any] = []
@@ -70,10 +70,14 @@ class Display(Actor):
             case Message(sig=Sig.MEDIA_META, args=args):
                 k, v = [i for i in args.items()][0]
                 self.media_meta.update({k: v})
-                self.post(self, Message(sig=Sig.DRAW_SCREEN))
+                if self.playback_overlay:
+                    self.post(self, Message(sig=Sig.DRAW_SCREEN))
 
             case Message(sig=Sig.DRAW_SCREEN):
+                # self.post(self, {'type': 'publish'})
                 max_height, max_width = stdscr.getmaxyx()
+                max_height -= 1
+                self.log_msg(f'{max_height=} {max_width=}')
                 if self.cmd_overlay:
                     cmd_width = max_width
                     cmd_height = CMD_HEIGHT
@@ -102,6 +106,9 @@ class Display(Actor):
                 cmd_x_ofst = 0
                 cmd_y_ofst = files_height + playback_height
 
+                # self.log_msg(f'{files_height=} {files_width=} {files_y_ofst=} {files_x_ofst=}')
+                # self.log_msg(f'{playback_height=} {playback_width=} {playback_y_ofst=} {playback_x_ofst=}')
+                # self.log_msg(f'{cmd_height=} {cmd_width=} {cmd_y_ofst=} {cmd_x_ofst=}')
                 helpers.draw_files(self, files_height, files_width, files_y_ofst, files_x_ofst)
                 helpers.draw_playback(self, playback_height, playback_width, playback_y_ofst, playback_x_ofst)
                 helpers.draw_cmd(self, cmd_height, cmd_width, cmd_y_ofst, cmd_x_ofst)
@@ -128,6 +135,13 @@ class Display(Actor):
 
             case Message(sig=Sig.AUDIT, args=rid):
                 actor_system.send(sender, {'event': 'audit', 'rid': rid, 'data': self.introspect()})
+
+            case {'type': 'subscribe'}:
+                self.subscribers.append(sender)
+
+            case {'type': 'publish'}:
+                for a in self.subscribers:
+                    actor_system.send(a, {'type': 'publish', 'args': self.introspect()})
 
             case _:
                 raise SystemExit(f'{msg=}')

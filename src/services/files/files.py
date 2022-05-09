@@ -31,9 +31,7 @@ class Files(Actor):
                 ...
                 # actor_system.send('Dispatcher', Message(sig=Sig.PARSE, args='1'))
                 # actor_system.send('Dispatcher', Message(sig=Sig.PARSE, args='3'))
-                # actor_system.send('Dispatcher', Message(sig=Sig.PARSE, args='1'))
-                # actor_system.send('Dispatcher', Message(sig=Sig.PARSE, args='1'))
-                # actor_system.send('Dispatcher', Message(sig=Sig.PARSE, args='1'))
+                # actor_system.send('Dispatcher', Message(sig=Sig.PARSE, args='10'))
 
             case Message(sig=Sig.CWD_GET, args=args):
                 actor_system.send(sender, Message(sig=Sig.CWD_GET, args=helpers.get_kwargs(self)))
