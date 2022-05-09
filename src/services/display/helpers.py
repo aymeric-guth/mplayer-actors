@@ -56,8 +56,7 @@ def _draw_screen(
     display_mode: int
 ) -> Callable[[Any, list[str]], curses.window]:
     (height, width) = win.getmaxyx()
-    row = 0
-    col = 0
+    row, col = 0, 0
     max_col = width // display_mode
 
     def inner(self: Any, s: list[str]) -> curses.window:
@@ -69,14 +68,18 @@ def _draw_screen(
         for sub in s:
             try:
                 win.addstr(row, col, sub[:max_col])
-            except Exception:
                 with self:
                     self.log_msg(f'{row=} {col=} {max_col=} {display_mode=} {height=} {width=}')
+
+            except Exception as err:
+                with self:
+                    self.log_msg(f'{row=} {col=} {max_col=} {display_mode=} {height=} {width=} {sub=} {err=}')
                 raise
 
             col = col + max_col
             if col > (width - max_col):
                 col = 0
+                # row += 1
                 row = (row + 1) % height
         
         return win
@@ -88,6 +91,7 @@ def draw_files(self) -> None:
     (width, height, x_ofst, y_ofst) = self.files_dims
     if not height or not self.files_buff:
         return
+    height -= 1
 
     (dir_list, files_list) = self.files_buff
     blocks = len(dir_list) + len(files_list)
@@ -95,8 +99,11 @@ def draw_files(self) -> None:
     display_mode = 1 if not display_mode else display_mode
     display_width = width // display_mode
 
+    with self:
+        self.log_msg(f'{height=} {width=} {y_ofst=} {x_ofst=}')
+
     _draw_screen(
-        curses.newwin(height, width, y_ofst, x_ofst), 
+        curses.newwin(height+1, width, y_ofst, x_ofst), 
         display_mode
     )(
         self, 

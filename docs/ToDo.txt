@@ -19,3 +19,10 @@ api:
     async messaging
     request response
     pub sub
+
+
+bug:
+    /Audio/Music/Electro
+    height=25 width=58 y_ofst=0 x_ofst=0
+    row=24 col=29 max_col=29 display_mode=2 height=25 width=58 err=error('addwstr() returned ERR')
+    On ne peut pas écrire dans la dernière row d'une fenetre? mais on peut faire une box

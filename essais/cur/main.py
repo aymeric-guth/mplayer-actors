@@ -25,7 +25,15 @@ def poller(stdscr) -> None:
 
 
 def test(stdscr):
-    return curses.newwin(10, 20, 0, 0).getmaxyx()
+    height=25 
+    width=58 
+    y_ofst=0 
+    x_ofst=0
+    row=24
+    col=29
+    # row=24 col=29 max_col=29 display_mode=2 height=25 width=58 err=error('addwstr() returned ERR')
+    win = curses.newwin(height, width, y_ofst, x_ofst)
+    win.addstr(row, col, ' ' * col)
 
 
 # print(wrapper(main))
