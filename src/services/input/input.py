@@ -1,11 +1,7 @@
-import select
-import sys
-import os
 import curses
 
 from ..base import Actor, Message, Sig, actor_system
-from ..base.actor_system import ActorGeneric
-from ...wcurses import stdscr, draw_prompt, draw_popup
+from ...wcurses import stdscr
 
 from .constants import num_mapping, Key
 
@@ -14,7 +10,7 @@ from .constants import num_mapping, Key
 class Input(Actor):
     def __init__(self, pid: int, name='', parent: Actor|None=None, **kwargs) -> None:
         super().__init__(pid, name, parent, **kwargs)
-        self.LOG = 1
+        self.LOG = 0
         self._prompt_mode = 0
         self.buff: list[str] = []
 

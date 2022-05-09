@@ -86,6 +86,7 @@ class MPVEvent(Actor):
                 data=rv.get('data')
             )
             _mpv_free_node_contents(out)
+            self.log_msg(f'event={event}')
             actor_system.send(self.parent, Message(sig=Sig.MPV_EVENT, args=event))
 
 

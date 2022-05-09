@@ -58,6 +58,7 @@ class Sig(Enum):
     DURATION_CHANGE = auto()
     WATCHER = auto()
     AUDIT = auto()
+    DRAW_PLAYBACK = auto()
 
 # 'type': 'event'
 # 'type': 'error'

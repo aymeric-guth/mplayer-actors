@@ -34,7 +34,8 @@ class Actor(BaseActor):
         else:
             raise SystemExit
         self.kwargs = kwargs.copy()
-        # self.LOG = 1
+        self.last = self.LOG
+        
         # self.log_msg(f'Spawning new {self!r}')
 
     def logger(self, sender: ActorGeneric, msg: Message) -> None:
@@ -58,3 +59,10 @@ class Actor(BaseActor):
 
     def __repr__(self) -> str:
         return f'{self.__class__.__name__}(pid={self.pid}, parent={self.parent}, kwargs={self.kwargs})'
+
+    def __enter__(self) -> None:
+        self.last = self.LOG
+        self.LOG = 1
+
+    def __exit__(self, type, value, traceback) -> None:
+        self.LOG = self.last

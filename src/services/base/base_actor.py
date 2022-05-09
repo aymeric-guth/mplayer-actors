@@ -49,7 +49,7 @@ class BaseActor:
     def handler(self, err) -> None:
         ...
 
-    def post(self, sender: ActorGeneric, msg: Message) -> None:
+    def post(self, sender: ActorGeneric, msg: Message|dict[str, str]) -> None:
         self.mq.put((sender, msg))
 
     def logger(self, sender: ActorGeneric, msg: Message) -> None:

@@ -6,9 +6,9 @@ from collections import deque
 
 from ...external.fix_encoding import Str
 from ...external.fix_ideo import StrIdeo
-from ...utils import clamp
+from ...wcurses import stdscr
 
-from .constants import PROMPT
+from .constants import PROMPT, CMD_HEIGHT, PLAYBACK_HEIGHT
 
 
 def format_line(
@@ -27,19 +27,6 @@ def format_line(
         return f"| {idx} | {s}{' ' * left_space} |"
     else:
         return f"| {idx} | {s[:left_space-3]}... |"
-
-# def format_line(string: str, indice: int, pad: int, display_width: int) -> str:
-#     string = StrIdeo(str(Str(string)))
-    
-#     indice = f"{indice:0{pad}}"
-#     size_cell_a = len(indice) + 5
-#     size_cell_b = display_width - size_cell_a
-#     left_space = size_cell_b - 2 - len(string)
-
-#     if left_space >= 0:
-#         return f"| {indice} | {string}{' ' * left_space} |"
-#     else:
-#         return f"| {indice} | {string[:left_space-3]}... |"
 
 
 def string_format(
@@ -65,95 +52,74 @@ def string_format(
 
 
 def _draw_screen(
-    win: curses.window, 
-    height: int, 
-    width: int
-) -> Callable[[Any, list[str], int], None]:
+    win: curses.window,
+    display_mode: int
+) -> Callable[[Any, list[str]], curses.window]:
+    (height, width) = win.getmaxyx()
     row = 0
     col = 0
-    def inner(self, s: list[str], display_mode: int) -> None:
-        nonlocal row
-        nonlocal col
+    max_col = width // display_mode
+
+    def inner(self: Any, s: list[str]) -> curses.window:
+        nonlocal row, col
 
         if not isinstance(s, list) and not isinstance(s, deque):
             raise TypeError
-
-        max_col = width // display_mode
 
         for sub in s:
             try:
                 win.addstr(row, col, sub[:max_col])
             except Exception:
-                self.LOG = 1
-                self.log_msg(f'{row=} {col=} {max_col=} {display_mode=} {height=} {width=}')
-                self.LOG = 0
+                with self:
+                    self.log_msg(f'{row=} {col=} {max_col=} {display_mode=} {height=} {width=}')
                 raise
 
             col = col + max_col
             if col > (width - max_col):
                 col = 0
                 row = (row + 1) % height
+        
+        return win
 
     return inner
 
 
-def draw_files(
-    self, 
-    height: int, 
-    width: int, 
-    y_ofst: int, 
-    x_ofst: int
-) -> None:
-    if not height:
+def draw_files(self) -> None:
+    (width, height, x_ofst, y_ofst) = self.files_dims
+    if not height or not self.files_buff:
         return
-    if not self.files_buff:
-        return
-    (dir_list, files_list) = self.files_buff
 
-    len_dir = len(dir_list) - 1
-    len_files = len(files_list) - 1
-       
-    display_mode = ceil((len_dir + len_files) / height)
-    # total_y_len = len_dir + len_files + 6
-    # display_mode = ceil(total_y_len / height)
+    (dir_list, files_list) = self.files_buff
+    blocks = len(dir_list) + len(files_list)
+    display_mode = ceil(blocks / height)
     display_mode = 1 if not display_mode else display_mode
     display_width = width // display_mode
 
-    str_object = string_format(dir_list, files_list, display_width)
+    _draw_screen(
+        curses.newwin(height, width, y_ofst, x_ofst), 
+        display_mode
+    )(
+        self, 
+        string_format(dir_list, files_list, display_width)
+    ).noutrefresh()
 
-    win = curses.newwin(height, width, y_ofst, x_ofst)
-    _draw_screen(win, height, width)(self, str_object, display_mode)
-    win.noutrefresh()
 
-
-def draw_cmd(
-    self, 
-    height: int, 
-    width: int, 
-    y_ofst: int, 
-    x_ofst: int
-) -> None:
-    if not height:
-        return
-    if self.cmd_buff and self.cmd_buff[-1] == '\n':
+def draw_cmd(self) -> None:
+    (width, height, x_ofst, y_ofst) = self.cmd_dims
+    if not height or self.cmd_buff and self.cmd_buff[-1] == '\n':
         return
 
     win = curses.newwin(height, width, y_ofst, x_ofst)
     win.box()
     curses.curs_set(1)
     s = f'{PROMPT}{"".join(self.cmd_buff)}'
-    win.addstr(1, 1, s)
+    win.addstr(1, 1, s[:width])
     win.move(1, len(s) + 1)
     win.noutrefresh()
 
 
-def draw_playback(
-    self, 
-    height: int, 
-    width: int, 
-    y_ofst: int, 
-    x_ofst: int
-) -> None:
+def draw_playback(self) -> None:
+    (width, height, x_ofst, y_ofst) = self.playback_dims
     if not height:
         return
 
@@ -187,3 +153,39 @@ def draw_playback(
     # duration
     win.box()
     win.noutrefresh()
+
+
+def set_dims(self) -> None:
+    max_height, max_width = stdscr.getmaxyx()
+    if self.cmd_overlay:
+        cmd_width = max_width
+        cmd_height = CMD_HEIGHT
+    else:
+        cmd_width = 0
+        cmd_height = 0
+
+    if self.playback_overlay:
+        playback_width = max_width
+        playback_height = PLAYBACK_HEIGHT
+    else:
+        playback_width = 0
+        playback_height = 0
+
+    if self.files_overlay:
+        files_width = max_width
+        files_height = max_height - cmd_height - playback_height
+    else:
+        files_width = 0
+        files_height = 0
+
+    files_x_ofst = 0
+    files_y_ofst = 0
+    self.files_dims = (files_width, files_height, files_x_ofst, files_y_ofst)
+
+    playback_x_ofst = 0
+    playback_y_ofst = files_height
+    self.playback_dims = (playback_width, playback_height, playback_x_ofst, playback_y_ofst)
+       
+    cmd_x_ofst = 0
+    cmd_y_ofst = files_height + playback_height
+    self.cmd_dims = (cmd_width, cmd_height, cmd_x_ofst, cmd_y_ofst)

@@ -1,4 +1,4 @@
-from curses import wrapper
+import curses
 import select
 
 
@@ -10,6 +10,7 @@ def main(stdscr):
         val = stdscr.getch()
         res.append(val)
     return res
+
 
 def poller(stdscr) -> None:
     stdscr.nodelay(1)
@@ -23,5 +24,10 @@ def poller(stdscr) -> None:
             stdscr.refresh()
 
 
+def test(stdscr):
+    return curses.newwin(10, 20, 0, 0).getmaxyx()
+
+
 # print(wrapper(main))
-wrapper(poller)
+# wrapper(poller)
+print(curses.wrapper(test))
