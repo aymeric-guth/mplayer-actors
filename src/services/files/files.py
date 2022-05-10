@@ -14,13 +14,13 @@ from . import helpers
 class Files(Actor):
     def __init__(self, pid: int, name='',parent: Actor|None=None, **kwargs) -> None:
         super().__init__(pid, name, parent, **kwargs)
-        self.LOG = 0
         self.mount_point = MOUNT_POINT[:]
         self.extensions = extensions_all
         self.files_tree: dict[tuple[str, ...], list[str]] = defaultdict(list)
         self.dir_tree: dict[tuple[str, ...], set[str]] = defaultdict(set)
         self.path = list(ROOT)
         self.path_full = f"{self.mount_point}{'/'.join(self.path[1:])}/"
+        self.init_logger(__name__)
 
     def dispatch(self, sender: Actor, msg: Message) -> None:
         match msg:

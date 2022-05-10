@@ -29,7 +29,6 @@ class Msg:
 class Display(Actor):
     def __init__(self, pid: int, name='',parent: Actor|None=None, **kwargs) -> None:
         super().__init__(pid, name, parent, **kwargs)
-        self.LOG = 0
         self.files_overlay = 1
         self.files_dims: tuple[int, int, int, int]
         self.files_buff: list[Any] = []
@@ -39,6 +38,12 @@ class Display(Actor):
         self.cmd_overlay = 0
         self.cmd_dims: tuple[int, int, int, int]
         self.cmd_buff: list[str] = []
+
+        self.set_dims = lambda: helpers.set_dims(self)
+        self.draw_cmd = lambda: helpers.draw_cmd(self)
+        self.draw_files = lambda: helpers.draw_files(self)
+        self.draw_playback = lambda: helpers.draw_playback(self)
+        self.init_logger(__name__)
 
     def dispatch(self, sender: Actor, msg: Message) -> None:
         match msg:
@@ -64,8 +69,10 @@ class Display(Actor):
             case {'event': 'property-change', 'name': 'draw-cmd'}:
             # case Msg(event='property-change', name='draw-cmd'):
                 if self.cmd_overlay:
-                    helpers.set_dims(self)
-                    helpers.draw_cmd(self)
+                    # helpers.set_dims(self)
+                    # helpers.draw_cmd(self)
+                    self.set_dims()
+                    self.draw_cmd()
                     curses.doupdate()
 
             case Message(sig=Sig.MEDIA_META, args=args):
@@ -75,16 +82,18 @@ class Display(Actor):
 
             case {'event': 'property-change', 'name': 'draw-playback'}:
                 if self.playback_overlay:
-                    helpers.set_dims(self)
-                    helpers.draw_playback(self)
+                    # helpers.set_dims(self)
+                    # helpers.draw_playback(self)
+                    self.set_dims()
+                    self.draw_playback()
                     curses.doupdate()
 
             case Message(sig=Sig.DRAW_SCREEN):
                 # self.post(self, {'type': 'publish'})
-                helpers.set_dims(self)
-                helpers.draw_files(self)
-                helpers.draw_playback(self)
-                helpers.draw_cmd(self)
+                self.set_dims()
+                self.draw_files()
+                self.draw_playback()
+                self.draw_cmd()
                 curses.doupdate()
 
             case Message(sig=Sig.PLAYBACK_OVERLAY, args=args):
@@ -108,7 +117,7 @@ class Display(Actor):
             #         actor_system.send(a, {'type': 'publish', 'args': self.introspect()})
 
             case _:
-                self.log_msg(f'Can\'t handle msg={msg}')
+                self.logger.info(f'Can\'t handle msg={msg}')
                 # raise SystemExit(f'{msg=}')
 
     def terminate(self) -> None:
@@ -117,7 +126,7 @@ class Display(Actor):
     def introspect(self) -> dict[Any, Any]:
         return {
             'actor': repr(self),
-            'log': self.LOG,
+            'log_lvl': self.log_lvl,
             'data': {
                 'files_overlay': self.files_overlay,
                 'playback_overlay': self.playback_overlay,

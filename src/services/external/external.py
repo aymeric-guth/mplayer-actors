@@ -1,5 +1,6 @@
 import subprocess
 import socket
+import logging
 
 from ..base import Actor, Message, Sig, actor_system
 from ...settings import ALLOWED_SHARES, MOUNT_POINT, SMB_USER, SMB_PASS, SMB_ADDR, SMB_PORT
@@ -8,13 +9,13 @@ from ...settings import ALLOWED_SHARES, MOUNT_POINT, SMB_USER, SMB_PASS, SMB_ADD
 class External(Actor):
     def __init__(self, pid: int, name='', parent: Actor|None=None, **kwargs) -> None:
         super().__init__(pid, name, parent, **kwargs)
-        self.LOG = 0
+        self.init_logger(__name__)
         self.post(self, Message(sig=Sig.INIT))
 
     def dispatch(self, sender, msg) -> None:
         match msg:
             case Message(sig=Sig.INIT, args=None):
-                self.post(self, Message(sig=Sig.SMB_PING))
+                self.post(self, Message(sig=Sig.SMB_PING, args=1))
 
             case Message(sig=Sig.OPEN, args=None):
                 actor_system.send('Files', Message(sig=Sig.CWD_GET))
@@ -25,13 +26,13 @@ class External(Actor):
             case Message(sig=Sig.SMB_PING, args=args):
                 try:
                     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
-                        sock.settimeout(1)
+                        sock.settimeout(args)
                         sock.connect((SMB_ADDR, SMB_PORT))
                 except socket.error as err:
-                    self.log_msg(f'Could not join host: {SMB_ADDR} on port: {SMB_PORT} cause: {err}')
-                    actor_system.send('Dispatcher', Message(sig=Sig.NETWORK_FAILURE))
+                    self.logger.error(f'Could not join host: {SMB_ADDR} on port: {SMB_PORT} cause: {err}')
+                    self.post(self, Message(sig=Sig.SMB_PING, args=args+1))
                 else:
-                    self.log_msg(f'host: {SMB_ADDR} on port: {SMB_PORT} is up, trying to connect')
+                    self.logger.info(f'host: {SMB_ADDR} on port: {SMB_PORT} is up, trying to connect')
                     self.post(self, Message(sig=Sig.SMB_MOUNT))
 
             case Message(sig=Sig.SMB_MOUNT, args=args):

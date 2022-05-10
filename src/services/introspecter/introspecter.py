@@ -38,9 +38,9 @@ class RequestHandler(Actor):
         parent: Actor|None=None
     ) -> None:
         super().__init__(pid, name, parent)
-        self.LOG = 1
         self.child: Actor
         self.subscribed: list[Actor] = []
+        self.init_logger(__name__)
         # self.post(self, {'state': 'init'})        
 
     def dispatch(self, sender, msg) -> None:
@@ -70,7 +70,6 @@ class RequestHandler(Actor):
 class SocketServer(Actor):
     def __init__(self, pid: int, name='',parent: Actor|None=None, **kwargs) -> None:
         super().__init__(pid, name, parent)
-        self.LOG = 1
         self.childs: dict[int, Actor] = {}
 
         addr = socket.getaddrinfo('127.0.0.1', 8081)[0][-1]
@@ -78,7 +77,7 @@ class SocketServer(Actor):
         try:
             self.sock.bind(addr)
         except OSError as err:
-            self.log_msg(str(err))
+            self._logger.error(str(err))
             raise SystemExit
         self.sock.setblocking(False)
         self.sock.listen(5)
@@ -89,31 +88,14 @@ class SocketServer(Actor):
         # self.lock = threading.Lock()
         threading.Thread(target=self.runner, daemon=True).start()
         self.c = 0
+        self.init_logger(__name__)
         self.post(self, {'state': 'init'})
-
-    def run(self) -> None:
-        while 1:
-            (sender, msg) = self.mq.get()
-            if self.LOG == 1:
-                self.logger(sender, msg)
-            try:
-                self.dispatch(sender, msg)
-            except Exception as err:
-                try:
-                    self.sock.close()
-                except Exception:
-                    ...
-                self.log_msg(str(err))
-                raise SystemExit
-            else:
-                self.mq.task_done()
 
     def runner(self) -> None:
         state = State.INIT
         stack: list[Any] = []
 
         while 1:
-            # self.log_msg(f'new state={state}')
             try:
                 state = self.polling_loop(stack, state)
             except Exception as err:
@@ -121,13 +103,12 @@ class SocketServer(Actor):
                     self.sock.close()
                 except Exception:
                     ...
-                self.log_msg(str(err))
+                self._logger.error(str(err))
                 raise SystemExit
             finally:
                 ...
 
     def polling_loop(self, stack: list[Any], state: State) -> State:
-        # self.log_msg(f'state={state}')
         match state:
             case State.INIT:
                 return State.POLL
@@ -169,23 +150,18 @@ class SocketServer(Actor):
             case State.READ_READY:
                 s = stack.pop()
                 d = s.recv(BUFFSIZE)
-                # self.log_msg(f'state={state} read data: {d!r}')
                 if not d:
-                    # self.log_msg(f'state={state} no data read closing connection')
                     stack.append(s)
                     return State.CLOSE
             
                 self.buffer.push(s, d)
                 data = self.buffer.get_data(s)
-                # self.log_msg(f'state={state} evaluating data state of completion')
                 if data.is_ready():
                     self.outputs.append(s) if s not in self.outputs else None
                     pid = self.buffer.get(s)
-                    # self.log_msg(f'state={state} pid={pid}')
                     message = data.deserialize()
                     self.post(self, {'state': 'new-msg', 'pid': pid, 'message': message})
                 else:
-                    # self.log_msg(f"state={state} pid={pid} message={message}")
                     self.inputs.append(s) if s not in self.inputs else None
                 return State.POLL
 
@@ -222,18 +198,15 @@ class SocketServer(Actor):
 
             case {'state': 'new-conn', 'args': conn}:
                 actor = actor_system.create_actor(RequestHandler)
-                # self.log_msg(repr(actor))
                 self.buffer.set(conn, str(actor.pid))
 
             case {'state': 'new-msg', 'pid': pid, 'message': message}:
                 # actor = self.buffer.get(pid)
-                # self.log_msg(repr(actor))
                 actor_system.send(int(pid), message)
 
             case {'state': 'terminate', 'args': s}:
                 child = self.buffer.get(s)
                 self.buffer.clear(s)
-                # self.log_msg(repr(child))
 
             case {'type': 'publish', 'args': args}:
                 data = self.buffer.get_data(str(sender))

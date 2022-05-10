@@ -7,7 +7,7 @@ from ...utils import SingletonMeta
 class Dispatcher(Actor, metaclass=SingletonMeta):
     def __init__(self, pid: int, name='',parent: Actor|None=None, **kwargs) -> None:
         super().__init__(pid, name, parent, **kwargs)
-        self.LOG = 0
+        self.init_logger(__name__)
 
     def dispatch(self, sender: Actor, msg: Message) -> None:
         match msg:
@@ -19,11 +19,11 @@ class Dispatcher(Actor, metaclass=SingletonMeta):
                 actor_system.send(actor, msg)
 
             case Message(sig=Sig.LOGIN_FAILURE, args=args):
-                self.log_msg(f'LOGIN_FAILURE SIGNAL handler, exiting... {msg=}')
+                self._logger.error(f'LOGIN_FAILURE SIGNAL handler, exiting... {msg=}')
                 raise SystemExit
 
             case Message(sig=Sig.NETWORK_FAILURE, args=args):
-                self.log_msg(f'NETWORK_FAILURE SIGNAL handler, exiting... {msg=}')
+                self._logger.error(f'NETWORK_FAILURE SIGNAL handler, exiting... {msg=}')
                 raise SystemExit
 
             case Message(sig=Sig.AUDIT, args=None):

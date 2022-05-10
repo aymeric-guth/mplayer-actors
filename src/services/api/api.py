@@ -13,12 +13,12 @@ from .constants import AUTH, NAS
 class API(Actor):
     def __init__(self, pid: int, name='', parent: Actor|None=None, **kwargs) -> None:
         super().__init__(pid, name, parent, **kwargs)
-        self.LOG = 0
         self.username = USERNAME
         # stockage d'un mdp non crypté dans une globale
         self.password = PASSWORD
         self.token: Optional[str] = None
         self.extensions = extensions_all
+        self.init_logger(__name__)
         self.post(self, Message(sig=Sig.INIT))
 
     def dispatch(self, sender: Actor, msg: Message) -> None:

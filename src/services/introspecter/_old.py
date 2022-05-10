@@ -88,12 +88,10 @@ class SocketHandler(Actor):
         conn: socket.socket|None=None
     ) -> None:
         super().__init__(pid, name, parent)
-        self.LOG = 0
         if conn is None:
             raise SystemExit
         self.conn: socket.socket = conn
         self.child: Actor
-        self.log_msg(f'Spawning new SocketHandler')
         self.post(self, {'state': 'init'})        
 
     def log_msg(self, msg: str) ->None:

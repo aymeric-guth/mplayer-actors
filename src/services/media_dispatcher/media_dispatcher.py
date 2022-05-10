@@ -10,17 +10,17 @@ class MediaDispatcher(Actor):
     def __init__(self, pid: int, name='',parent: Actor=None, **kwargs) -> None:
         super().__init__(pid, name, parent, **kwargs)
         self.parent = parent
-        self.LOG = 0
         self.wid = b'\x00\x00\x00\x00'
         self.child = None
         self.pl = None
         self.loop_mode = LOOP_DEFAULT
-        actor_system.create_actor(MPV, wid=self.wid)
+        self.init_logger(__name__)
+        self.post(self, Message(sig=Sig.INIT))
        
     def dispatch(self, sender: Actor, msg: Message) -> None:
         match msg:
             case Message(sig=Sig.INIT, args=None):
-                ...
+                actor_system.create_actor(MPV, wid=self.wid)
 
             case Message(sig=Sig.PLAY_ALL, args=args):
                 actor_system.send('Files', Message(sig=Sig.FILES_GET, args=args))

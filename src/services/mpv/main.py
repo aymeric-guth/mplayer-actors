@@ -2,9 +2,9 @@ import locale
 from threading import Thread
 from pathlib import Path
 from ctypes import c_char_p, c_uint64, c_int, pointer, POINTER, c_void_p, sizeof, cast, create_string_buffer
-import copy
 from dataclasses import dataclass
 from typing import Any
+import logging
 
 from src.services.base import message
 from ...utils import clamp
@@ -69,9 +69,9 @@ class MpvEvent:
 class MPVEvent(Actor):
     def __init__(self, pid: int, name='',parent: Actor|None=None, **kwargs) -> None:
         super().__init__(pid, name, parent)
-        self.LOG = 0
         self.handle = kwargs.get('handle')
         self.event_handle = _mpv_create_client(self.handle, b'py_event_handler')
+        self.init_logger(__name__)
 
     def run(self) -> None:
         while 1:
@@ -86,14 +86,13 @@ class MPVEvent(Actor):
                 data=rv.get('data')
             )
             _mpv_free_node_contents(out)
-            self.log_msg(f'event={event}')
+            self.logger.info(f'event={event}')
             actor_system.send(self.parent, Message(sig=Sig.MPV_EVENT, args=event))
 
 
 class MPV(Actor):
     def __init__(self, pid: int, name='',parent: Actor|None=None, **kwargs) -> None:
         super().__init__(pid, name, parent, **kwargs)
-        self.LOG = 0
         self._state = 0
         self._volume: int|float
         lc, enc = locale.getlocale(locale.LC_NUMERIC)
@@ -109,10 +108,9 @@ class MPV(Actor):
         _mpv_initialize(self.handle)
         self._event_loop = actor_system.create_actor(MPVEvent, handle=self.handle)
         self.observed_properties: dict[int, Sig] = {}
+        self.init_logger(__name__)
+        self.log_lvl = logging.INFO
         self.post(self, Message(Sig.INIT))
-
-    def log_msg(self, msg: str) ->None:
-        actor_system.send('Logger', Message(Sig.PUSH, msg))
 
     @property
     def event_loop(self) -> Any:
@@ -172,11 +170,12 @@ class MPV(Actor):
             # self.observed_properties.update({property_id: sig})
 
     def dispatch(self, sender: Actor, msg: Message) -> None:
+        self.logger.info(f'{msg=}')
         match msg:
             case Message(sig=Sig.MPV_EVENT, args=args):
                 match args:
                     case MpvEvent(event=event, id=0, name=None, data=None):
-                        # self.log_msg(f'Processing base event: {args}')
+                        self._logger.info(f'Processing base event: {args}')
                         match event:
                             case 'playback-restart' | 'start-file' | 'unpause':
                                 self.post(self, Message(sig=Sig.STATE_CHANGE, args=1))
@@ -197,10 +196,9 @@ class MPV(Actor):
                                         ...
                                     case _:
                                         ...
-                                        # self.log_msg(f'Processing propery-change event: {args}')
 
                     case event:
-                        self.log_msg(f'Unkown event: {args}')
+                        ...
 
             case Message(sig=Sig.INIT, args=args):
                 self.observe_property('volume')

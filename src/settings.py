@@ -50,10 +50,15 @@ LOOP_FLAG_DEFAULT = config("LOOP_FLAG_DEFAULT", cast=bool, default=False)
 
 USERNAME = config('API_USER', cast=str)
 PASSWORD = config('API_PASS', cast=str)
+
 SMB_ADDR = config('SMB_ADDR', cast=str)
 SMB_PORT = config('SMB_PORT', cast=int)
 SMB_USER = config('SMB_USER', cast=str)
 SMB_PASS = config('SMB_PASS', cast=str)
+
+LOG_HOST = config('LOG_HOST', cast=str)
+LOG_PORT = config('LOG_PORT', cast=int)
+LOG_FORMAT = config('LOG_FORMAT', cast=str, default='[%(asctime)s][%(levelname)s][%(filename)s:%(lineno)s][%(funcName)s][%(message)s]')
 
 _extensions_audio = {
     '.mp3', 

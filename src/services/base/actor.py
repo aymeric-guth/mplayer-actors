@@ -23,7 +23,7 @@ def last_will(func):
 
 
 class Actor(BaseActor):
-    def __init__(self, pid: int, name:str='', parent: T=None, **kwargs) -> None:
+    def __init__(self, pid: int, name:str='', parent: T|int|None=None, **kwargs) -> None:
         super().__init__(pid, name)
         if parent is None:
             self.parent = None
@@ -34,35 +34,16 @@ class Actor(BaseActor):
         else:
             raise SystemExit
         self.kwargs = kwargs.copy()
-        self.last = self.LOG
-        
-        # self.log_msg(f'Spawning new {self!r}')
-
-    def logger(self, sender: ActorGeneric, msg: Message) -> None:
-        if self.LOG:
-            s = actor_system.get_actor(sender)
-            actor_system.send('Logger', Message(Sig.PUSH, f'sender={s!r} receiver={self!r} msg={msg!r}'))
-
-    def log_msg(self, msg: str) ->None:
-        if self.LOG:
-            actor_system.send('Logger', Message(Sig.PUSH, msg))
 
     def handler(self, err) -> None:
-        actor_system.send('Logger', Message(Sig.PUSH, args=f'Actor={self} encountered a failure: {err}'))
+        self._logger.error(f'Actor={self} encountered a failure: {err}')
         actor_system.post(self, Message(sig=Sig.SIGINT, args=err))
 
     def introspect(self) -> dict[Any, Any]:
         return {
             'actor': repr(self),
-            'log': self.LOG,
+            'log_lvl': self.log_lvl,
         }.copy()
 
     def __repr__(self) -> str:
         return f'{self.__class__.__name__}(pid={self.pid}, parent={self.parent}, kwargs={self.kwargs})'
-
-    def __enter__(self) -> None:
-        self.last = self.LOG
-        self.LOG = 1
-
-    def __exit__(self, type, value, traceback) -> None:
-        self.LOG = self.last

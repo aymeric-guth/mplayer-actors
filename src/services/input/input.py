@@ -10,14 +10,14 @@ from .constants import num_mapping, Key
 class Input(Actor):
     def __init__(self, pid: int, name='', parent: Actor|None=None, **kwargs) -> None:
         super().__init__(pid, name, parent, **kwargs)
-        self.LOG = 0
         self._prompt_mode = 0
         self.buff: list[str] = []
+        self.init_logger(__name__)
 
     def run(self) -> None:
         while 1:
             c = stdscr.getch()
-            self.log_msg(f'Got new input c={c}')
+            self._logger.info(f'Got new input c={c}')
             if c == -1:
                 continue
             if self.prompt_mode:
