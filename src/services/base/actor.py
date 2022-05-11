@@ -46,4 +46,4 @@ class Actor(BaseActor):
         }.copy()
 
     def __repr__(self) -> str:
-        return f'{self.__class__.__name__}(pid={self.pid}, parent={self.parent}, kwargs={self.kwargs})'
+        return f'{self.__class__.__name__}(pid={self.pid}, parent={actor_system.get_actor(self.parent)})'#, kwargs={self.kwargs}

@@ -136,7 +136,7 @@ class ActorSystem(BaseActor, metaclass=SingletonMeta):
 
                 t = self._threads.get(pid)
                 t._stop()
-                self.send('Logger', Message(Sig.PUSH, f'Trying to regenerate Actor(pid={pid}, cls={cls}, parent={parent}, name={name}, kwargs={kwargs})'))
+                self.logger.warning(f'Trying to regenerate Actor(pid={pid}, cls={cls}, parent={parent}, name={name}, kwargs={kwargs})')
                 return self.create_actor(cls, name=name, pid=pid, **kwargs)
 
     @staticmethod

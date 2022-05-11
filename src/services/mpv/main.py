@@ -1,60 +1,14 @@
 import locale
-from threading import Thread
-from pathlib import Path
 from ctypes import c_char_p, c_uint64, c_int, pointer, POINTER, c_void_p, sizeof, cast, create_string_buffer
 from dataclasses import dataclass
 from typing import Any
 import logging
 
-from src.services.base import message
-from ...utils import clamp
 from ...settings import VOLUME_DEFAULT
-
-
-from ..base import Actor, Message, Sig, actor_system
-
 from ...external import _mpv
 
-from ...external._mpv import (
-# from .mpv import (
-    _mpv_set_option_string, 
-    _mpv_initialize, 
-    _mpv_create, 
-    _mpv_create_client,
-    _mpv_command_async,
-    _mpv_command,
-    _mpv_wait_event,
-    # MpvEvent,
-    MpvEventID,
-    _mpv_set_property,
-    _mpv_set_property_string,
-    _mpv_terminate_destroy,
-    _mpv_coax_proptype,
-    MpvRenderContext,
-    _make_node_str_list,
-    MpvFormat,
-    backend,
-    MpvHandle,
-    _mpv_event_to_node,
-    _mpv_free_node_contents,
-    MpvNode,
-    mpv_observe_property
-)
-
-
-# def patched_repr(self):
-#     return ['NONE', 'SHUTDOWN', 'LOG_MESSAGE', 'GET_PROPERTY_REPLY', 'SET_PROPERTY_REPLY', 'COMMAND_REPLY',
-#             'START_FILE', 'END_FILE', 'FILE_LOADED', 'TRACKS_CHANGED', 'TRACK_SWITCHED', 'IDLE', 'PAUSE', 'UNPAUSE',
-#             'TICK', 'SCRIPT_INPUT_DISPATCH', 'CLIENT_MESSAGE', 'VIDEO_RECONFIG', 'AUDIO_RECONFIG',
-#             'METADATA_UPDATE', 'SEEK', 'PLAYBACK_RESTART', 'PROPERTY_CHANGE', 'CHAPTER_CHANGE', 'QUEUE_OVERFLOW', 'HOOK'][self.value]
-
-# MpvEventID.__repr__ = patched_repr
-
-
-# mpv_observe_property = getattr(backend, 'mpv_observe_property')
-# mpv_observe_property.argtypes = [MpvHandle, c_uint64, c_char_p, MpvFormat]
-# mpv_observe_property.restype = c_int
-
+from ...utils import clamp
+from ..base import Actor, Message, Sig, actor_system
 
 
 @dataclass(frozen=True)
@@ -84,14 +38,14 @@ class MPVEvent(Actor):
     def __init__(self, pid: int, name='',parent: Actor|None=None, **kwargs) -> None:
         super().__init__(pid, name, parent)
         self.handle = kwargs.get('handle')
-        self.event_handle = _mpv_create_client(self.handle, b'py_event_handler')
+        self.event_handle = _mpv.mpv_create_client(self.handle, b'py_event_handler')
         self.init_logger(__name__)
 
     def run(self) -> None:
         while 1:
-            mpv_event = _mpv_wait_event(self.handle, -1).contents            
-            out = cast(create_string_buffer(sizeof(MpvNode)), POINTER(MpvNode))
-            _mpv_event_to_node(out, pointer(mpv_event))
+            mpv_event = _mpv.mpv_wait_event(self.handle, -1).contents            
+            out = cast(create_string_buffer(sizeof(_mpv.MpvNode)), POINTER(_mpv.MpvNode))
+            _mpv.mpv_event_to_node(out, pointer(mpv_event))
             rv = out.contents.node_value(decoder=lambda b: b.decode('utf-8'))
             event = MpvEvent(
                 event=rv.get('event'),
@@ -99,7 +53,7 @@ class MPVEvent(Actor):
                 name=rv.get('name'),
                 data=rv.get('data')
             )
-            _mpv_free_node_contents(out)
+            _mpv.mpv_free_node_contents(out)
             self.logger.info(f'event={event}')
             actor_system.send(self.parent, Message(sig=Sig.MPV_EVENT, args=event))
 
@@ -111,19 +65,18 @@ class MPV(Actor):
         self._volume: int|float
         lc, enc = locale.getlocale(locale.LC_NUMERIC)
         locale.setlocale(locale.LC_NUMERIC, 'C')
-        self.handle = _mpv_create()
+        self.handle = _mpv.mpv_create()
 
         # istr = lambda o: ('yes' if o else 'no') if type(o) is bool else str(o)
-        _mpv_set_option_string(self.handle, b'audio-display', b'no')
-        _mpv_set_option_string(self.handle, b'input-default-bindings', b'yes')
-        _mpv_set_option_string(self.handle, b'input-vo-keyboard', b'yes')
+        _mpv.mpv_set_option_string(self.handle, b'audio-display', b'no')
+        _mpv.mpv_set_option_string(self.handle, b'input-default-bindings', b'yes')
+        _mpv.mpv_set_option_string(self.handle, b'input-vo-keyboard', b'yes')
         # mpv_load_config_file(self.handle, str(path).encode('utf-8'))
 
-        _mpv_initialize(self.handle)
+        _mpv.mpv_initialize(self.handle)
         self._event_loop = actor_system.create_actor(MPVEvent, handle=self.handle)
-        self.observed_properties: dict[int, Sig] = {}
         self.init_logger(__name__)
-        # self.log_lvl = logging.INFO
+        self.log_lvl = logging.INFO
         self.post(self, Message(Sig.INIT))
 
     @property
@@ -153,11 +106,11 @@ class MPV(Actor):
 
     async def command_async(self, *args) -> int:
         args = [c_uint64(0xffff), (c_char_p*len(args))(*args)]
-        return _mpv_command_async(self.handle, *args)
+        return _mpv.mpv_command_async(self.handle, *args)
 
     def command(self, *args) -> int:
         args = (c_char_p*len(args))(*args)
-        return _mpv_command(self.handle, args)
+        return _mpv.mpv_command(self.handle, args)
 
         # args = [name.encode('utf-8')] + [ (arg if type(arg) is bytes else str(arg).encode('utf-8'))
         #         for arg in args if arg is not None ] + [None]
@@ -166,22 +119,20 @@ class MPV(Actor):
     def set_property(self, name: str, value: list|dict|set|str):
         ename = name.encode('utf-8')
         if isinstance(value, (list, set, dict)):
-            _1, _2, _3, pointer = _make_node_str_list(value)
-            _mpv_set_property(self.handle, ename, MpvFormat.NODE, pointer)
+            _1, _2, _3, pointer = _mpv.make_node_str_list(value)
+            _mpv.mpv_set_property(self.handle, ename, _mpv.MpvFormat.NODE, pointer)
         else:            
-            _mpv_set_property_string(self.handle, ename, _mpv_coax_proptype(value))
+            _mpv.mpv_set_property_string(self.handle, ename, _mpv.mpv_coax_proptype(value))
 
     def terminate(self) -> None:
         self.handle, handle = None, self.handle
         self.event_loop.handle = None
         self.event_loop.join()
-        _mpv_terminate_destroy(handle)
+        _mpv.mpv_terminate_destroy(handle)
 
     def observe_property(self, name: str) -> None:      
         property_id = hash(name) & 0xffffffffffffffff
-        if property_id not in self.observed_properties:
-            mpv_observe_property(self.handle, property_id, name.encode('utf-8'), MpvFormat.NODE)
-            # self.observed_properties.update({property_id: sig})
+        _mpv.mpv_observe_property(self.handle, property_id, name.encode('utf-8'), _mpv.MpvFormat.NODE)
 
     def dispatch(self, sender: Actor, msg: Message) -> None:
         self.logger.info(f'{msg=}')

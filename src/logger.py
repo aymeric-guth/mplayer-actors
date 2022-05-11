@@ -21,10 +21,11 @@ async def handle_client(
                 raise Exception
 
             message = await reader.readexactly(size)
-            record = logging.makeLogRecord(pickle.loads(message))
-            fmt = logging.Formatter(fmt='[%(asctime)s][%(levelname)s][%(filename)s:%(lineno)s][%(funcName)s][%(message)s]')
-            # print(fmt.format(record))
-            print(pickle.loads(message))
+            record = logging.makeLogRecord(pickle.loads(message))            
+            fmt = logging.Formatter(fmt='[%(asctime)s][%(levelname)s][%(actor)s][%(name)s:%(lineno)s][%(message)s]')
+            # fmt = logging.Formatter(fmt='[%(asctime)s][%(levelname)s][%(filename)s:%(lineno)s][%(funcName)s][%(message)s]')
+            print(fmt.format(record))
+            # print(pickle.loads(message))
 
         except Exception:
             writer.close()
@@ -115,3 +116,12 @@ if __name__ == '__main__':
     'process': 2451
 }
 '[%(asctime)s][%(levelname)s][%(filename)s:%(lineno)s][%(funcName)s][%(message)s]'
+
+
+# logs:
+#     nom_actor (class, pid, )
+#     namespace fichier
+#     ligne
+#     loglevel
+
+# '[%(asctime)s][%(levelname)s][%(name)s:%(lineno)s][%(funcName)s][%(message)s]'

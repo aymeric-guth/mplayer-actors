@@ -24,7 +24,7 @@ class BaseActor:
         self.subscribers: list[BaseActor] = []
 
         self._last = 0
-        self._logger: logging.Logger
+        self._logger: logging.LoggerAdapter[logging.Logger]
         self._log_lock = threading.Lock()
 
     def run(self) -> None:
@@ -88,7 +88,7 @@ class BaseActor:
         raise TypeError
 
     @property
-    def logger(self) -> logging.Logger:
+    def logger(self) -> logging.LoggerAdapter:
         with self._log_lock:
             return self._logger
 
@@ -100,8 +100,9 @@ class BaseActor:
         fmt = logging.Formatter(fmt=LOG_FORMAT)
         handler = logging.handlers.SocketHandler(LOG_HOST, LOG_PORT)
         handler.setFormatter(fmt)
-        self._logger = logging.getLogger(name)
-        self._logger.addHandler(handler)
+        _logger = logging.getLogger(name)
+        _logger.addHandler(handler)
+        self._logger = logging.LoggerAdapter(_logger, {'actor': self.__repr__()})
         self.log_lvl = logging.ERROR
 
     def __repr__(self) -> str:

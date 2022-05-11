@@ -58,8 +58,12 @@ SMB_PASS = config('SMB_PASS', cast=str)
 
 LOG_HOST = config('LOG_HOST', cast=str)
 LOG_PORT = config('LOG_PORT', cast=int)
-LOG_FORMAT = config('LOG_FORMAT', cast=str, default='[%(asctime)s][%(levelname)s][%(filename)s:%(lineno)s][%(funcName)s][%(message)s]')
-
+# logs:
+#     nom_actor (class, pid, )
+#     namespace fichier
+#     ligne
+#     loglevel
+LOG_FORMAT = config('LOG_FORMAT', cast=str, default='[%(asctime)s][%(levelname)s][%(actor)s][%(name)s:%(lineno)s][%(message)s]')
 _extensions_audio = {
     '.mp3', 
     '.flac', 
