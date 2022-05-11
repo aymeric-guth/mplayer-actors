@@ -1,4 +1,4 @@
-from typing import TypeVar, Any
+from typing import TypeVar, Any, Optional
 
 from .base_actor import BaseActor, ActorGeneric
 from .message import Message
@@ -23,20 +23,13 @@ def last_will(func):
 
 
 class Actor(BaseActor):
-    def __init__(self, pid: int, name:str='', parent: T|int|None=None, **kwargs) -> None:
+    def __init__(self, pid: int, name:str='', parent: Optional[ActorGeneric]=None, **kwargs) -> None:
         super().__init__(pid, name)
-        if parent is None:
-            self.parent = None
-        elif isinstance(parent, BaseActor):
-            self.parent = parent.pid
-        elif isinstance(parent, int):
-            self.parent = parent
-        else:
-            raise SystemExit
+        self._parent: Optional[BaseActor] = actor_system.get_actor(parent)
         self.kwargs = kwargs.copy()
 
     def handler(self, err) -> None:
-        self._logger.error(f'Actor={self} encountered a failure: {err}')
+        self.logger.error(f'Actor={self} encountered a failure: {err}')
         actor_system.post(self, Message(sig=Sig.SIGINT, args=err))
 
     def introspect(self) -> dict[Any, Any]:
@@ -47,3 +40,11 @@ class Actor(BaseActor):
 
     def __repr__(self) -> str:
         return f'{self.__class__.__name__}(pid={self.pid}, parent={actor_system.get_actor(self.parent)})'#, kwargs={self.kwargs}
+
+    @property
+    def parent(self) -> Optional[BaseActor]:
+        return self._parent
+
+    @parent.setter
+    def parent(self, value) -> None:
+        raise TypeError

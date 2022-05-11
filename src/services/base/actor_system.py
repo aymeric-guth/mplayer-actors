@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, Optional 
 from threading import Thread, Lock
 from queue import Queue
 from functools import wraps
@@ -24,6 +24,14 @@ def inject_caller(func):
 
     return inner
 
+def get_caller() -> Optional[ActorGeneric]:
+    frame = sys._getframe(1)
+    arguments = frame.f_code.co_argcount
+    if arguments == 0:
+        return None
+    caller_calls_self = frame.f_code.co_varnames[0]
+    return frame.f_locals[caller_calls_self]
+
 
 class ActorSystem(BaseActor, metaclass=SingletonMeta):
     pid: int = 0
@@ -37,15 +45,13 @@ class ActorSystem(BaseActor, metaclass=SingletonMeta):
         self._registry: dict[int, BaseActor] = {}
         self._threads: dict[int, Thread] = {}
         self.mq: Queue[tuple[BaseActor, Message]] = Queue()
-        # remontage d'un acteur qui a quité?
 
-    @inject_caller
-    def send(self, sender: ActorGeneric, receiver: ActorGeneric, msg: Message) -> None:
+    def send(self, receiver: ActorGeneric, msg: Message) -> None:
         '''
         (sender) envoie un message à un acteur (receiver)
-        '''        
-        s = self.get_actor(sender)
-        r = self.get_actor(receiver)
+        '''
+        s: Optional[BaseActor] = self.get_actor(get_caller())
+        r: Optional[BaseActor] = self.get_actor(receiver)
         match [s, r]:
             case [None, None]:
                 # sender = main thread, receiver = does not exists
@@ -105,10 +111,8 @@ class ActorSystem(BaseActor, metaclass=SingletonMeta):
         else:
             return None
 
-    @inject_caller
     def create_actor(
         self, 
-        parent: BaseActor, 
         cls: type, 
         *, 
         name='', 
@@ -117,12 +121,11 @@ class ActorSystem(BaseActor, metaclass=SingletonMeta):
     ) -> BaseActor:
         if pid <= -1:
             pid = ActorSystem.get_pid()
-        actor = cls(pid=pid, name=name, parent=parent, **kwargs)
+        actor = cls(pid=pid, name=name, parent=get_caller(), **kwargs)
         t = Thread(target=actor.run, daemon=True)
         self._registry.update({pid: actor})
         self._threads.update({pid: t})
         t.start()
-        # self.send('Logger', Message(Sig.PUSH, f'Successfully regenerated {actor}'))
         return actor
 
     def dispatch(self, sender: BaseActor, msg: Message) -> None:
@@ -137,7 +140,7 @@ class ActorSystem(BaseActor, metaclass=SingletonMeta):
                 t = self._threads.get(pid)
                 t._stop()
                 self.logger.warning(f'Trying to regenerate Actor(pid={pid}, cls={cls}, parent={parent}, name={name}, kwargs={kwargs})')
-                return self.create_actor(cls, name=name, pid=pid, **kwargs)
+                self.create_actor(cls, name=name, pid=pid, **kwargs)
 
     @staticmethod
     def get_rid() -> int:

@@ -1,14 +1,14 @@
 import locale
 from ctypes import c_char_p, c_uint64, c_int, pointer, POINTER, c_void_p, sizeof, cast, create_string_buffer
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, Optional
 import logging
 
 from ...settings import VOLUME_DEFAULT
 from ...external import _mpv
 
 from ...utils import clamp
-from ..base import Actor, Message, Sig, actor_system
+from ..base import Actor, Message, Sig, actor_system, ActorGeneric
 
 
 @dataclass(frozen=True)
@@ -35,9 +35,11 @@ class MpvEvent:
 
 
 class MPVEvent(Actor):
-    def __init__(self, pid: int, name='',parent: Actor|None=None, **kwargs) -> None:
+    def __init__(self, pid: int, name='', parent: Optional[Actor]=None, handle: Any=None, **kwargs) -> None:
         super().__init__(pid, name, parent)
-        self.handle = kwargs.get('handle')
+        if handle is None:
+            raise SystemExit
+        self.handle = handle
         self.event_handle = _mpv.mpv_create_client(self.handle, b'py_event_handler')
         self.init_logger(__name__)
 
@@ -57,9 +59,12 @@ class MPVEvent(Actor):
             self.logger.info(f'event={event}')
             actor_system.send(self.parent, Message(sig=Sig.MPV_EVENT, args=event))
 
+    def dispatch(self, sender: ActorGeneric, msg: Message) -> None:
+        ...
+
 
 class MPV(Actor):
-    def __init__(self, pid: int, name='',parent: Actor|None=None, **kwargs) -> None:
+    def __init__(self, pid: int, name='', parent: Optional[Actor]=None, **kwargs) -> None:
         super().__init__(pid, name, parent, **kwargs)
         self._state = 0
         self._volume: int|float
@@ -74,18 +79,18 @@ class MPV(Actor):
         # mpv_load_config_file(self.handle, str(path).encode('utf-8'))
 
         _mpv.mpv_initialize(self.handle)
-        self._event_loop = actor_system.create_actor(MPVEvent, handle=self.handle)
+        actor_system.create_actor(MPVEvent, handle=self.handle)
         self.init_logger(__name__)
         self.log_lvl = logging.INFO
         self.post(self, Message(Sig.INIT))
 
-    @property
-    def event_loop(self) -> Any:
-        return self._event_loop.event_handle
+    # @property
+    # def event_loop(self) -> Any:
+    #     return self._event_loop.event_handle
 
-    @event_loop.setter
-    def event_loop(self, value) -> None:
-        raise TypeError
+    # @event_loop.setter
+    # def event_loop(self, value) -> None:
+    #     raise TypeError
 
     @property
     def volume(self) -> int|float:
@@ -126,8 +131,8 @@ class MPV(Actor):
 
     def terminate(self) -> None:
         self.handle, handle = None, self.handle
-        self.event_loop.handle = None
-        self.event_loop.join()
+        # self.event_loop.handle = None
+        # self.event_loop.join()
         _mpv.mpv_terminate_destroy(handle)
 
     def observe_property(self, name: str) -> None:      
@@ -135,7 +140,8 @@ class MPV(Actor):
         _mpv.mpv_observe_property(self.handle, property_id, name.encode('utf-8'), _mpv.MpvFormat.NODE)
 
     def dispatch(self, sender: Actor, msg: Message) -> None:
-        self.logger.info(f'{msg=}')
+        if msg.sig != Sig.MPV_EVENT:
+            self.logger.info(f'{msg=}')
         match msg:
             case Message(sig=Sig.MPV_EVENT, args=args):
                 match args:

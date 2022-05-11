@@ -1,4 +1,4 @@
-from typing import TypeVar, Any
+from typing import TypeVar, Any, Union, Optional
 from queue import Queue
 import traceback
 import sys
@@ -13,13 +13,14 @@ from ...settings import LOG_HOST, LOG_PORT, LOG_FORMAT
 
 
 T = TypeVar('T', bound='BaseActor')
-ActorGeneric = int|str|T|type
+ActorGeneric = Union[int, str, T, type]
 
 
 class BaseActor:
     def __init__(self, pid: int, name:str='') -> None:
         self._pid = pid
         self._name = name if name else self.__class__.__name__
+
         self.mq: Queue = Queue()
         self.subscribers: list[BaseActor] = []
 
@@ -52,7 +53,7 @@ class BaseActor:
         self.mq.put((sender, msg))
 
     def __hash__(self) -> int:
-        return self.pid
+        return hash(self.pid)
 
     @property
     def pid(self) -> int:
