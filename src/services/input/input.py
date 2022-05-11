@@ -17,7 +17,7 @@ class Input(Actor):
     def run(self) -> None:
         while 1:
             c = stdscr.getch()
-            self._logger.info(f'Got new input c={c}')
+            self.logger.info(f'Got new input c={c}')
             if c == -1:
                 continue
             if self.prompt_mode:

@@ -78,7 +78,7 @@ class BaseActor:
     @log_lvl.setter
     def log_lvl(self, value: int) -> None:
         self._log_lvl = int(clamp(0, 50)(value))
-        self._logger.setLevel(self._log_lvl)
+        self.logger.setLevel(self._log_lvl)
 
     @property
     def log_lock(self) -> threading.Lock:

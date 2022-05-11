@@ -71,7 +71,7 @@ def draw_files(self) -> None:
         try:
             win.addstr(row, col, sub[:max_col])
         except Exception as err:
-            self._logger.error(f'{row=} {col=} {max_col=} {display_mode=} {height=} {width=} {sub=} {err=}')
+            self.logger.error(f'{row=} {col=} {max_col=} {display_mode=} {height=} {width=} {sub=} {err=}')
             raise
 
         col = col + max_col

@@ -1,4 +1,5 @@
 from typing import TypeVar, Any, Optional
+import logging
 
 from .base_actor import BaseActor, ActorGeneric
 from .message import Message
@@ -9,24 +10,12 @@ from .actor_system import actor_system
 T = TypeVar('T', bound='Actor')
 
 
-def last_will(func):
-    def inner(*args, **kwargs):
-        try:
-            # print(args, kwargs)
-            return func(*args, **kwargs)
-        except Exception as err:
-            actor, *_ = args
-            actor_system.send('Logger', Message(Sig.PUSH, args=f'Actor={actor} encountered a failure: {err}'))
-            actor_system.post(actor, Message(sig=Sig.SIGINT, args=err))
-
-    return inner
-
-
 class Actor(BaseActor):
     def __init__(self, pid: int, name:str='', parent: Optional[ActorGeneric]=None, **kwargs) -> None:
         super().__init__(pid, name)
         self._parent: Optional[BaseActor] = actor_system.get_actor(parent)
         self.kwargs = kwargs.copy()
+        # self.log_lvl = logging.INFO
 
     def handler(self, err) -> None:
         self.logger.error(f'Actor={self} encountered a failure: {err}')

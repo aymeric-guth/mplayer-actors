@@ -19,11 +19,11 @@ class Dispatcher(Actor, metaclass=SingletonMeta):
                 actor_system.send(actor, msg)
 
             case Message(sig=Sig.LOGIN_FAILURE, args=args):
-                self._logger.error(f'LOGIN_FAILURE SIGNAL handler, exiting... {msg=}')
+                self.logger.error(f'LOGIN_FAILURE SIGNAL handler, exiting... {msg=}')
                 raise SystemExit
 
             case Message(sig=Sig.NETWORK_FAILURE, args=args):
-                self._logger.error(f'NETWORK_FAILURE SIGNAL handler, exiting... {msg=}')
+                self.logger.error(f'NETWORK_FAILURE SIGNAL handler, exiting... {msg=}')
                 raise SystemExit
 
             case Message(sig=Sig.AUDIT, args=None):

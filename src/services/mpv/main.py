@@ -81,7 +81,7 @@ class MPV(Actor):
         _mpv.mpv_initialize(self.handle)
         actor_system.create_actor(MPVEvent, handle=self.handle)
         self.init_logger(__name__)
-        self.log_lvl = logging.INFO
+        # self.log_lvl = logging.INFO
         self.post(self, Message(Sig.INIT))
 
     # @property
@@ -140,13 +140,11 @@ class MPV(Actor):
         _mpv.mpv_observe_property(self.handle, property_id, name.encode('utf-8'), _mpv.MpvFormat.NODE)
 
     def dispatch(self, sender: Actor, msg: Message) -> None:
-        if msg.sig != Sig.MPV_EVENT:
-            self.logger.info(f'{msg=}')
         match msg:
             case Message(sig=Sig.MPV_EVENT, args=args):
                 match args:
                     case MpvEvent(event=event, id=0, name=None, data=None):
-                        self._logger.info(f'Processing base event: {args}')
+                        self.logger.info(f'Processing base event: {args}')
                         match event:
                             case 'playback-restart' | 'start-file' | 'unpause':
                                 self.post(self, Message(sig=Sig.STATE_CHANGE, args=1))

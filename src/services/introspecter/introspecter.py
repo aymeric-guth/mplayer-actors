@@ -77,7 +77,7 @@ class SocketServer(Actor):
         try:
             self.sock.bind(addr)
         except OSError as err:
-            self._logger.error(str(err))
+            self.logger.error(str(err))
             raise SystemExit
         self.sock.setblocking(False)
         self.sock.listen(5)
