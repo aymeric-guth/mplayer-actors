@@ -19,7 +19,7 @@ class Actor(BaseActor):
 
     def handler(self, err) -> None:
         self.logger.error(f'Actor={self} encountered a failure: {err}')
-        actor_system.post(self, Message(sig=Sig.SIGINT, args=err))
+        actor_system.post(Message(sig=Sig.SIGINT, args=err))
 
     def introspect(self) -> dict[Any, Any]:
         return {

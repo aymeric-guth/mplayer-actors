@@ -1,5 +1,8 @@
+from typing import Any
+
+
 class SingletonMeta(type):
-    _instances = {}
+    _instances: dict[Any, Any] = {}
 
     def __call__(cls, *args, **kwargs):
         if cls not in cls._instances:

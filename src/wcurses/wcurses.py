@@ -1,8 +1,10 @@
 import curses
 from collections import deque
+import sys
 
 
-stdscr = None
+stdscr: curses.window = None
+
 
 def clamp(lo, hi, val):
     return min(max(lo, val), hi)
@@ -88,3 +90,26 @@ def draw_overlay(s: str) -> None:
 
 
 init()
+
+def wrapper(func, *args, **kwargs):
+    try:
+        global stdscr
+
+        stdscr = curses.initscr()
+        curses.cbreak()
+        curses.noecho()
+        curses.curs_set(0)
+        stdscr.keypad(True)
+        try:
+            curses.start_color()
+        except:
+            pass
+        return func(*args, **kwargs)
+
+    finally:
+        curses.endwin()
+        curses.nocbreak()
+        curses.echo()
+        curses.curs_set(1)
+        stdscr.keypad(False)
+        print(sys.exc_info())

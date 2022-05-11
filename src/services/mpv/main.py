@@ -42,6 +42,7 @@ class MPVEvent(Actor):
         self.handle = handle
         self.event_handle = _mpv.mpv_create_client(self.handle, b'py_event_handler')
         self.init_logger(__name__)
+        # self.log_lvl = logging.INFO
 
     def run(self) -> None:
         while 1:
@@ -82,7 +83,7 @@ class MPV(Actor):
         actor_system.create_actor(MPVEvent, handle=self.handle)
         self.init_logger(__name__)
         # self.log_lvl = logging.INFO
-        self.post(self, Message(Sig.INIT))
+        self.post(Message(Sig.INIT))
 
     # @property
     # def event_loop(self) -> Any:
@@ -147,13 +148,13 @@ class MPV(Actor):
                         self.logger.info(f'Processing base event: {args}')
                         match event:
                             case 'playback-restart' | 'start-file' | 'unpause':
-                                self.post(self, Message(sig=Sig.STATE_CHANGE, args=1))
+                                self.post(Message(sig=Sig.STATE_CHANGE, args=1))
                             case 'idle':
-                                self.post(self, Message(sig=Sig.STATE_CHANGE, args=4))
+                                self.post(Message(sig=Sig.STATE_CHANGE, args=4))
                             case 'pause':
-                                self.post(self, Message(sig=Sig.STATE_CHANGE, args=2))
+                                self.post(Message(sig=Sig.STATE_CHANGE, args=2))
                             case 'seek':
-                                self.post(self, Message(sig=Sig.STATE_CHANGE, args=3))
+                                self.post(Message(sig=Sig.STATE_CHANGE, args=3))
 
                     case MpvEvent(event=event, id=_id, name=name, data=data):
                         match event:
@@ -177,12 +178,12 @@ class MPV(Actor):
                 self.observe_property('playtime-remaining')
                 self.observe_property('duration')
                 self.observe_property('metadata')
-                self.post(self, Message(sig=Sig.VOLUME, args=VOLUME_DEFAULT))
+                self.post(Message(sig=Sig.VOLUME, args=VOLUME_DEFAULT))
 
             case Message(sig=Sig.STATE_CHANGE, args=state):
                 self.state = state
                 if self.state == 4:
-                    self.post(self, Message(sig=Sig.DONE))
+                    self.post(Message(sig=Sig.DONE))
 
             case Message(sig=Sig.PLAY, args=path):
                 args = [b'loadfile', path.encode('utf-8'), b'replace', b'', None]
@@ -192,10 +193,10 @@ class MPV(Actor):
             case Message(sig=Sig.PLAY_PAUSE, args=None):
                 if self.state == 1:
                     self.set_property('pause', 'yes')
-                    self.post(self, Message(sig=Sig.STATE_CHANGE, args=2))
+                    self.post(Message(sig=Sig.STATE_CHANGE, args=2))
                 elif self.state == 2:
                     self.set_property('pause', 'no')
-                    self.post(self, Message(sig=Sig.STATE_CHANGE, args=1))
+                    self.post(Message(sig=Sig.STATE_CHANGE, args=1))
 
             case Message(sig=Sig.VOLUME, args=args):
                 if args is not None:
@@ -204,7 +205,7 @@ class MPV(Actor):
             
             case Message(sig=Sig.VOLUME_INC, args=args):
                 self.volume += args
-                actor_system.send(self, Message(sig=Sig.VOLUME))
+                self.post(Message(sig=Sig.VOLUME))
 
             case Message(sig=Sig.STOP, args=None):
                 args = [b'stop', b'', None]

@@ -10,12 +10,12 @@ class External(Actor):
     def __init__(self, pid: int, name='', parent: Actor|None=None, **kwargs) -> None:
         super().__init__(pid, name, parent, **kwargs)
         self.init_logger(__name__)
-        self.post(self, Message(sig=Sig.INIT))
+        self.post(Message(sig=Sig.INIT))
 
     def dispatch(self, sender, msg) -> None:
         match msg:
             case Message(sig=Sig.INIT, args=None):
-                self.post(self, Message(sig=Sig.SMB_PING, args=1))
+                self.post(Message(sig=Sig.SMB_PING, args=1))
 
             case Message(sig=Sig.OPEN, args=None):
                 actor_system.send('Files', Message(sig=Sig.CWD_GET))
@@ -30,10 +30,10 @@ class External(Actor):
                         sock.connect((SMB_ADDR, SMB_PORT))
                 except socket.error as err:
                     self.logger.error(f'Could not join host: {SMB_ADDR} on port: {SMB_PORT} cause: {err}')
-                    self.post(self, Message(sig=Sig.SMB_PING, args=args+1))
+                    self.post(Message(sig=Sig.SMB_PING, args=args+1))
                 else:
                     self.logger.info(f'host: {SMB_ADDR} on port: {SMB_PORT} is up, trying to connect')
-                    self.post(self, Message(sig=Sig.SMB_MOUNT))
+                    self.post(Message(sig=Sig.SMB_MOUNT))
 
             case Message(sig=Sig.SMB_MOUNT, args=args):
                 result = subprocess.run(["mount", "-t", "smbfs"], capture_output=True)

@@ -89,7 +89,7 @@ class SocketServer(Actor):
         threading.Thread(target=self.runner, daemon=True).start()
         self.c = 0
         self.init_logger(__name__)
-        self.post(self, {'state': 'init'})
+        self.post({'state': 'init'})
 
     def runner(self) -> None:
         state = State.INIT
@@ -145,7 +145,7 @@ class SocketServer(Actor):
                 conn.setblocking(False)
                 self.inputs.append(conn)
                 self.inputs.append(s)
-                self.post(self, {'state': 'new-conn', 'args': conn})
+                self.post({'state': 'new-conn', 'args': conn})
                 return State.POLL
 
             case State.READ_READY:
@@ -161,7 +161,7 @@ class SocketServer(Actor):
                     self.outputs.append(s) if s not in self.outputs else None
                     pid = self.buffer.get(s)
                     message = data.deserialize()
-                    self.post(self, {'state': 'new-msg', 'pid': pid, 'message': message})
+                    self.post({'state': 'new-msg', 'pid': pid, 'message': message})
                 else:
                     self.inputs.append(s) if s not in self.inputs else None
                 return State.POLL
@@ -182,7 +182,7 @@ class SocketServer(Actor):
 
             case State.CLOSE:
                 s = stack.pop()
-                self.post(self, {'state': 'terminate', 'args': s})
+                self.post({'state': 'terminate', 'args': s})
                 self.inputs.remove(s) if s in self.inputs else None
                 self.outputs.remove(s) if s in self.outputs else None
                 ctx_handler(s.shutdown, OSError)(socket.SHUT_RDWR)

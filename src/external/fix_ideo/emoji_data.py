@@ -1088,4 +1088,3 @@ emoji = frozenset( (
     0x1F9E5,
     0x1F9E6,
 ) )
-print("EMOJI DATA LOADED")

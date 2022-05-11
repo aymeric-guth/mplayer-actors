@@ -51,8 +51,8 @@ class Files(Actor):
                     for i, v in enumerate(formated_path):
                         key = formated_path[:i+1]
                         self.dir_tree[key[:-1]].add(key[-1])
-                self.post(self, Message(sig=Sig.PATH_SET, args=ROOT))
-                self.post(self, Message(sig=Sig.TEST))
+                self.post(Message(sig=Sig.PATH_SET, args=ROOT))
+                self.post(Message(sig=Sig.TEST))
 
             case Message(sig=Sig.SEARCH, args=args):
                 self.path_full = f"{self.mount_point}{'/'.join(self.path[1:])}/"

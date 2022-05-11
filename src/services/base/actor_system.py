@@ -105,24 +105,29 @@ class ActorSystem(BaseActor, metaclass=SingletonMeta):
             pid = ActorSystem.get_pid()
         parent = self.get_actor(caller)
         actor = cls(pid=pid, name=name, parent=parent, **kwargs)
-        self.logger.warning(f'actor={parent!r} requested actor creation for actor={actor!r}')
+        self.logger.warning(f'parent={parent} requested create_actor({cls})')
         t = Thread(target=actor.run, daemon=True)
         self._registry.update({pid: actor})
         self._threads.update({pid: t})
         t.start()
         return actor
 
-    def dispatch(self, sender: BaseActor, msg: Message) -> None:
+    def dispatch(self, sender: ActorGeneric, msg: Message) -> None:
+        s = self.get_actor(sender)
+        if s is None: return
         match msg:
             case Message(sig=Sig.SIGINT):
-                pid = sender.pid
-                cls = sender.__class__
-                parent = sender.parent
-                kwargs = sender.kwargs.copy()
-                name = sender.name
+                pid = s.pid
+                cls = s.__class__
+                name = s.name
+                parent = getattr(s, 'parent')
+                kwargs = getattr(s, 'kwargs')
+                if kwargs is not None:
+                    kwargs = kwargs.copy()
 
                 t = self._threads.get(pid)
-                t._stop()
+                if t is not None:
+                    t._stop()
                 self.logger.warning(f'Trying to regenerate Actor(pid={pid}, cls={cls}, parent={parent}, name={name}, kwargs={kwargs})')
                 self.create_actor(cls, name=name, pid=pid, **kwargs)
 

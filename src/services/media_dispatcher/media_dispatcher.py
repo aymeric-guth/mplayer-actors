@@ -14,7 +14,7 @@ class MediaDispatcher(Actor):
         self.pl: Playlist|None = None
         self.loop_mode = LOOP_DEFAULT
         self.init_logger(__name__)
-        self.post(self, Message(sig=Sig.INIT))
+        self.post(Message(sig=Sig.INIT))
        
     def dispatch(self, sender: Actor, msg: Message) -> None:
         match msg:
@@ -27,7 +27,7 @@ class MediaDispatcher(Actor):
             case Message(sig=Sig.FILES_GET, args=args):
                 self.pl = Playlist(args)
                 item = self.pl.next()
-                self.post(self, Message(sig=Sig.PLAY, args=item))
+                self.post(Message(sig=Sig.PLAY, args=item))
 
             case Message(sig=Sig.PLAY, args=args):
                 actor_system.send('MPV', Message(sig=Sig.PLAY, args=args))
@@ -49,11 +49,11 @@ class MediaDispatcher(Actor):
             case Message(sig=Sig.NEXT, args=None):
                 item = self.pl.next()
                 if item is not None:
-                    self.post(self, Message(sig=Sig.PLAY, args=item))
+                    self.post(Message(sig=Sig.PLAY, args=item))
 
             case Message(sig=Sig.PREVIOUS, args=None):
                 item = self.pl.prev()
-                self.post(self, Message(sig=Sig.PLAY, args=item))
+                self.post(Message(sig=Sig.PLAY, args=item))
 
             case Message(sig=Sig.STOP, args=None):
                 ...
@@ -61,7 +61,7 @@ class MediaDispatcher(Actor):
 
             case Message(sig=Sig.DONE, args=None):
                 if self.pl is not None:
-                    self.post(self, Message(sig=Sig.NEXT))
+                    self.post(Message(sig=Sig.NEXT))
 
             case Message(sig=Sig.SEEK, args=args) as msg:
                 actor_system.send('MPV', msg)

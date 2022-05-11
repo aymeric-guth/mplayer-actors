@@ -26,9 +26,9 @@ class Dispatcher(Actor, metaclass=SingletonMeta):
                 self.logger.error(f'NETWORK_FAILURE SIGNAL handler, exiting... {msg=}')
                 raise SystemExit
 
-            case Message(sig=Sig.AUDIT, args=None):
-                actor_system.send(sender, {'event': 'audit', 'data': self.introspect()})
+            # case Message(sig=Sig.AUDIT, args=None):
+            #     actor_system.send(sender, {'event': 'audit', 'data': self.introspect()})
 
-            case _:
-                print(f'Default SIGNAL handler, exiting... {msg=}')
-                raise SystemExit
+            # case _:
+            #     print(f'Default SIGNAL handler, exiting... {msg=}')
+            #     raise SystemExit

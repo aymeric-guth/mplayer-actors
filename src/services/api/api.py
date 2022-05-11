@@ -21,16 +21,16 @@ class API(Actor):
         self.extensions = extensions_all
         self.init_logger(__name__)
         # self.log_lvl = logging.INFO
-        self.post(self, Message(sig=Sig.INIT))
+        self.post(Message(sig=Sig.INIT))
 
     def dispatch(self, sender: Actor, msg: Message) -> None:
-        self.logger.info(f'{sender=} receiver={self} {msg=}')
+        response: httpx.Response
         match msg:
             case Message(sig=Sig.INIT, args=args):
-                self.post(self, Message(Sig.LOGIN))
+                self.post(Message(Sig.LOGIN))
 
             case Message(sig=Sig.LOGIN_SUCCESS, args=args):
-                self.post(self, Message(Sig.EXT_SET))
+                self.post(Message(Sig.EXT_SET))
 
             case Message(sig=Sig.LOGIN_FAILURE, args=args):
                 actor_system.send('Dispatcher', Message(sig=Sig.LOGIN_FAILURE, args=str(err)))
@@ -78,7 +78,7 @@ class API(Actor):
                         data = pickle.load(f)
                 except Exception:
                     try:
-                        response: httpx.Response = httpx.get(
+                        response = httpx.get(
                             url=NAS.FILES,
                             headers=helpers.get_headers(self.token),
                             timeout=20.0
@@ -95,15 +95,14 @@ class API(Actor):
                 actor_system.send('Files', Message(sig=Sig.FILES_NEW, args=data))
             
             case Message(sig=Sig.FILES_REINDEX, args=args):
-                response: httpx.Response = httpx.patch(
+                response = httpx.patch(
                     url=NAS.FILES, 
                     headers=helpers.get_headers(self.token),
                     timeout=10.0
                 )
                 if response.status_code != 200:
                     raise Exception(f'{response.json()}')
-                self.post(sender, Message(sig=Sig.FILES_GET))
-                # actor_system.send(sender, Message(sig=Sig.FILES_GET))
+                self.post(Message(sig=Sig.FILES_GET))
 
             case Message(sig=Sig.AUDIT, args=None):
                 actor_system.send(sender, {'event': 'audit', 'data': self.introspect()})

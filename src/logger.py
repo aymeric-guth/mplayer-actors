@@ -25,7 +25,6 @@ async def handle_client(
             fmt = logging.Formatter(fmt='[%(asctime)s][%(levelname)s][%(actor)s][%(name)s:%(lineno)s][%(message)s]')
             # fmt = logging.Formatter(fmt='[%(asctime)s][%(levelname)s][%(filename)s:%(lineno)s][%(funcName)s][%(message)s]')
             print(fmt.format(record))
-            # print(pickle.loads(message))
 
         except Exception:
             writer.close()

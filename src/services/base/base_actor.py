@@ -49,8 +49,8 @@ class BaseActor:
     def handler(self, err) -> None:
         ...
 
-    def post(self, sender: ActorGeneric, msg: Message|dict[str, str]) -> None:
-        self.mq.put((sender, msg))
+    def post(self, msg: Message|dict[str, str], sender: ActorGeneric=None) -> None:
+        self.mq.put((self, msg)) if sender is None else self.mq.put((sender, msg))
 
     def __hash__(self) -> int:
         return hash(self.pid)

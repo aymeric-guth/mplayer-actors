@@ -50,7 +50,7 @@ class Display(Actor):
             case Message(sig=Sig.CWD_GET, args=args):
                 dir_list, files_list = args.get('dir_list'), args.get('files_list')
                 self.files_buff = [dir_list, files_list]
-                self.post(self, Message(sig=Sig.DRAW_SCREEN))
+                self.post(Message(sig=Sig.DRAW_SCREEN))
 
             case Message(sig=Sig.PROMPT, args=args) if isinstance(args, int):
                 # initialisation de la fenetre du prompt
@@ -60,11 +60,11 @@ class Display(Actor):
                     curses.curs_set(0)
                 else:
                     ...
-                self.post(self, Message(sig=Sig.DRAW_SCREEN))
+                self.post(Message(sig=Sig.DRAW_SCREEN))
 
             case Message(sig=Sig.PROMPT, args=args) if isinstance(args, list):
                 self.cmd_buff = args.copy()
-                self.post(self, {'event': 'property-change', 'name': 'draw-cmd'})
+                self.post({'event': 'property-change', 'name': 'draw-cmd'})
 
             case {'event': 'property-change', 'name': 'draw-cmd'}:
             # case Msg(event='property-change', name='draw-cmd'):
@@ -78,7 +78,7 @@ class Display(Actor):
             case Message(sig=Sig.MEDIA_META, args=args):
                 k, v = [i for i in args.items()][0]
                 self.media_meta.update({k: v})
-                self.post(self, {'event': 'property-change', 'name': 'draw-playback'})
+                self.post({'event': 'property-change', 'name': 'draw-playback'})
 
             case {'event': 'property-change', 'name': 'draw-playback'}:
                 if self.playback_overlay:
@@ -98,7 +98,7 @@ class Display(Actor):
 
             case Message(sig=Sig.PLAYBACK_OVERLAY, args=args):
                 self.playback_overlay = not self.playback_overlay
-                self.post(self, Message(sig=Sig.DRAW_SCREEN))
+                self.post(Message(sig=Sig.DRAW_SCREEN))
 
             case Message(sig=Sig.POPUP, args=args):
                 draw_popup(args)
