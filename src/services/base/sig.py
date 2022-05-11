@@ -3,6 +3,9 @@ from enum import Enum, auto
 
 class Sig(Enum):
     INIT = auto()
+    SIGINT = auto()
+    SIGKILL = auto()
+    SIGQUIT = auto()
     LOGIN = auto()
     LOGIN_SUCCESS = auto()
     LOGIN_FAILURE = auto()
@@ -12,7 +15,6 @@ class Sig(Enum):
     FILES_GET = auto()
     PARSE = auto()
     CWD_GET = auto()
-    SIGINT = auto()
     NONE = auto()
     ERROR = auto()
     FILES_REINDEX = auto()

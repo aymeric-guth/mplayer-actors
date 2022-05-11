@@ -12,14 +12,13 @@ T = TypeVar('T', bound='Actor')
 
 class Actor(BaseActor):
     def __init__(self, pid: int, name:str='', parent: Optional[ActorGeneric]=None, **kwargs) -> None:
-        super().__init__(pid, name)
-        self._parent: Optional[BaseActor] = actor_system.get_actor(parent)
+        super().__init__(pid, name=name, parent=parent)
+        # self._parent: Optional[BaseActor] = actor_system.get_actor(parent)
         self.kwargs = kwargs.copy()
-        # self.log_lvl = logging.INFO
 
-    def handler(self, err) -> None:
+    def handler(self, err: str) -> None:
         self.logger.error(f'Actor={self} encountered a failure: {err}')
-        actor_system.post(Message(sig=Sig.SIGINT, args=err))
+        actor_system.post(Message(sig=Sig.SIGINT))
 
     def introspect(self) -> dict[Any, Any]:
         return {
@@ -27,13 +26,6 @@ class Actor(BaseActor):
             'log_lvl': self.log_lvl,
         }.copy()
 
-    def __repr__(self) -> str:
-        return f'{self.__class__.__name__}(pid={self.pid}, parent={actor_system.get_actor(self.parent)})'#, kwargs={self.kwargs}
+    # def __repr__(self) -> str:
+    #     return f'{self.__class__.__name__}(pid={self.pid}, parent={self.parent})'#, kwargs={self.kwargs}
 
-    @property
-    def parent(self) -> Optional[BaseActor]:
-        return self._parent
-
-    @parent.setter
-    def parent(self, value) -> None:
-        raise TypeError

@@ -3,7 +3,7 @@ from typing import Any
 from signal import signal, SIGWINCH
 
 
-from ..base import Actor, Message, Sig, actor_system
+from ..base import Actor, Message, Sig, actor_system, ActorGeneric
 from . import helpers
 
 from ...wcurses import stdscr, draw_popup
@@ -43,9 +43,9 @@ class Display(Actor):
         self.draw_cmd = lambda: helpers.draw_cmd(self)
         self.draw_files = lambda: helpers.draw_files(self)
         self.draw_playback = lambda: helpers.draw_playback(self)
-        self.init_logger(__name__)
+        # self.init_logger(__name__)
 
-    def dispatch(self, sender: Actor, msg: Message) -> None:
+    def dispatch(self, sender: ActorGeneric, msg: Message) -> None:
         match msg:
             case Message(sig=Sig.CWD_GET, args=args):
                 dir_list, files_list = args.get('dir_list'), args.get('files_list')
@@ -116,12 +116,15 @@ class Display(Actor):
             #     for a in self.subscribers:
             #         actor_system.send(a, {'type': 'publish', 'args': self.introspect()})
 
+            case Message(sig=Sig.SIGQUIT):
+                self.terminate()
+
             case _:
                 self.logger.info(f'Can\'t handle msg={msg}')
                 # raise SystemExit(f'{msg=}')
 
     def terminate(self) -> None:
-        ...
+        raise SystemExit('SIGQUIT')
 
     def introspect(self) -> dict[Any, Any]:
         return {

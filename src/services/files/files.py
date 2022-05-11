@@ -1,8 +1,6 @@
 from collections import defaultdict
-import os
 
-
-from ..base import Actor, Message, Sig, actor_system
+from ..base import Actor, Message, Sig, actor_system, ActorGeneric
 from ...settings import MOUNT_POINT, extensions_all, ROOT
 from . import helpers
 
@@ -20,12 +18,12 @@ class Files(Actor):
         self.dir_tree: dict[tuple[str, ...], set[str]] = defaultdict(set)
         self.path = list(ROOT)
         self.path_full = f"{self.mount_point}{'/'.join(self.path[1:])}/"
-        self.init_logger(__name__)
+        # self.init_logger(__name__)
 
-    def dispatch(self, sender: Actor, msg: Message) -> None:
+    def dispatch(self, sender: ActorGeneric, msg: Message) -> None:
         match msg:
-            # case Message(sig=Sig.INIT, args=args):
-            #     actor_system.send('API', Message(sig=Sig.FILES_GET))
+            case Message(sig=Sig.INIT, args=args):
+                ...
 
             case Message(sig=Sig.TEST, args=args):
                 ...
@@ -138,6 +136,12 @@ class Files(Actor):
             case Message(sig=Sig.AUDIT, args=None):
                 actor_system.send(sender, {'event': 'audit', 'data': self.introspect()})
 
+            case Message(sig=Sig.SIGQUIT):
+                self.terminate()
+
             case _:
                 print(f'Files Could not process {msg=}')
                 raise SystemExit(f'{msg=}')
+
+    def terminate(self) -> None:
+        raise SystemExit('SIGQUIT')

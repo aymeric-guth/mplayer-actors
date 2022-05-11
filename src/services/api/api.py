@@ -19,7 +19,7 @@ class API(Actor):
         self.password = PASSWORD
         self.token: Optional[str] = None
         self.extensions = extensions_all
-        self.init_logger(__name__)
+        # self.init_logger(__name__)
         # self.log_lvl = logging.INFO
         self.post(Message(sig=Sig.INIT))
 
@@ -107,5 +107,11 @@ class API(Actor):
             case Message(sig=Sig.AUDIT, args=None):
                 actor_system.send(sender, {'event': 'audit', 'data': self.introspect()})
 
+            case Message(sig=Sig.SIGQUIT):
+                self.terminate()
+
             case _:
                 raise SystemExit(f'{msg=}')
+
+    def terminate(self) -> None:
+        raise SystemExit('SIGQUIT')

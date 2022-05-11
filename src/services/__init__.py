@@ -3,7 +3,6 @@ from .base.message import Message
 from .base.sig import Sig
 from .base.actor_system import ActorSystem
 
-from .dummy import Dummy
 from .dispatcher import Dispatcher
 from .api import API
 from .display import Display

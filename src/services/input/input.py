@@ -12,7 +12,6 @@ class Input(Actor):
         super().__init__(pid, name, parent, **kwargs)
         self._prompt_mode = 0
         self.buff: list[str] = []
-        self.init_logger(__name__)
 
     def run(self) -> None:
         while 1:
@@ -47,7 +46,8 @@ class Input(Actor):
                     self.prompt_mode = 1
 
                 case Key.q | Key.Q:
-                    return 0
+                    actor_system.post(Message(sig=Sig.SIGQUIT))
+                    self.terminate()
 
                 case Key.r | Key.R:
                     actor_system.send('Dispatcher', Message(sig=Sig.PARSE, args='refresh'))
@@ -108,3 +108,6 @@ class Input(Actor):
     def prompt_mode(self, value) -> None:
         self._prompt_mode = value
         actor_system.send('Display', Message(sig=Sig.PROMPT, args=self._prompt_mode))
+
+    def terminate(self) -> None:
+        raise SystemExit('SIGQUIT')

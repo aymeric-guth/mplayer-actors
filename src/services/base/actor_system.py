@@ -1,7 +1,5 @@
 from typing import Any, Optional 
 from threading import Thread, Lock
-from queue import Queue
-from functools import wraps
 import logging
 
 from .utils import SingletonMeta
@@ -12,19 +10,14 @@ import sys
 
 
 class ActorSystem(BaseActor, metaclass=SingletonMeta):
-    pid: int = 0
-    pid_l: Lock = Lock()
-    # rid: int = 0
-    # rid_l: Lock = Lock()
+    __pid: int = 0
+    __pid_l: Lock = Lock()
 
-    def __init__(self, pid: int=0, name: str='') -> None:
-        super().__init__(pid, name)
-        self.LOG = 0
+    def __init__(self) -> None:
+        super().__init__(pid=ActorSystem.__pid, name=self.__class__.__name__, parent=self)
         self._registry: dict[int, BaseActor] = {}
         self._threads: dict[int, Thread] = {}
-        self.mq: Queue[tuple[BaseActor, Message]] = Queue()
-        self.init_logger(__name__)
-        self.log_lvl = logging.INFO
+        self.log_lvl = logging.ERROR
 
     def send(self, receiver: ActorGeneric, msg: Message) -> None:
         '''
@@ -51,7 +44,7 @@ class ActorSystem(BaseActor, metaclass=SingletonMeta):
                 # sender = actor, receiver = actor
                 r.post(sender=s.pid, msg=msg)
 
-    def get_actor(self, actor: ActorGeneric) -> BaseActor|None:
+    def get_actor(self, actor: ActorGeneric) -> Optional[BaseActor]:
         '''
         renvoie l'instance d'un acteur
         valeurs possibles pour récupérer l'instance d'un acteur:
@@ -64,19 +57,15 @@ class ActorSystem(BaseActor, metaclass=SingletonMeta):
 
         match actor:
             case actor if isinstance(actor, int):
-                if self.LOG: print(f'get_actor matched pid: {actor=}')
                 return self._registry.get(actor)
 
             case actor if isinstance(actor, str):
-                if self.LOG: print(f'get_actor matched name|classname: {actor=}')
                 func = lambda a: actor == a.name
 
             case actor if isinstance(actor, type) and issubclass(actor, BaseActor):
-                if self.LOG: print(f'get_actor matched class: {actor=}')
                 func = lambda a: actor is a.__class__
 
             case actor if isinstance(actor, BaseActor):
-                if self.LOG: print(f'get_actor matched instance: {actor=}')
                 func = lambda a: actor is a
 
             case actor if actor is None:
@@ -92,30 +81,48 @@ class ActorSystem(BaseActor, metaclass=SingletonMeta):
         else:
             return None
 
-    def create_actor(
+    def _create_actor(
         self, 
         cls: type, 
         *, 
-        name='', 
-        pid: int=-1,
+        pid: int,
+        parent: BaseActor,
+        name: str='', 
         **kwargs
     ) -> BaseActor:
-        caller = self.get_caller()
-        if pid <= -1:
-            pid = ActorSystem.get_pid()
-        parent = self.get_actor(caller)
+        self.logger.info(f'parent={parent} requested Actor({cls.__name__}) creation')
         actor = cls(pid=pid, name=name, parent=parent, **kwargs)
-        self.logger.warning(f'parent={parent} requested create_actor({cls})')
         t = Thread(target=actor.run, daemon=True)
         self._registry.update({pid: actor})
         self._threads.update({pid: t})
         t.start()
         return actor
 
+    def create_actor(
+        self, 
+        cls: type,
+        *,
+        name: str='',
+        **kwargs
+    ) -> BaseActor:
+        caller = self.get_caller()
+        pid = self.get_pid()
+        return self._create_actor(cls=cls, pid=pid, parent=caller, name=name, **kwargs)
+
     def dispatch(self, sender: ActorGeneric, msg: Message) -> None:
+        self.logger.error(f'{msg=}')
         s = self.get_actor(sender)
         if s is None: return
+
         match msg:
+            case Message(sig=Sig.INIT):
+                ...
+
+            case Message(sig=Sig.SIGQUIT):
+                for pid, actor in self._registry.items():
+                    actor.post(msg=Message(sig=Sig.SIGQUIT), sender=self)
+                raise SystemExit
+
             case Message(sig=Sig.SIGINT):
                 pid = s.pid
                 cls = s.__class__
@@ -131,20 +138,22 @@ class ActorSystem(BaseActor, metaclass=SingletonMeta):
                 self.logger.warning(f'Trying to regenerate Actor(pid={pid}, cls={cls}, parent={parent}, name={name}, kwargs={kwargs})')
                 self.create_actor(cls, name=name, pid=pid, **kwargs)
 
-    @staticmethod
-    def get_pid() -> int:
-        with ActorSystem.pid_l:
-            value = ActorSystem.pid
-            ActorSystem.pid += 1
+    def get_pid(self) -> int:
+        with ActorSystem.__pid_l:
+            ActorSystem.__pid += 1
+            value = ActorSystem.__pid
         return value
 
-    def get_caller(self) -> Optional[ActorGeneric]:
+    def get_caller(self) -> BaseActor:
         frame = sys._getframe(2)
         arguments = frame.f_code.co_argcount
         if arguments == 0:
-            return None
+            return self
         caller_calls_self = frame.f_code.co_varnames[0]
         return frame.f_locals[caller_calls_self]
 
+    def __repr__(self) -> str:
+        return f'{self.__class__.__name__}(pid={self.pid})'
 
-actor_system = ActorSystem(pid=ActorSystem.get_pid())
+
+actor_system = ActorSystem()

@@ -41,7 +41,7 @@ class MPVEvent(Actor):
             raise SystemExit
         self.handle = handle
         self.event_handle = _mpv.mpv_create_client(self.handle, b'py_event_handler')
-        self.init_logger(__name__)
+        # self.init_logger(__name__)
         # self.log_lvl = logging.INFO
 
     def run(self) -> None:
@@ -80,10 +80,9 @@ class MPV(Actor):
         # mpv_load_config_file(self.handle, str(path).encode('utf-8'))
 
         _mpv.mpv_initialize(self.handle)
-        actor_system.create_actor(MPVEvent, handle=self.handle)
-        self.init_logger(__name__)
+        # self.init_logger(__name__)
         # self.log_lvl = logging.INFO
-        self.post(Message(Sig.INIT))
+        # self.post(Message(Sig.INIT))
 
     # @property
     # def event_loop(self) -> Any:
@@ -130,12 +129,6 @@ class MPV(Actor):
         else:            
             _mpv.mpv_set_property_string(self.handle, ename, _mpv.mpv_coax_proptype(value))
 
-    def terminate(self) -> None:
-        self.handle, handle = None, self.handle
-        # self.event_loop.handle = None
-        # self.event_loop.join()
-        _mpv.mpv_terminate_destroy(handle)
-
     def observe_property(self, name: str) -> None:      
         property_id = hash(name) & 0xffffffffffffffff
         _mpv.mpv_observe_property(self.handle, property_id, name.encode('utf-8'), _mpv.MpvFormat.NODE)
@@ -171,6 +164,7 @@ class MPV(Actor):
                         ...
 
             case Message(sig=Sig.INIT, args=args):
+                actor_system.create_actor(MPVEvent, handle=self.handle)
                 self.observe_property('volume')
                 self.observe_property('percent-pos')
                 self.observe_property('time-pos')
@@ -232,5 +226,15 @@ class MPV(Actor):
             case Message(sig=Sig.AUDIT, args=None):
                 actor_system.send(sender, {'event': 'audit', 'data': self.introspect()})
 
+            case Message(sig=Sig.SIGQUIT):
+                self.terminate()
+
             case _:
                 raise SystemExit(f'{msg=}')
+
+    def terminate(self) -> None:
+        self.handle, handle = None, self.handle
+        # self.event_loop.handle = None
+        # self.event_loop.join()
+        _mpv.mpv_terminate_destroy(handle)
+        raise SystemExit('SIGQUIT')

@@ -2,17 +2,16 @@ import subprocess
 import socket
 import logging
 
-from ..base import Actor, Message, Sig, actor_system
+from ..base import Actor, Message, Sig, actor_system, ActorGeneric
 from ...settings import ALLOWED_SHARES, MOUNT_POINT, SMB_USER, SMB_PASS, SMB_ADDR, SMB_PORT
 
 
 class External(Actor):
     def __init__(self, pid: int, name='', parent: Actor|None=None, **kwargs) -> None:
         super().__init__(pid, name, parent, **kwargs)
-        self.init_logger(__name__)
-        self.post(Message(sig=Sig.INIT))
+        self.log_lvl = logging.ERROR
 
-    def dispatch(self, sender, msg) -> None:
+    def dispatch(self, sender: ActorGeneric, msg: Message) -> None:
         match msg:
             case Message(sig=Sig.INIT, args=None):
                 self.post(Message(sig=Sig.SMB_PING, args=1))
@@ -54,5 +53,11 @@ class External(Actor):
             # case Message(sig=Sig.GET_CACHE, args=args):
             #     ...
 
+            case Message(sig=Sig.SIGQUIT):
+                self.terminate()
+
             case _:
                 ...
+
+    def terminate(self) -> None:
+        raise SystemExit('SIGQUIT')

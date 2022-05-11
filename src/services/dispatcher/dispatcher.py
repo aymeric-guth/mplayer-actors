@@ -1,15 +1,16 @@
-from ..base import Actor, Message, Sig, actor_system
+import logging
+
+from ..base import Actor, Message, Sig, actor_system, ActorGeneric
 from .helpers import eval_cmd
-from ..api import API
 from ...utils import SingletonMeta
 
 
 class Dispatcher(Actor, metaclass=SingletonMeta):
     def __init__(self, pid: int, name='',parent: Actor|None=None, **kwargs) -> None:
         super().__init__(pid, name, parent, **kwargs)
-        self.init_logger(__name__)
+        # self.log_lvl = logging.INFO
 
-    def dispatch(self, sender: Actor, msg: Message) -> None:
+    def dispatch(self, sender: ActorGeneric, msg: Message) -> None:
         match msg:
             case Message(sig=Sig.INIT, args=args):
                 ...
@@ -26,9 +27,15 @@ class Dispatcher(Actor, metaclass=SingletonMeta):
                 self.logger.error(f'NETWORK_FAILURE SIGNAL handler, exiting... {msg=}')
                 raise SystemExit
 
+            case Message(sig=Sig.SIGQUIT):
+                self.terminate()
+
             # case Message(sig=Sig.AUDIT, args=None):
             #     actor_system.send(sender, {'event': 'audit', 'data': self.introspect()})
 
             # case _:
             #     print(f'Default SIGNAL handler, exiting... {msg=}')
             #     raise SystemExit
+
+    def terminate(self) -> None:
+        raise SystemExit('SIGQUIT')

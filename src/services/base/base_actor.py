@@ -1,13 +1,12 @@
 from typing import TypeVar, Any, Union, Optional
 from queue import Queue
-import traceback
-import sys
 from inspect import currentframe, getframeinfo, trace
 import threading
 import logging
 import logging.handlers
 
 from .message import Message
+from .sig import Sig
 from ...utils import clamp
 from ...settings import LOG_HOST, LOG_PORT, LOG_FORMAT
 
@@ -17,20 +16,32 @@ ActorGeneric = Union[int, str, T, type]
 
 
 class BaseActor:
-    def __init__(self, pid: int, name:str='') -> None:
+    def __init__(self, pid: int, parent: ActorGeneric, name:str='') -> None:
         self._pid = pid
         self._name = name if name else self.__class__.__name__
+        self._parent = parent
 
         self.mq: Queue = Queue()
         self.subscribers: list[BaseActor] = []
 
         self._last = 0
         self._logger: logging.LoggerAdapter[logging.Logger]
-        self._log_lock = threading.Lock()
+        self._log_l = threading.Lock()
+        
+        fmt = logging.Formatter(fmt=LOG_FORMAT)
+        handler = logging.handlers.SocketHandler(LOG_HOST, LOG_PORT)
+        handler.setFormatter(fmt)
+        _logger = logging.getLogger(self._name)
+        _logger.addHandler(handler)
+        self._logger = logging.LoggerAdapter(_logger, {'actor': self.__repr__()})
+        self.log_lvl = logging.ERROR
+
+        self.post(Message(sig=Sig.INIT))
 
     def run(self) -> None:
         while 1:
             (sender, msg) = self.mq.get()
+            self.logger.error(f'receiver={self} sender={sender} {msg=}')
             try:
                 self.dispatch(sender, msg)
             except Exception as err:
@@ -44,16 +55,16 @@ class BaseActor:
                 self.mq.task_done()
 
     def dispatch(self, sender: ActorGeneric, msg: Message) -> None:
-        ...
+        raise NotImplementedError
     
     def handler(self, err) -> None:
-        ...
+        raise NotImplementedError
+
+    def terminate(self) -> None:
+        raise NotImplementedError
 
     def post(self, msg: Message|dict[str, str], sender: ActorGeneric=None) -> None:
         self.mq.put((self, msg)) if sender is None else self.mq.put((sender, msg))
-
-    def __hash__(self) -> int:
-        return hash(self.pid)
 
     @property
     def pid(self) -> int:
@@ -61,7 +72,7 @@ class BaseActor:
 
     @pid.setter
     def pid(self, value) -> None:
-        raise TypeError
+        raise TypeError('Property is immutable')
 
     @property
     def name(self) -> str:
@@ -69,7 +80,15 @@ class BaseActor:
 
     @name.setter
     def name(self, value: str) -> None:
-        raise TypeError
+        raise TypeError('Property is immutable')
+
+    @property
+    def parent(self) -> Optional[ActorGeneric]:
+        return self._parent
+
+    @parent.setter
+    def parent(self, value) -> None:
+        raise TypeError('Property is immutable')
 
     @property
     def log_lvl(self) -> int:
@@ -82,39 +101,32 @@ class BaseActor:
 
     @property
     def log_lock(self) -> threading.Lock:
-        return self._log_lock
+        return self._log_l
 
     @log_lock.setter
     def log_lock(self, value: Any) -> None:
-        raise TypeError
+        raise TypeError('Property is immutable')
 
     @property
     def logger(self) -> logging.LoggerAdapter:
-        with self._log_lock:
+        with self._log_l:
             return self._logger
 
     @logger.setter
     def logger(self, value: Any) -> None:
-        raise TypeError
-
-    def init_logger(self, name) -> None:
-        fmt = logging.Formatter(fmt=LOG_FORMAT)
-        handler = logging.handlers.SocketHandler(LOG_HOST, LOG_PORT)
-        handler.setFormatter(fmt)
-        _logger = logging.getLogger(name)
-        _logger.addHandler(handler)
-        self._logger = logging.LoggerAdapter(_logger, {'actor': self.__repr__()})
-        self.log_lvl = logging.ERROR
+        raise TypeError('Property is immutable')
 
     def __repr__(self) -> str:
-        return f'{self.__class__.__name__}(pid={self.pid})'
-        # return f'{self.__class__.__name__}(pid={self.pid}, name={self.name}, ...)'
+        return f'{self.__class__.__name__}(pid={self.pid}, parent={self.parent})'
     
     def __enter__(self) -> None:
-        self._log_lock.acquire()
+        self.log_lock.acquire()
         self._last = self.log_lvl
         self.log_lvl = 0
 
     def __exit__(self, type, value, traceback) -> None:
         self.log_lvl = self._last
-        self._log_lock.release()
+        self.log_lock.release()
+
+    def __hash__(self) -> int:
+        return hash(self.pid)

@@ -40,12 +40,13 @@ class RequestHandler(Actor):
         super().__init__(pid, name, parent)
         self.child: Actor
         self.subscribed: list[Actor] = []
-        self.init_logger(__name__)
+        # self.init_logger(__name__)
         # self.post(self, {'state': 'init'})        
 
     def dispatch(self, sender, msg) -> None:
         match msg:
-            case {'type': 'init'}:
+            case Message(sig=Sig.INIT):
+            # case {'type': 'init'}:
                 ...
 
             case {'type': 'subscribe', 'actor': actor}:
@@ -88,8 +89,8 @@ class SocketServer(Actor):
         # self.lock = threading.Lock()
         threading.Thread(target=self.runner, daemon=True).start()
         self.c = 0
-        self.init_logger(__name__)
-        self.post({'state': 'init'})
+        # self.init_logger(__name__)
+        # self.post({'state': 'init'})
 
     def runner(self) -> None:
         state = State.INIT
@@ -194,7 +195,8 @@ class SocketServer(Actor):
 
     def dispatch(self, sender: Actor, msg: Message) -> None:
         match msg:
-            case {'state': 'init'}:
+            case Message(sig=Sig.INIT):
+            # case {'state': 'init'}:
                 ...
 
             case {'state': 'new-conn', 'args': conn}:
@@ -214,16 +216,25 @@ class SocketServer(Actor):
                 data.clear()
                 data._data_bis = args
 
+            case Message(sig=Sig.SIGQUIT):
+                self.terminate()
+
     def __del__(self) -> None:
         try:
             self.sock.close()
         except OSError:
             ...
 
+    def terminate(self):
+        try:
+            self.sock.close()
+        except OSError:
+            ...
+        raise SystemExit('SIGQUIT')
+
 # pid / actor pid
 # socket hash
 # data header taille totale des données envoyées
-
 
 
 # echo serveur actor async avec la gestion des connexion et les send dans une state machine

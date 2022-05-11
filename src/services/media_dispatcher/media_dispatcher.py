@@ -13,8 +13,8 @@ class MediaDispatcher(Actor):
         self.child = None
         self.pl: Playlist|None = None
         self.loop_mode = LOOP_DEFAULT
-        self.init_logger(__name__)
-        self.post(Message(sig=Sig.INIT))
+        # self.init_logger(__name__)
+        # self.post(Message(sig=Sig.INIT))
        
     def dispatch(self, sender: Actor, msg: Message) -> None:
         match msg:
@@ -81,5 +81,11 @@ class MediaDispatcher(Actor):
             case Message(sig=Sig.AUDIT, args=None):
                 actor_system.send(sender, {'event': 'audit', 'data': self.introspect()})
 
+            case Message(sig=Sig.SIGQUIT):
+                self.terminate()
+
             case _:
                 raise SystemExit(f'{msg=}')
+
+    def terminate(self):
+        raise SystemExit('SIGQUIT')
