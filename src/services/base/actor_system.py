@@ -111,8 +111,8 @@ class ActorSystem(BaseActor, metaclass=SingletonMeta):
 
     def dispatch(self, sender: ActorGeneric, msg: Message) -> None:
         self.logger.error(f'{msg=}')
-        s = self.get_actor(sender)
-        if s is None: return
+        # s = self.get_actor(sender)
+        # if s is None: return
 
         match msg:
             case Message(sig=Sig.INIT):
@@ -124,11 +124,11 @@ class ActorSystem(BaseActor, metaclass=SingletonMeta):
                 raise SystemExit
 
             case Message(sig=Sig.SIGINT):
-                pid = s.pid
-                cls = s.__class__
-                name = s.name
-                parent = getattr(s, 'parent')
-                kwargs = getattr(s, 'kwargs')
+                pid = sender.pid
+                cls = sender.__class__
+                name = sender.name
+                parent = sender.parent
+                kwargs = getattr(sender, 'kwargs')
                 if kwargs is not None:
                     kwargs = kwargs.copy()
 
@@ -136,7 +136,7 @@ class ActorSystem(BaseActor, metaclass=SingletonMeta):
                 if t is not None:
                     t._stop()
                 self.logger.warning(f'Trying to regenerate Actor(pid={pid}, cls={cls}, parent={parent}, name={name}, kwargs={kwargs})')
-                self.create_actor(cls, name=name, pid=pid, **kwargs)
+                self._create_actor(cls, pid=pid, parent=parent, name=name, **kwargs)
 
     def get_pid(self) -> int:
         with ActorSystem.__pid_l:

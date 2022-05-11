@@ -1,19 +1,9 @@
-logs:
-    messages reçus par un acteur donné + sender
-    messages envoyés par un acteur donné + recipient
-
 refactor Message en dict?
 refactor festion path -> pathlib?
-merge fix_encoding et display.constants.character_encoding
-    belle api fonctionelle?
-
 
 Implémentation:
     loop mode
         intégration playlist
-        gui
-        event refresh gui
-
 
 api:
     async messaging
@@ -21,8 +11,15 @@ api:
     pub sub
 
 
-bug:
-    /Audio/Music/Electro
-    height=25 width=58 y_ofst=0 x_ofst=0
-    row=24 col=29 max_col=29 display_mode=2 height=25 width=58 err=error('addwstr() returned ERR')
-    On ne peut pas écrire dans la dernière row d'une fenetre? mais on peut faire une box
+
+events externes (non-Message)
+    socket io # network input
+    stdscr.getch() # keyboard input
+    MpvEvent # mpv event loop
+
+    solution temporaire override run() et utiliser un acteur sans mq
+    couplé à un autre acteur qui process les events
+    problème: communication à sens unique (event-loop -> acteur)
+
+    partie polling dans un thread séparé et callback avec un post dans la mq?
+    

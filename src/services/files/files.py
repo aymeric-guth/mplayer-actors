@@ -10,8 +10,8 @@ from . import helpers
 # search all dirs
 
 class Files(Actor):
-    def __init__(self, pid: int, name='',parent: Actor|None=None, **kwargs) -> None:
-        super().__init__(pid, name, parent, **kwargs)
+    def __init__(self, pid: int, parent: ActorGeneric, name='', **kwargs) -> None:
+        super().__init__(pid, parent, name, **kwargs)
         self.mount_point = MOUNT_POINT[:]
         self.extensions = extensions_all
         self.files_tree: dict[tuple[str, ...], list[str]] = defaultdict(list)

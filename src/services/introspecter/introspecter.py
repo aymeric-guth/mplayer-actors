@@ -7,7 +7,7 @@ from enum import Enum, auto
 from typing import Any, Callable
 import threading
 
-from ..base import Actor, Message, Sig, actor_system
+from ..base import Actor, Message, Sig, actor_system, ActorGeneric
 from .helpers import BiMap, serialize, deserialize
 from .constants import BUFFSIZE
 
@@ -31,13 +31,8 @@ class State(Enum):
 
 
 class RequestHandler(Actor):
-    def __init__(
-        self,
-        pid: int,
-        name='',
-        parent: Actor|None=None
-    ) -> None:
-        super().__init__(pid, name, parent)
+    def __init__(self, pid: int, parent: ActorGeneric, name='', **kwargs) -> None:
+        super().__init__(pid, parent, name, **kwargs)
         self.child: Actor
         self.subscribed: list[Actor] = []
         # self.init_logger(__name__)
@@ -69,8 +64,8 @@ class RequestHandler(Actor):
 
 
 class SocketServer(Actor):
-    def __init__(self, pid: int, name='',parent: Actor|None=None, **kwargs) -> None:
-        super().__init__(pid, name, parent)
+    def __init__(self, pid: int, parent: ActorGeneric, name='', **kwargs) -> None:
+        super().__init__(pid, parent, name, **kwargs)
         self.childs: dict[int, Actor] = {}
 
         addr = socket.getaddrinfo('127.0.0.1', 8081)[0][-1]

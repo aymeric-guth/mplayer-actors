@@ -16,10 +16,10 @@ ActorGeneric = Union[int, str, T, type]
 
 
 class BaseActor:
-    def __init__(self, pid: int, parent: ActorGeneric, name:str='') -> None:
+    def __init__(self, pid: int, parent: ActorGeneric, name: str='') -> None:
         self._pid = pid
-        self._name = name if name else self.__class__.__name__
         self._parent = parent
+        self._name = name if name else self.__class__.__name__
 
         self.mq: Queue = Queue()
         self.subscribers: list[BaseActor] = []
@@ -41,7 +41,7 @@ class BaseActor:
     def run(self) -> None:
         while 1:
             (sender, msg) = self.mq.get()
-            self.logger.error(f'receiver={self} sender={sender} {msg=}')
+            # self.logger.error(f'receiver={self} sender={sender} {msg=}')
             try:
                 self.dispatch(sender, msg)
             except Exception as err:
@@ -71,7 +71,7 @@ class BaseActor:
         return self._pid
 
     @pid.setter
-    def pid(self, value) -> None:
+    def pid(self, value: Any) -> None:
         raise TypeError('Property is immutable')
 
     @property
@@ -83,11 +83,11 @@ class BaseActor:
         raise TypeError('Property is immutable')
 
     @property
-    def parent(self) -> Optional[ActorGeneric]:
+    def parent(self) -> ActorGeneric:
         return self._parent
 
     @parent.setter
-    def parent(self, value) -> None:
+    def parent(self, value: Any) -> None:
         raise TypeError('Property is immutable')
 
     @property
@@ -124,7 +124,7 @@ class BaseActor:
         self._last = self.log_lvl
         self.log_lvl = 0
 
-    def __exit__(self, type, value, traceback) -> None:
+    def __exit__(self, type: Any, value: Any, traceback: Any) -> None:
         self.log_lvl = self._last
         self.log_lock.release()
 

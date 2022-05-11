@@ -27,8 +27,8 @@ class Msg:
 
 
 class Display(Actor):
-    def __init__(self, pid: int, name='',parent: Actor|None=None, **kwargs) -> None:
-        super().__init__(pid, name, parent, **kwargs)
+    def __init__(self, pid: int, parent: ActorGeneric, name='', **kwargs) -> None:
+        super().__init__(pid, parent, name, **kwargs)
         self.files_overlay = 1
         self.files_dims: tuple[int, int, int, int]
         self.files_buff: list[Any] = []
@@ -122,9 +122,6 @@ class Display(Actor):
             case _:
                 self.logger.info(f'Can\'t handle msg={msg}')
                 # raise SystemExit(f'{msg=}')
-
-    def terminate(self) -> None:
-        raise SystemExit('SIGQUIT')
 
     def introspect(self) -> dict[Any, Any]:
         return {

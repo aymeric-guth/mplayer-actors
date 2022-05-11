@@ -1,9 +1,8 @@
 from typing import Any, TypeVar
+from dataclasses import dataclass
 
 from .sig import Sig
 
-
-T = TypeVar('T', bound='Message')
 
 
 class Message:
@@ -30,8 +29,15 @@ class Message:
     def args(self, value: Any) -> None:
         raise TypeError('Property is immutable')
 
-    def __lshift__(self, other: Sig) -> T:
-        return self.__class__(sig=other, args=self)
+    # def __lshift__(self, other: Sig) -> T:
+    #     return self.__class__(sig=other, args=self)
 
     # def __rshift__(self, other: Sig) -> T:
     #     return self.__class__(sig=other, args=self)
+
+
+@dataclass(frozen=True)
+class Msg:
+    event: str
+    name: str
+    args: Any = None

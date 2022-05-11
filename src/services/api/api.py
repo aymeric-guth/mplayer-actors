@@ -4,7 +4,7 @@ import logging
 
 import httpx
 
-from ..base import Actor, Message, Sig, actor_system
+from ..base import Actor, Message, Sig, actor_system, ActorGeneric
 
 from . import helpers
 from ...settings import USERNAME, PASSWORD, extensions_all
@@ -12,8 +12,8 @@ from .constants import AUTH, NAS
 
 
 class API(Actor):
-    def __init__(self, pid: int, name='', parent: Actor|None=None, **kwargs) -> None:
-        super().__init__(pid, name, parent, **kwargs)
+    def __init__(self, pid: int, parent: ActorGeneric, name='', **kwargs) -> None:
+        super().__init__(pid, parent, name, **kwargs)
         self.username = USERNAME
         # stockage d'un mdp non crypté dans une globale
         self.password = PASSWORD
@@ -112,6 +112,3 @@ class API(Actor):
 
             case _:
                 raise SystemExit(f'{msg=}')
-
-    def terminate(self) -> None:
-        raise SystemExit('SIGQUIT')

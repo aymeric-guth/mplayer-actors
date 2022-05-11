@@ -1,22 +1,18 @@
-from collections import deque
-
-from ..base import Actor, Message, Sig, actor_system
+from ..base import Actor, Message, Sig, actor_system, ActorGeneric
 from ..mpv import MPV
 from .playlist import Playlist
 from ...settings import LOOP_DEFAULT
 
 
 class MediaDispatcher(Actor):
-    def __init__(self, pid: int, name='',parent: Actor|None=None, **kwargs) -> None:
-        super().__init__(pid, name, parent, **kwargs)
+    def __init__(self, pid: int, parent: ActorGeneric, name='', **kwargs) -> None:
+        super().__init__(pid, parent, name, **kwargs)
         self.wid = b'\x00\x00\x00\x00'
         self.child = None
         self.pl: Playlist|None = None
         self.loop_mode = LOOP_DEFAULT
-        # self.init_logger(__name__)
-        # self.post(Message(sig=Sig.INIT))
        
-    def dispatch(self, sender: Actor, msg: Message) -> None:
+    def dispatch(self, sender: ActorGeneric, msg: Message) -> None:
         match msg:
             case Message(sig=Sig.INIT, args=None):
                 actor_system.create_actor(MPV, wid=self.wid)
@@ -86,6 +82,3 @@ class MediaDispatcher(Actor):
 
             case _:
                 raise SystemExit(f'{msg=}')
-
-    def terminate(self):
-        raise SystemExit('SIGQUIT')

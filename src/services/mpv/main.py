@@ -35,14 +35,12 @@ class MpvEvent:
 
 
 class MPVEvent(Actor):
-    def __init__(self, pid: int, name='', parent: Optional[Actor]=None, handle: Any=None, **kwargs) -> None:
-        super().__init__(pid, name, parent)
+    def __init__(self, pid: int, parent: ActorGeneric, name='', handle: Any=None, **kwargs) -> None:
+        super().__init__(pid, parent, name, **kwargs)
         if handle is None:
             raise SystemExit
         self.handle = handle
         self.event_handle = _mpv.mpv_create_client(self.handle, b'py_event_handler')
-        # self.init_logger(__name__)
-        # self.log_lvl = logging.INFO
 
     def run(self) -> None:
         while 1:
@@ -60,13 +58,10 @@ class MPVEvent(Actor):
             self.logger.info(f'event={event}')
             actor_system.send(self.parent, Message(sig=Sig.MPV_EVENT, args=event))
 
-    def dispatch(self, sender: ActorGeneric, msg: Message) -> None:
-        ...
-
 
 class MPV(Actor):
-    def __init__(self, pid: int, name='', parent: Optional[Actor]=None, **kwargs) -> None:
-        super().__init__(pid, name, parent, **kwargs)
+    def __init__(self, pid: int, parent: ActorGeneric, name='', **kwargs) -> None:
+        super().__init__(pid, parent, name, **kwargs)
         self._state = 0
         self._volume: int|float
         lc, enc = locale.getlocale(locale.LC_NUMERIC)
@@ -133,7 +128,7 @@ class MPV(Actor):
         property_id = hash(name) & 0xffffffffffffffff
         _mpv.mpv_observe_property(self.handle, property_id, name.encode('utf-8'), _mpv.MpvFormat.NODE)
 
-    def dispatch(self, sender: Actor, msg: Message) -> None:
+    def dispatch(self, sender: ActorGeneric, msg: Message) -> None:
         match msg:
             case Message(sig=Sig.MPV_EVENT, args=args):
                 match args:
