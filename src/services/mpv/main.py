@@ -13,7 +13,10 @@ from ...settings import VOLUME_DEFAULT
 
 from ..base import Actor, Message, Sig, actor_system
 
-from .mpv import (
+from ...external import _mpv
+
+from ...external._mpv import (
+# from .mpv import (
     _mpv_set_option_string, 
     _mpv_initialize, 
     _mpv_create, 
@@ -34,12 +37,23 @@ from .mpv import (
     MpvHandle,
     _mpv_event_to_node,
     _mpv_free_node_contents,
-    MpvNode
+    MpvNode,
+    mpv_observe_property
 )
 
-mpv_observe_property = getattr(backend, 'mpv_observe_property')
-mpv_observe_property.argtypes = [MpvHandle, c_uint64, c_char_p, MpvFormat]
-mpv_observe_property.restype = c_int
+
+# def patched_repr(self):
+#     return ['NONE', 'SHUTDOWN', 'LOG_MESSAGE', 'GET_PROPERTY_REPLY', 'SET_PROPERTY_REPLY', 'COMMAND_REPLY',
+#             'START_FILE', 'END_FILE', 'FILE_LOADED', 'TRACKS_CHANGED', 'TRACK_SWITCHED', 'IDLE', 'PAUSE', 'UNPAUSE',
+#             'TICK', 'SCRIPT_INPUT_DISPATCH', 'CLIENT_MESSAGE', 'VIDEO_RECONFIG', 'AUDIO_RECONFIG',
+#             'METADATA_UPDATE', 'SEEK', 'PLAYBACK_RESTART', 'PROPERTY_CHANGE', 'CHAPTER_CHANGE', 'QUEUE_OVERFLOW', 'HOOK'][self.value]
+
+# MpvEventID.__repr__ = patched_repr
+
+
+# mpv_observe_property = getattr(backend, 'mpv_observe_property')
+# mpv_observe_property.argtypes = [MpvHandle, c_uint64, c_char_p, MpvFormat]
+# mpv_observe_property.restype = c_int
 
 
 
@@ -109,7 +123,7 @@ class MPV(Actor):
         self._event_loop = actor_system.create_actor(MPVEvent, handle=self.handle)
         self.observed_properties: dict[int, Sig] = {}
         self.init_logger(__name__)
-        self.log_lvl = logging.INFO
+        # self.log_lvl = logging.INFO
         self.post(self, Message(Sig.INIT))
 
     @property

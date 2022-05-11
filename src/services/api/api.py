@@ -1,5 +1,6 @@
 import pickle
 from typing import Optional
+import logging
 
 import httpx
 
@@ -19,9 +20,11 @@ class API(Actor):
         self.token: Optional[str] = None
         self.extensions = extensions_all
         self.init_logger(__name__)
+        # self.log_lvl = logging.INFO
         self.post(self, Message(sig=Sig.INIT))
 
     def dispatch(self, sender: Actor, msg: Message) -> None:
+        self.logger.info(f'{sender=} receiver={self} {msg=}')
         match msg:
             case Message(sig=Sig.INIT, args=args):
                 self.post(self, Message(Sig.LOGIN))

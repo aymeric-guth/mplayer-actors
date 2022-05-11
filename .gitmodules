@@ -1,0 +1,3 @@
+[submodule "src/external/mpv"]
+	path = src/external/mpv
+	url = https://github.com/jaseg/python-mpv

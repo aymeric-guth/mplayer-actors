@@ -103,7 +103,8 @@ class SocketServer(Actor):
                     self.sock.close()
                 except Exception:
                     ...
-                self._logger.error(str(err))
+
+                self.logger.error(str(err))
                 raise SystemExit
             finally:
                 ...
