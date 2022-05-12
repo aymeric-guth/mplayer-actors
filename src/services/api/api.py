@@ -23,7 +23,7 @@ class API(Actor):
         # self.log_lvl = logging.INFO
         self.post(Message(sig=Sig.INIT))
 
-    def dispatch(self, sender: Actor, msg: Message) -> None:
+    def dispatch(self, sender: ActorGeneric, msg: Message) -> None:
         response: httpx.Response
         match msg:
             case Message(sig=Sig.INIT, args=args):
@@ -33,7 +33,7 @@ class API(Actor):
                 self.post(Message(Sig.EXT_SET))
 
             case Message(sig=Sig.LOGIN_FAILURE, args=args):
-                actor_system.send('Dispatcher', Message(sig=Sig.LOGIN_FAILURE, args=str(err)))
+                actor_system.send('Dispatcher', Message(sig=Sig.LOGIN_FAILURE, args=args))
 
             case Message(sig=Sig.LOGIN, args=args):
                 try:

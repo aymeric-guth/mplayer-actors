@@ -1,1 +1,1 @@
-from .main import MPV
+from .mpv import MPV

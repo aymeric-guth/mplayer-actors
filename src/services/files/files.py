@@ -1,3 +1,4 @@
+from typing import Any, Optional
 from collections import defaultdict
 
 from ..base import Actor, Message, Sig, actor_system, ActorGeneric
@@ -39,9 +40,9 @@ class Files(Actor):
                 self.dir_tree.clear()
 
                 for r in args:
-                    path = r.get('path')
-                    file_name = r.get('filename')
-                    extension = r.get('extension')
+                    path: str = r.get('path')
+                    file_name: str = r.get('filename')
+                    extension: str = r.get('extension')
                     if extension not in extensions_all:
                         continue
                     formated_path = tuple( path.split('/')[1:-1] )
@@ -49,7 +50,8 @@ class Files(Actor):
                     for i, v in enumerate(formated_path):
                         key = formated_path[:i+1]
                         self.dir_tree[key[:-1]].add(key[-1])
-                self.post(Message(sig=Sig.PATH_SET, args=ROOT))
+                # self.post(Message(sig=Sig.PATH_SET, args=ROOT))
+                self.post(Message(sig=Sig.PATH_SET, args=self.path))
                 self.post(Message(sig=Sig.TEST))
 
             case Message(sig=Sig.SEARCH, args=args):

@@ -9,7 +9,7 @@ class MediaDispatcher(Actor):
         super().__init__(pid, parent, name, **kwargs)
         self.wid = b'\x00\x00\x00\x00'
         self.child = None
-        self.pl: Playlist|None = None
+        self.pl: Playlist = None
         self.loop_mode = LOOP_DEFAULT
        
     def dispatch(self, sender: ActorGeneric, msg: Message) -> None:
@@ -52,8 +52,8 @@ class MediaDispatcher(Actor):
                 self.post(Message(sig=Sig.PLAY, args=item))
 
             case Message(sig=Sig.STOP, args=None):
-                ...
-                self.pl = None
+                self.pl.clear()
+                actor_system.send('MPV', msg)
 
             case Message(sig=Sig.DONE, args=None):
                 if self.pl is not None:
@@ -74,8 +74,8 @@ class MediaDispatcher(Actor):
             # case Message(sig=Sig.POS_CHANGE, args=args) as msg:
             #     actor_system.send('Display', Message(sig=Sig.MEDIA_META, args={'playback': args}))
 
-            case Message(sig=Sig.AUDIT, args=None):
-                actor_system.send(sender, {'event': 'audit', 'data': self.introspect()})
+            # case Message(sig=Sig.AUDIT, args=None):
+            #     actor_system.send(sender, {'event': 'audit', 'data': self.introspect()})
 
             case Message(sig=Sig.SIGQUIT):
                 self.terminate()

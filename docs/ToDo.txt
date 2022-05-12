@@ -1,3 +1,10 @@
+migration vers une api ou le caller et le receiver sont agnostique de la ref à l'acteur
+utilisation des pid pour l'api publique, seul l'acteur systeme voit les references aux instances des acteurs
+notifications / popup (reindex, get_files done etc)
+search sur toute l'arbo, search recursif à partir du cwd
+cache
+anchor / marque page dans le menu de navigation (dynamique)
+
 refactor Message en dict?
 refactor festion path -> pathlib?
 

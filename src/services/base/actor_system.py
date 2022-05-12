@@ -23,10 +23,10 @@ class ActorSystem(BaseActor, metaclass=SingletonMeta):
         '''
         (sender) envoie un message à un acteur (receiver)
         '''
-        caller = self.get_caller()
-        s: Optional[BaseActor] = self.get_actor(caller)
+        sender = self.get_caller()
+        # s: Optional[BaseActor] = self.get_actor(caller)
         r: Optional[BaseActor] = self.get_actor(receiver)
-        match [s, r]:
+        match [sender, r]:
             case [None, None]:
                 # sender = main thread, receiver = does not exists
                 ...
@@ -34,15 +34,15 @@ class ActorSystem(BaseActor, metaclass=SingletonMeta):
                 # sender = actor, receiver = does not exists
                 if isinstance(receiver, type):
                     actor = self.create_actor(receiver)
-                    actor.post(sender=s, msg=msg)
+                    actor.post(sender=sender, msg=msg)
                 else:
-                    s.post(sender=None, msg=Message(sig=Sig.DISPATCH_ERROR))
+                    sender.post(sender=None, msg=Message(sig=Sig.DISPATCH_ERROR))
             case [None, b]:
                 # sender = main thread, receiver = actor
                 r.post(sender=None, msg=msg)
             case [a, b]:
                 # sender = actor, receiver = actor
-                r.post(sender=s.pid, msg=msg)
+                r.post(sender=sender, msg=msg)
 
     def get_actor(self, actor: ActorGeneric) -> Optional[BaseActor]:
         '''
@@ -110,7 +110,7 @@ class ActorSystem(BaseActor, metaclass=SingletonMeta):
         return self._create_actor(cls=cls, pid=pid, parent=caller, name=name, **kwargs)
 
     def dispatch(self, sender: ActorGeneric, msg: Message) -> None:
-        self.logger.error(f'{msg=}')
+        # self.logger.error(f'{msg=}')
         # s = self.get_actor(sender)
         # if s is None: return
 

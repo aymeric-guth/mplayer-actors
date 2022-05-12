@@ -188,7 +188,7 @@ class SocketServer(Actor):
             case _:
                 return State.POLL
 
-    def dispatch(self, sender: Actor, msg: Message) -> None:
+    def dispatch(self, sender: ActorGeneric, msg: Message) -> None:
         match msg:
             case Message(sig=Sig.INIT):
             # case {'state': 'init'}:
