@@ -46,13 +46,12 @@ class Files(Actor):
                     for i, v in enumerate(formated_path):
                         key = formated_path[:i+1]
                         self.dir_tree[key[:-1]].add(key[-1])
-                # self.post(Message(sig=Sig.PATH_SET, args=ROOT))
                 self.post(Message(sig=Sig.PATH_SET, args=self.path))
                 self.post(Message(sig=Sig.TEST))
 
             case Message(sig=Sig.SEARCH, args=args):
                 self.path_full = helpers.get_path_full(self)
-                path = tuple(self.path)               
+                path = tuple(self.path)
                 self.dirs = [ 
                     i for i in list(self.dir_tree.get(path, []))
                     if i and args.lower() in i.lower()
@@ -83,55 +82,49 @@ class Files(Actor):
                         ...
                 actor_system.send(sender, Message(sig=Sig.FILES_GET, args=args))
 
-            case Message(sig=Sig.PATH_SET, args=args):
-                match args:
-                    case param if isinstance(param, int):
-                        if not param:
-                            if len(self.path) > 1:
-                                self.path.pop(-1)
-                            else:
-                                ...
-                        elif param < len(self.dirs):
-                            self.path.append(f"{self.dirs[param]}")
-                        elif self.files[1:] and param < len(self.files):
-                            f, e = self.files[param]
-                            args = [f'{self.path_full}{f}{e}',]
-                            actor_system.send('MediaDispatcher', Message(sig=Sig.FILES_GET, args=args))
-                        else:
-                            actor_system.send('Display', Message(sig=Sig.ERROR, args=f'Invalid selection: {param}'))
-                            return
+            case Message(sig=Sig.PATH_SET, args=param) if isinstance(param, int):
+                path: list[str] = self.path.copy()
+                if not param:
+                    # selection valide 0
+                    # self.path.pop(-1) if len(self.path) > 1 else None
+                    if len(self.path) > 1:
+                        path = path[:-1]
+                    self.post(Message(sig=Sig.PATH_REFRESH, args=path))
+                elif param < len(self.dirs):
+                    # selection valide 1+
+                    # selection en range de la liste des dossisers affichés
+                    # default vers selection parmi les dossiers
+                    path.append(f"{self.dirs[param]}")
+                    self.post(Message(sig=Sig.PATH_REFRESH, args=path))
+                elif self.files[1:] and param < len(self.files):
+                    # selection valide 1+
+                    # selection en range de la liste de fichiers affichés
+                    # selection d'UN fichier
+                    f, e = self.files[param]
+                    args = [f'{self.path_full}{f}{e}',]
+                    actor_system.send('MediaDispatcher', Message(sig=Sig.FILES_GET, args=args))
+                else:
+                    # selection invalide
+                    # envoi d'un message d'erreur
+                    actor_system.send('Display', Message(sig=Sig.ERROR, args=f'Invalid selection: {param}'))
 
-                        # if not param:
-                        #     if len(self.path) > 1:
-                        #         self.path.pop(-1)
-                        #     else:
-                        #         ...
-                        # elif param < len(self.dirs):
-                        #     self.path.append(f"{self.dirs[param]}")
-                        # elif self.files[1:] and param < len(self.files):
-                        #     f, e = self.files[param]
-                        #     args = [f'{self.path_full}{f}{e}',]
-                        #     actor_system.send('MediaDispatcher', Message(sig=Sig.FILES_GET, args=args))
-                        # else:
-                        #     actor_system.send('Display', Message(sig=Sig.ERROR, args=f'Invalid selection: {param}'))
-                        #     return
+            case Message(sig=Sig.PATH_SET, args=param) if isinstance(param, list|tuple):
+                self.post(Message(sig=Sig.PATH_REFRESH, args=list(param)))
 
-                    case param if isinstance(param, list|tuple):
-                        self.path = list(param)
+            case Message(sig=Sig.PATH_SET, args=param) if param is None:
+                self.post(Message(sig=Sig.PATH_REFRESH, args=self.path.copy()))
 
-                    case param if param is None:
-                        ...
+            case Message(sig=Sig.PATH_SET, args=param):
+                actor_system.send(sender, Message(sig=Sig.ERROR, args=f'Invalid selection: {param}'))
 
-                    case param:
-                        actor_system.send(sender, Message(sig=Sig.ERROR, args=f'Invalid selection: {param}'))
-                        return
-
+            case Message(sig=Sig.PATH_REFRESH, args=path):
+                self.path = path.copy()
                 self.path_full = helpers.get_path_full(self)
                 path = tuple(self.path)
-
-        # Guard si un folder a été delete
+                # Guard si un folder a été delete
                 while not(os.access(self.path_full, os.F_OK) ) or ( not(self.files_tree[path]) and not(self.dir_tree[path]) ):
-                    if len(self.path) < 2: raise OSError
+                    if len(self.path) < 2: 
+                        raise OSError
                     self.path.pop(-1)
                     self.path_full = helpers.get_path_full(self)
                     path = tuple(self.path)
