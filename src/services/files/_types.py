@@ -3,7 +3,7 @@ from dataclasses import dataclass
 import copy
 import threading
 
-from ...settings import MOUNT_POINT, extensions_all, ROOT
+from ...settings import MOUNT_POINT, ROOT
 from ...utils import SingletonMeta
 
 
