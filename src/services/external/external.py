@@ -1,6 +1,7 @@
 import subprocess
 import socket
 import logging
+import pickle
 
 from ..base import Actor, Message, Sig, actor_system, ActorGeneric
 from ...settings import ALLOWED_SHARES, MOUNT_POINT, SMB_USER, SMB_PASS, SMB_ADDR, SMB_PORT
@@ -47,11 +48,19 @@ class External(Actor):
                             mount_point
                         ], capture_output=True)
 
-            # case Message(sig=Sig.SET_CACHE, args=args):
-            #     ...
+            case Message(sig=Sig.FILES_NEW, args=data):
+                with open('cache.pckl', 'wb') as f:
+                    pickle.dump(data, f)
+                actor_system.send('Files', Message(sig=Sig.FILES_NEW, args=data))
 
-            # case Message(sig=Sig.GET_CACHE, args=args):
-            #     ...
+            case Message(sig=Sig.GET_CACHE, args=args):
+                try:
+                    with open('cache.pckl', 'rb') as f:
+                        data = pickle.load(f)
+                except Exception:
+                    actor_system.send('API', Message(sig=Sig.FILES_GET, args=args))
+                else:
+                    actor_system.send('Files', Message(sig=Sig.FILES_NEW, args=data))
 
             case Message(sig=Sig.SIGQUIT):
                 self.terminate()

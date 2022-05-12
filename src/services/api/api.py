@@ -1,7 +1,3 @@
-import pickle
-from typing import Optional
-import logging
-
 import httpx
 
 from ..base import Actor, Message, Sig, actor_system, ActorGeneric
@@ -17,10 +13,8 @@ class API(Actor):
         self.username = USERNAME
         # stockage d'un mdp non crypté dans une globale
         self.password = PASSWORD
-        self.token: Optional[str] = None
+        self.token = ''
         self.extensions = extensions_all
-        # self.init_logger(__name__)
-        # self.log_lvl = logging.INFO
         self.post(Message(sig=Sig.INIT))
 
     def dispatch(self, sender: ActorGeneric, msg: Message) -> None:
@@ -29,11 +23,15 @@ class API(Actor):
             case Message(sig=Sig.INIT, args=args):
                 self.post(Message(Sig.LOGIN))
 
-            case Message(sig=Sig.LOGIN_SUCCESS, args=args):
-                self.post(Message(Sig.EXT_SET))
+            case Message(sig=Sig.LOGIN_SUCCESS, args=token):
+                self.token = token
+                self.post(Message(Sig.EXT_SET, args=list(self.extensions)))
 
             case Message(sig=Sig.LOGIN_FAILURE, args=args):
                 actor_system.send('Dispatcher', Message(sig=Sig.LOGIN_FAILURE, args=args))
+
+            case Message(sig=Sig.EXT_SUCCESS, args=args):
+                actor_system.send('External', Message(sig=Sig.GET_CACHE))
 
             case Message(sig=Sig.LOGIN, args=args):
                 try:
@@ -49,63 +47,57 @@ class API(Actor):
                     # network error, introspection for cause, possible recovery
                     actor_system.send('Dispatcher', Message(sig=Sig.NETWORK_FAILURE, args=str(err)))
                 else:
-                    self.token = response.json().get('token')
-                    if self.token is None:
-                        # too broad, asses for username or password failure and api failure, recovery possible
-                        actor_system.send(sender, Message(sig=Sig.LOGIN_FAILURE, args=response.json()))
+                    token = response.json().get('token')
+                    if token is None:
+                        self.post(Message(sig=Sig.LOGIN_FAILURE, args=response.json()))
                     else:
-                        actor_system.send(sender, Message(sig=Sig.LOGIN_SUCCESS))
+                        self.post(Message(sig=Sig.LOGIN_SUCCESS, args=token))
 
-            case Message(sig=Sig.EXT_SET, args=args):
+            case Message(sig=Sig.EXT_SET, args=extensions):
                 try:
                     response = httpx.patch(
                         url=NAS.EXT,
                         headers=helpers.get_headers(self.token),
-                        json=list(self.extensions),
+                        json=extensions,
                         timeout=10.0
                     )
                 except httpx.NetworkError as err:
-                    actor_system.send('Dispatcher', Message(sig=Sig.NETWORK_FAILURE))
+                    actor_system.send('Dispatcher', Message(sig=Sig.NETWORK_FAILURE, args=str(err)))
                 else:
                     if response.status_code != 200:
                         actor_system.send('Dispatcher', Message(sig=Sig.NETWORK_FAILURE, args=response.json()))
                     else:
-                        actor_system.send(sender, Message(sig=Sig.FILES_GET))
-
+                        self.post(Message(sig=Sig.EXT_SUCCESS))
+            
             case Message(sig=Sig.FILES_GET, args=args):
                 try:
-                    with open('cache.pckl', 'rb') as f:
-                        data = pickle.load(f)
-                except Exception:
-                    try:
-                        response = httpx.get(
-                            url=NAS.FILES,
-                            headers=helpers.get_headers(self.token),
-                            timeout=20.0
-                        )
-                    except httpx.NetworkError as err:
-                        actor_system.send('Dispatcher', Message(sig=Sig.NETWORK_FAILURE, args=str(err)))
+                    response = httpx.get(
+                        url=NAS.FILES,
+                        headers=helpers.get_headers(self.token),
+                        timeout=20.0
+                    )
+                except httpx.NetworkError as err:
+                    actor_system.send('Dispatcher', Message(sig=Sig.NETWORK_FAILURE, args=str(err)))
+                else:
+                    if response.status_code != 200:
+                        actor_system.send('Dispatcher', Message(sig=Sig.NETWORK_FAILURE, args=response.json()))
                     else:
-                        if response.status_code != 200:
-                            actor_system.send('Dispatcher', Message(sig=Sig.NETWORK_FAILURE, args=response.json()))
-                        else:
-                            data = response.json()
-                            with open('cache.pckl', 'wb') as f:
-                                pickle.dump(data, f)
-                actor_system.send('Files', Message(sig=Sig.FILES_NEW, args=data))
-            
-            case Message(sig=Sig.FILES_REINDEX, args=args):
-                response = httpx.patch(
-                    url=NAS.FILES, 
-                    headers=helpers.get_headers(self.token),
-                    timeout=10.0
-                )
-                if response.status_code != 200:
-                    raise Exception(f'{response.json()}')
-                self.post(Message(sig=Sig.FILES_GET))
+                        actor_system.send('External', Message(sig=Sig.FILES_NEW, args=response.json()))
 
-            case Message(sig=Sig.AUDIT, args=None):
-                actor_system.send(sender, {'event': 'audit', 'data': self.introspect()})
+            case Message(sig=Sig.FILES_REINDEX, args=args):
+                try:
+                    response = httpx.patch(
+                        url=NAS.FILES, 
+                        headers=helpers.get_headers(self.token),
+                        timeout=10.0
+                    )
+                except httpx.NetworkError as err:
+                    actor_system.send('Dispatcher', Message(sig=Sig.NETWORK_FAILURE, args=str(err)))
+                else:
+                    if response.status_code != 200:
+                        actor_system.send('Dispatcher', Message(sig=Sig.NETWORK_FAILURE, args=response.json()))
+                    else:
+                        self.post(Message(sig=Sig.FILES_GET))
 
             case Message(sig=Sig.SIGQUIT):
                 self.terminate()

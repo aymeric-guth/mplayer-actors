@@ -61,6 +61,9 @@ class Sig(Enum):
     WATCHER = auto()
     AUDIT = auto()
     DRAW_PLAYBACK = auto()
+    GET_CACHE = auto()
+    SET_CACHE = auto()
+    EXT_SUCCESS = auto()
 
 # 'type': 'event'
 # 'type': 'error'

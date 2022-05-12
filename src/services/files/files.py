@@ -1,25 +1,21 @@
-from typing import Any, Optional
 from collections import defaultdict
+import os
 
 from ..base import Actor, Message, Sig, actor_system, ActorGeneric
 from ...settings import MOUNT_POINT, extensions_all, ROOT
 from . import helpers
 
 
-# search current path
-# search all files
-# search all dirs
-
 class Files(Actor):
     def __init__(self, pid: int, parent: ActorGeneric, name='', **kwargs) -> None:
         super().__init__(pid, parent, name, **kwargs)
+        
         self.mount_point = MOUNT_POINT[:]
         self.extensions = extensions_all
         self.files_tree: dict[tuple[str, ...], list[str]] = defaultdict(list)
         self.dir_tree: dict[tuple[str, ...], set[str]] = defaultdict(set)
         self.path = list(ROOT)
-        self.path_full = f"{self.mount_point}{'/'.join(self.path[1:])}/"
-        # self.init_logger(__name__)
+        self.path_full = helpers.get_path_full(self)
 
     def dispatch(self, sender: ActorGeneric, msg: Message) -> None:
         match msg:
@@ -55,7 +51,7 @@ class Files(Actor):
                 self.post(Message(sig=Sig.TEST))
 
             case Message(sig=Sig.SEARCH, args=args):
-                self.path_full = f"{self.mount_point}{'/'.join(self.path[1:])}/"
+                self.path_full = helpers.get_path_full(self)
                 path = tuple(self.path)               
                 self.dirs = [ 
                     i for i in list(self.dir_tree.get(path, []))
@@ -105,6 +101,21 @@ class Files(Actor):
                             actor_system.send('Display', Message(sig=Sig.ERROR, args=f'Invalid selection: {param}'))
                             return
 
+                        # if not param:
+                        #     if len(self.path) > 1:
+                        #         self.path.pop(-1)
+                        #     else:
+                        #         ...
+                        # elif param < len(self.dirs):
+                        #     self.path.append(f"{self.dirs[param]}")
+                        # elif self.files[1:] and param < len(self.files):
+                        #     f, e = self.files[param]
+                        #     args = [f'{self.path_full}{f}{e}',]
+                        #     actor_system.send('MediaDispatcher', Message(sig=Sig.FILES_GET, args=args))
+                        # else:
+                        #     actor_system.send('Display', Message(sig=Sig.ERROR, args=f'Invalid selection: {param}'))
+                        #     return
+
                     case param if isinstance(param, list|tuple):
                         self.path = list(param)
 
@@ -115,15 +126,15 @@ class Files(Actor):
                         actor_system.send(sender, Message(sig=Sig.ERROR, args=f'Invalid selection: {param}'))
                         return
 
-                self.path_full = f"{self.mount_point}{'/'.join(self.path[1:])}/"
+                self.path_full = helpers.get_path_full(self)
                 path = tuple(self.path)
 
         # Guard si un folder a été delete
-                # while not(os.access(self.path_full, os.F_OK) ) or ( not(self.files_tree[path]) and not(self.dir_tree[path]) ):
-                #     if len(self.path) < 2: raise OSError
-                #     self.path.pop(-1)
-                #     self.path_full = f"{self.mount_point}{'/'.join(self.path[1:])}/"
-                #     path = tuple(self.path)
+                while not(os.access(self.path_full, os.F_OK) ) or ( not(self.files_tree[path]) and not(self.dir_tree[path]) ):
+                    if len(self.path) < 2: raise OSError
+                    self.path.pop(-1)
+                    self.path_full = helpers.get_path_full(self)
+                    path = tuple(self.path)
 
                 self.dirs = list( self.dir_tree.get(path, []) )
                 self.files = list( self.files_tree.get(path, []) )
@@ -135,15 +146,11 @@ class Files(Actor):
                 self.len_files = len(self.files)
                 actor_system.send('Display', Message(sig=Sig.CWD_GET, args=helpers.get_kwargs(self)))
 
-            case Message(sig=Sig.AUDIT, args=None):
-                actor_system.send(sender, {'event': 'audit', 'data': self.introspect()})
-
             case Message(sig=Sig.SIGQUIT):
                 self.terminate()
 
             case _:
-                print(f'Files Could not process {msg=}')
-                raise SystemExit(f'{msg=}')
+                self.logger.warning(f'Unprocessable msg={msg}')
 
     def terminate(self) -> None:
         raise SystemExit('SIGQUIT')

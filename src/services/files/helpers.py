@@ -10,3 +10,7 @@ def get_kwargs(self) -> dict[str, str]:
         "files_list": tuple(self.files),
         "len_files": len(self.files),
     }
+
+
+def get_path_full(self) -> str:
+    return f"{self.mount_point}{'/'.join(self.path[1:])}/"
