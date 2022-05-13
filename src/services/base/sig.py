@@ -65,6 +65,8 @@ class Sig(Enum):
     SET_CACHE = auto()
     EXT_SUCCESS = auto()
     PATH_REFRESH = auto()
+    HOOK = auto()
+    JUMP = auto()
 
 # 'type': 'event'
 # 'type': 'error'

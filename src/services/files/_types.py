@@ -50,7 +50,10 @@ class CWD(metaclass=SingletonMeta):
 
     @path.setter
     def path(self, value: list[str]) -> None:
-        self._path = value
+        self._path = list(value)
 
     def __len__(self) -> int:
         return len(self._path)
+
+    def __repr__(self) -> str:
+        return f'CWD(_path={self._path}, mounpoint={self.mountpoint})'

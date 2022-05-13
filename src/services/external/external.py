@@ -5,7 +5,8 @@ from pathlib import Path
 import pickle
 
 from ..base import Actor, Message, Sig, actor_system, ActorGeneric
-from ...settings import ALLOWED_SHARES, MOUNT_POINT, SMB_USER, SMB_PASS, SMB_ADDR, SMB_PORT, ENV_PATH
+from ...settings import ALLOWED_SHARES, MOUNT_POINT, SMB_USER, SMB_PASS, SMB_ADDR, SMB_PORT, ENV_PATH, VIDEO_PATH, MUSIC_PATH, ROOT, MUSIC_TODO
+from ..files._types import CWD
 
 
 class External(Actor):
@@ -14,9 +15,18 @@ class External(Actor):
         self.log_lvl = logging.ERROR
 
     def dispatch(self, sender: ActorGeneric, msg: Message) -> None:
+        jump_table: dict[str, list | tuple]
+
         match msg:
             case Message(sig=Sig.INIT, args=None):
                 self.post(Message(sig=Sig.SMB_PING, args=1))
+                self.post(Message(sig=Sig.HOOK, args=('root', ROOT[:])))
+                self.post(Message(sig=Sig.HOOK, args=('/', ROOT[:])))
+                self.post(Message(sig=Sig.HOOK, args=('music', MUSIC_PATH[:])))
+                self.post(Message(sig=Sig.HOOK, args=('video', VIDEO_PATH[:])))
+                self.post(Message(sig=Sig.HOOK, args=('vdo', VIDEO_PATH[:])))
+                self.post(Message(sig=Sig.HOOK, args=('td', MUSIC_TODO[:])))
+                self.post(Message(sig=Sig.HOOK, args=('todo', MUSIC_TODO[:])))
 
             case Message(sig=Sig.OPEN, args=None):
                 actor_system.send('Files', Message(sig=Sig.CWD_GET))
@@ -62,6 +72,39 @@ class External(Actor):
                     actor_system.send('API', Message(sig=Sig.FILES_GET, args=args))
                 else:
                     actor_system.send('Files', Message(sig=Sig.FILES_NEW, args=data))
+
+            case Message(sig=Sig.HOOK, args=args) if isinstance(args, list | tuple) and len(args) == 2:
+                k, v = args
+                try:
+                    with open(Path(ENV_PATH) / 'jump-table.pckl', 'rb') as f:
+                        jump_table = pickle.load(f)
+                except Exception:
+                    jump_table = {}
+
+                jump_table.update({k: v})
+                with open(Path(ENV_PATH) / 'jump-table.pckl', 'wb') as f:
+                    pickle.dump(jump_table, f)
+
+            case Message(sig=Sig.HOOK, args=args):
+                try:
+                    with open(Path(ENV_PATH) / 'jump-table.pckl', 'rb') as f:
+                        jump_table = pickle.load(f)
+                except Exception:
+                    jump_table = {}
+
+                jump_table.update({args: CWD().path})
+                with open(Path(ENV_PATH) / 'jump-table.pckl', 'wb') as f:
+                    pickle.dump(jump_table, f)
+
+            case Message(sig=Sig.JUMP, args=args):
+                try:
+                    with open(Path(ENV_PATH) / 'jump-table.pckl', 'rb') as f:
+                        jump_table = pickle.load(f)
+                except Exception:
+                    ...
+                else:
+                    cwd = jump_table.get(args)
+                    actor_system.send('Files', Message(sig=Sig.PATH_SET, args=cwd))                       
 
             case Message(sig=Sig.SIGQUIT):
                 self.terminate()

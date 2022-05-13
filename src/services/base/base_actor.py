@@ -41,7 +41,7 @@ class BaseActor:
     def run(self) -> None:
         while 1:
             (sender, msg) = self.mq.get()
-            # self.logger.error(f'receiver={self} sender={sender} {msg=}')
+            self.logger.info(f'receiver={self} sender={sender} {msg=}')
             try:
                 self.dispatch(sender, msg)
             except Exception as err:

@@ -1,5 +1,6 @@
 from collections import defaultdict
 import os
+import logging
 
 from ..base import Actor, Message, Sig, actor_system, ActorGeneric
 from ...settings import extensions_all
@@ -12,6 +13,7 @@ class Files(Actor):
         super().__init__(pid, parent, name, **kwargs)
         self.files_tree: dict[tuple[str, ...], list[tuple[str, str]]] = defaultdict(list)
         self.dir_tree: dict[tuple[str, ...], set[str]] = defaultdict(set)
+        self.log_lvl = logging.ERROR
 
     def dispatch(self, sender: ActorGeneric, msg: Message) -> None:
         match msg:
@@ -80,6 +82,7 @@ class Files(Actor):
 
             case Message(sig=Sig.PATH_SET, args=param) if isinstance(param, int):
                 if not param:
+                    self.logger.error(f'CWD={CWD()!r}')
                     CWD().pop()
                     self.post(Message(sig=Sig.PATH_REFRESH))
                 elif param < len(self.dirs):
@@ -100,10 +103,9 @@ class Files(Actor):
                     # envoi d'un message d'erreur
                     actor_system.send('Display', Message(sig=Sig.ERROR, args=f'Invalid selection: {param}'))
 
-            case Message(sig=Sig.PATH_SET, args=param) if isinstance(param, list|tuple):
+            case Message(sig=Sig.PATH_SET, args=param) if isinstance(param, list | tuple):
                 # bookmark overload de path?
-                assert param and isinstance(param[0], str)
-                CWD().path = list(param)
+                CWD().path = param
                 self.post(Message(sig=Sig.PATH_REFRESH))
 
             case Message(sig=Sig.PATH_SET, args=param) if param is None:
@@ -113,12 +115,12 @@ class Files(Actor):
                 actor_system.send(sender, Message(sig=Sig.ERROR, args=f'Invalid selection: {param}'))
 
             case Message(sig=Sig.PATH_REFRESH):
-                # Guard si un folder a été delete                
+                # Guard si un folder a été delete
                 while not(os.access(CWD().realpath, os.F_OK) ) or ( not(self.files_tree[CWD().path]) and not(self.dir_tree[CWD().path]) ):
                     if len(CWD()) < 2: 
                         raise OSError
                     CWD().pop()
-                
+
                 self.dirs = list( self.dir_tree.get(CWD().path, []) )
                 self.files = list( self.files_tree.get(CWD().path, []) )
                 self.dirs.sort()

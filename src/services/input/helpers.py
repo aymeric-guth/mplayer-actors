@@ -1,33 +1,23 @@
 from typing import List, Any
-import logging
-import re
 
 from ..base import Message, Sig, Actor, actor_system
-from ... import settings
 
 
 def eval_cmd(cmd: str) -> tuple[str, Message]:
-    # actor_system.send('Logger', Message(Sig.PUSH, f'eval_cmd got new cmd={cmd}'))
     match cmd.split(' '):
         case ['..']:
             # goes back 1 node
             return 'Files', Message(sig=Sig.PATH_SET, args=0)
 
-        case [('root' | 'music' | 'video' | 'td' | 'todo' | 'vdo') as param]:
+        case ['h' | 'hook', label]:
             # bookmarks
-            # goto shortcut dir ~ cd *path argparse(cd *path)
-            actor = 'Files'
-            message = lambda arg: Message(sig=Sig.PATH_SET, args=arg)
+            # hooks cwd and maps it to label
+            return 'External', Message(sig=Sig.HOOK, args=label)
 
-            match param:
-                case 'root':
-                    return actor, message(settings.ROOT[:])
-                case 'music':
-                    return actor, message(settings.MUSIC_PATH[:])
-                case ('video' | 'vdo'):
-                    return actor, message(settings.VIDEO_PATH[:])
-                case ('td' | 'todo'):
-                    return actor, message(settings.MUSIC_TODO[:])
+        case ['j' | 'jump', label]:
+            # bookmarks
+            # jumps to corresponding directory
+            return 'External', Message(sig=Sig.JUMP, args=label)
 
         case ['reindex']:
             return 'API', Message(sig=Sig.FILES_REINDEX)
@@ -67,15 +57,6 @@ def eval_cmd(cmd: str) -> tuple[str, Message]:
 
                 case _:
                     ...
-
-        # case ['space']:
-        #     return 'MediaDispatcher', Message(sig=Sig.PLAY_PAUSE)
-
-        # case ['next']:
-        #     return 'MediaDispatcher', Message(sig=Sig.NEXT)
-        
-        # case ['previous']:
-        #     return 'MediaDispatcher', Message(sig=Sig.PREVIOUS)
 
         case ['volume' | 'v', value] if value.isdigit():
             # set volume to value
