@@ -1,10 +1,11 @@
 import subprocess
 import socket
 import logging
+from pathlib import Path
 import pickle
 
 from ..base import Actor, Message, Sig, actor_system, ActorGeneric
-from ...settings import ALLOWED_SHARES, MOUNT_POINT, SMB_USER, SMB_PASS, SMB_ADDR, SMB_PORT
+from ...settings import ALLOWED_SHARES, MOUNT_POINT, SMB_USER, SMB_PASS, SMB_ADDR, SMB_PORT, ENV_PATH
 
 
 class External(Actor):
@@ -49,13 +50,13 @@ class External(Actor):
                         ], capture_output=True)
 
             case Message(sig=Sig.FILES_NEW, args=data):
-                with open('cache.pckl', 'wb') as f:
+                with open(Path(ENV_PATH) / 'cache.pckl', 'wb') as f:
                     pickle.dump(data, f)
                 actor_system.send('Files', Message(sig=Sig.FILES_NEW, args=data))
 
             case Message(sig=Sig.GET_CACHE, args=args):
                 try:
-                    with open('cache.pckl', 'rb') as f:
+                    with open(Path(ENV_PATH) / 'cache.pckl', 'rb') as f:
                         data = pickle.load(f)
                 except Exception:
                     actor_system.send('API', Message(sig=Sig.FILES_GET, args=args))

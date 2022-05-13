@@ -10,7 +10,7 @@ from ._types import CWD
 class Files(Actor):
     def __init__(self, pid: int, parent: ActorGeneric, name='', **kwargs) -> None:
         super().__init__(pid, parent, name, **kwargs)
-        self.files_tree: dict[tuple[str, ...], list[str]] = defaultdict(list)
+        self.files_tree: dict[tuple[str, ...], list[tuple[str, str]]] = defaultdict(list)
         self.dir_tree: dict[tuple[str, ...], set[str]] = defaultdict(set)
 
     def dispatch(self, sender: ActorGeneric, msg: Message) -> None:
@@ -59,7 +59,7 @@ class Files(Actor):
                 self.dirs.sort()
                 self.files.sort()
                 self.dirs.insert(0, "..")
-                self.files.insert(0, "")
+                self.files.insert(0, ('', ''))
                 self.len_dir = len(self.dirs)
                 self.len_files = len(self.files)
                 actor_system.send('Display', Message(sig=Sig.CWD_GET, args=helpers.get_kwargs(self)))
@@ -102,6 +102,7 @@ class Files(Actor):
 
             case Message(sig=Sig.PATH_SET, args=param) if isinstance(param, list|tuple):
                 # bookmark overload de path?
+                assert param and isinstance(param[0], str)
                 CWD().path = list(param)
                 self.post(Message(sig=Sig.PATH_REFRESH))
 
@@ -122,8 +123,8 @@ class Files(Actor):
                 self.files = list( self.files_tree.get(CWD().path, []) )
                 self.dirs.sort()
                 self.files.sort()
-                self.dirs.insert(0, "..")
-                self.files.insert(0, "")
+                self.dirs.insert(0, '..')
+                self.files.insert(0, ('', ''))
                 self.len_dir = len(self.dirs)
                 self.len_files = len(self.files)
                 actor_system.send('Display', Message(sig=Sig.CWD_GET, args=helpers.get_kwargs(self)))

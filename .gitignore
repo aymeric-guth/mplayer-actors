@@ -285,3 +285,4 @@ pymakr.conf
 #settings.py
 .activate.sh
 .deactivate.sh
+cached.pckl
