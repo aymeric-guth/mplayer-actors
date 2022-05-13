@@ -29,9 +29,9 @@ def eval_cmd(cmd: str) -> tuple[str, Message]:
             # refresh display, fallback
             return 'Files', Message(sig=Sig.PATH_SET)
 
-        case ['loop' | 'l']:
+        case ['loop' | 'l', param] if param.isdigit():
             # loop mode on / off
-            return 'MediaDispatcher', Message(sig=Sig.LOOP)
+            return 'MediaDispatcher', Message(sig=Sig.PLAYBACK_MODE, args=int(param))
 
         case ['quit' | 'q']:
             return 'Dispatcher', Message(sig=Sig.SIGINT)

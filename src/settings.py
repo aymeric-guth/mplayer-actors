@@ -1,8 +1,22 @@
 import os
 import subprocess
 from pathlib import Path
+from enum import Enum, auto
 
 from .external.config import Config
+
+
+class PlaybackMode(Enum):
+    NORMAL = 0
+    LOOP_ONE = 1
+    LOOP_ALL = 2
+    # SHUFFLE = auto()
+
+    def __repr__(self) -> str:
+        return f'{self.__class__.__name__}.{self._name_}'
+    
+    def __str__(self) -> str:
+        return self._name_
 
 
 path = Path(__file__).parent.parent
@@ -44,8 +58,7 @@ DEFAULT_DISPLAY = config('DEFAULT_DISPLAY', cast=int, default=0)
 auto_fix_bad_encoding = True
 
 
-LOOP_DEFAULT = config("LOOP_DEFAULT", cast=int, default=1)
-LOOP_FLAG_DEFAULT = config("LOOP_FLAG_DEFAULT", cast=bool, default=False)
+# LOOP_DEFAULT = config("LOOP_DEFAULT", cast=bool, default=False)
 
 
 USERNAME = config('API_USER', cast=str)

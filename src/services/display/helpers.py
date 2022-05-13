@@ -116,7 +116,14 @@ def draw_playback(self) -> None:
 
     win = curses.newwin(height, width, y_ofst, x_ofst)
     win.addstr(1, 1, f'File: {file}')
-    win.addstr(2, 1, f'Position: {current}/{total}')
+
+    pos = f'Position: {current}/{total} | '
+    win.addstr(2, 1, pos)
+
+    pb_mode = self.media_meta.get('playback-mode', 'Normal')
+    pb_mode = f'Playback: {pb_mode}'
+    win.addstr(2, 1+len(pos), pb_mode)
+
     media_state = f'Media State: {player_state}'
     win.addstr(3, 1, media_state)
     volume = f' | Volume: {volume}%'

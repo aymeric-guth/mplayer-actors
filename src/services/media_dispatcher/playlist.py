@@ -19,12 +19,15 @@ class Playlist:
             self.p -= 1
         return self.container[self.p]
     
-    def next(self) -> str|None:
+    def next(self) -> str | None:
         if self.p >= len(self.container) - 1:
             return None
         else:
             self.p += 1
             return self.container[self.p]
+
+    def current(self) -> str:
+        return self.container[self.p]
 
     def pos(self) -> tuple[int, int]:
         return (self.p + 1, len(self.container))

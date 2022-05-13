@@ -1,0 +1,3 @@
+* anchor / marque page dans le menu de navigation (dynamique)
+* loop mode on / off
+* gui loop

@@ -29,6 +29,7 @@ class MPV(Actor):
         _mpv.mpv_set_option_string(self.handle, b'input-vo-keyboard', b'yes')
         # mpv_load_config_file(self.handle, str(path).encode('utf-8'))
         _mpv.mpv_initialize(self.handle)
+        self.log_lvl = logging.ERROR
 
     @property
     def volume(self) -> int|float:
@@ -52,6 +53,7 @@ class MPV(Actor):
         return _mpv.mpv_command_async(self.handle, *args)
 
     def command(self, *args) -> int:
+        self.logger.error(f'command {args=}')
         args = (c_char_p*len(args))(*args)
         return _mpv.mpv_command(self.handle, args)
 
@@ -114,6 +116,7 @@ class MPV(Actor):
                     self.post(Message(sig=Sig.DONE))
 
             case Message(sig=Sig.PLAY, args=path):
+                self.logger.error(f'Sig.PLAY {path=}')
                 args = [b'loadfile', path.encode('utf-8'), b'replace', b'', None]
                 self.set_property('pause', 'no')
                 self.command(*args)

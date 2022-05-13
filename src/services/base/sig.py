@@ -67,6 +67,7 @@ class Sig(Enum):
     PATH_REFRESH = auto()
     HOOK = auto()
     JUMP = auto()
+    PLAYBACK_MODE = auto()
 
 # 'type': 'event'
 # 'type': 'error'

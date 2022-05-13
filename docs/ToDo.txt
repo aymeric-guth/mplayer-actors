@@ -1,8 +1,17 @@
 migration vers une api ou le caller et le receiver sont agnostique de la ref à l'acteur
 utilisation des pid pour l'api publique, seul l'acteur systeme voit les references aux instances des acteurs
+
 notifications / popup (reindex, get_files done etc)
 search sur toute l'arbo, search recursif à partir du cwd
-anchor / marque page dans le menu de navigation (dynamique)
+
+* bugfix keybinds playback quand le player n'est pas lancé
+
+
+* delete dir (delete leaf directory and associated files) non recusive
+* purge file (move file to .deleted special dir if exists else create .deleted in cwd)
+checks:
+    files in cwd
+* purge . (delete .purge and all containing files)
 
 refactor Message en dict?
 refactor festion path -> pathlib?
@@ -28,4 +37,3 @@ events externes (non-Message)
     problème: communication à sens unique (event-loop -> acteur)
 
     partie polling dans un thread séparé et callback avec un post dans la mq?
-    
