@@ -3,3 +3,5 @@
 * gui loop
 * historique des commandes (promt)
 * bugfix normal playback fin playback
+* bugfix loopmode sur playlist (Sig.NEXT quand envoie alt_h ou alt_l)
+* bugfix keybinds playback quand le player n'est pas lancé

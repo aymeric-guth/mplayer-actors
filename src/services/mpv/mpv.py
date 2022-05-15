@@ -19,6 +19,8 @@ class MPV(Actor):
         super().__init__(pid, parent, name, **kwargs)
         self._state = 0
         self._volume: int|float
+        self._pos: float = 0.
+        self._duration: float = 0.
         lc, enc = locale.getlocale(locale.LC_NUMERIC)
         locale.setlocale(locale.LC_NUMERIC, 'C')
         self.handle = _mpv.mpv_create()
@@ -30,6 +32,24 @@ class MPV(Actor):
         # mpv_load_config_file(self.handle, str(path).encode('utf-8'))
         _mpv.mpv_initialize(self.handle)
         self.log_lvl = logging.ERROR
+
+    @property
+    def pos(self) -> float:
+        return self._pos
+
+    @pos.setter
+    def pos(self, value: float|None) -> None:
+        if value is not None:
+            self._pos = clamp(0., self.duration)(value)
+
+    @property
+    def duration(self) -> float:
+        return self._duration
+
+    @duration.setter
+    def duration(self, value: float|None) -> None:
+        if value is not None:
+            self._duration = value
 
     @property
     def volume(self) -> int|float:
@@ -53,9 +73,12 @@ class MPV(Actor):
         return _mpv.mpv_command_async(self.handle, *args)
 
     def command(self, *args) -> int:
-        self.logger.error(f'command {args=}')
-        args = (c_char_p*len(args))(*args)
-        return _mpv.mpv_command(self.handle, args)
+        try:        
+            self.logger.error(f'command {args=}')
+            args = (c_char_p*len(args))(*args)
+            return _mpv.mpv_command(self.handle, args)
+        except SystemError:
+            ...
 
     def set_property(self, name: str, value: list | dict | set | str):
         ename = name.encode('utf-8')
@@ -89,7 +112,13 @@ class MPV(Actor):
                         match event:
                             case 'property-change':
                                 match name:
-                                    case 'volume' | 'playback-time' | 'playtime-remaining' | 'duration' | 'metadata' | 'time-pos':
+                                    case 'time-pos':
+                                        self.pos = data
+                                        actor_system.send(self.parent, Message(sig=Sig.WATCHER, args={name: data}))
+                                    case 'duration':
+                                        self.duration = data
+                                        actor_system.send(self.parent, Message(sig=Sig.WATCHER, args={name: data}))
+                                    case 'volume' | 'playback-time' | 'playtime-remaining' | 'metadata':
                                         actor_system.send(self.parent, Message(sig=Sig.WATCHER, args={name: data}))
                                     case 'percent-pos':
                                         ...
@@ -139,15 +168,14 @@ class MPV(Actor):
                 self.post(Message(sig=Sig.VOLUME))
 
             case Message(sig=Sig.STOP, args=None):
-                if self.state == 1 or self.state == 2:
-                    args = [b'stop', b'', None]
-                    self.command(*args)
+                args = [b'stop', b'', None]
+                self.command(*args)
 
             case Message(sig=Sig.SEEK, args=args):
-                if self.state == 1 or self.state == 2:
-                    p = str(args).encode('utf-8')
-                    args = [b'seek', p, b'relative', b'default-precise', None]
-                    self.command(*args)
+                req = clamp(0., self.duration-self.pos)(args)
+                p = str(req).encode('utf-8')
+                args = [b'seek', p, b'relative', b'default-precise', None]
+                self.command(*args)
 
             case Message(sig=Sig.DONE, args=args) as msg:
                 actor_system.send(self.parent, msg)

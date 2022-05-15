@@ -68,7 +68,8 @@ class MediaDispatcher(Actor):
                 self.post(Message(sig=Sig.PLAY, args=item))
 
             case Message(sig=Sig.STOP, args=None):
-                self.pl.clear()
+                if self.pl is not None:
+                    self.pl.clear()
                 actor_system.send('MPV', msg)
 
             case Message(sig=Sig.DONE, args=None):
