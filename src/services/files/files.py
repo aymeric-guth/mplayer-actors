@@ -1,5 +1,6 @@
 from collections import defaultdict
 import os
+import re
 import logging
 
 from ...external.actors import Actor, Message, Sig, actor_system
@@ -7,6 +8,9 @@ from ...settings import extensions_all
 from . import helpers
 from ._types import CWD
 
+
+# Synthetic CWD, recompose un tree à partir de critères de recherche
+# regroupe tous les noeuds matchs dans une nouvelle racine récursivement
 
 class Files(Actor):
     def __init__(self, pid: int, parent: int, name='', **kwargs) -> None:
@@ -50,13 +54,18 @@ class Files(Actor):
                 self.post(Message(sig=Sig.TEST))
 
             case Message(sig=Sig.SEARCH, args=args):
+                self.logger.error(f'{args=}')
+                pattern = re.compile(args, re.IGNORECASE)
+                self.logger.error(f'{pattern=}')
                 self.dirs = [ 
                     i for i in list(self.dir_tree.get(CWD().path, []))
-                    if i and args.lower() in i.lower()
+                    if pattern.search(i)
+                    # if i and args.lower() in i.lower()
                 ]
                 self.files = [ 
                     i for i in list(self.files_tree.get(CWD().path, []))
-                    if i and args.lower() in i[0].lower()
+                    if pattern.search(i[0])
+                    # if i and args.lower() in i[0].lower()
                 ]
                 self.dirs.sort()
                 self.files.sort()

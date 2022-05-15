@@ -13,10 +13,7 @@ checks:
 * persistance user settings (SQLite, API REST, pickle)
 
 
-
 ### Refactor ###
-* migration vers une api ou le caller et le receiver sont agnostique de la ref à l'acteur
-    utilisation des pid pour l'api publique, seul l'acteur systeme voit les references aux instances des acteurs
 * refactor Message en dict?
 * refactor gestion path -> pathlib?
 * curses -> actor

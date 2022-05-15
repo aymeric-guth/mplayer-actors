@@ -7,23 +7,27 @@ from ...settings import MOUNT_POINT, ROOT
 from ...utils import SingletonMeta
 
 
-# @dataclass(frozen=True)
-# class File:
-#     path: str
-#     filename: str
-#     ext: str
+@dataclass(frozen=True)
+class File:
+    path: str
+    filename: str
+    ext: str
 
-#     @classmethod
-#     def from_json(cls, param: dict[str, str]):
-#         cls(
-#             path=param.get('path'),
-#             filename=param.get('file_name'),
-#             ext=param.get('extension')
-#         )
+    @classmethod
+    def from_json(cls, param: dict[str, str]):
+        cls(
+            path=param['path'],
+            filename=param['file_name'],
+            ext=param['extension']
+        )
 
-#     @property
-#     def file(self) ->str:
-#         return f'{self.filename}{self.ext}'
+    @property
+    def file(self) ->str:
+        return f'{self.filename}{self.ext}'
+
+    @property
+    def realpath(self) ->str:
+        return f'{self.path}{self.filename}{self.ext}'
 
 
 class CWD(metaclass=SingletonMeta):
