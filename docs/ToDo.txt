@@ -1,26 +1,24 @@
 ### Bugfix ###
-* bugfix: fichiers placeholders affichés au chargement de l'application
-* bugfix: une ref était encore utilisée pour le cas ou un actor s'envoyait un message à lui même
-* refactor: préparation calss Files en vue de l'implémentation de la recherche récursive
+* refactor: préparation class Files en vue de l'implémentation de la recherche récursive
 
 ### Features ###
+* search sur toute l'arbo, search recursif à partir du cwd
+* feature: delete hook for invalid dir (effacé ou déplacé)
+* feature: bouger le curseur avec <- -> dans en prompt mode
+* notifications / popup (reindex, get_files done etc)
 * delete dir (delete leaf directory and associated files) non recusive
 * purge file (move file to .deleted special dir if exists else create .deleted in cwd)
 checks:
     files in cwd
 * purge . (delete .purge and all containing files)
 * copy to zdj
-* notifications / popup (reindex, get_files done etc)
-* search sur toute l'arbo, search recursif à partir du cwd
 * persistance user settings (SQLite, API REST, pickle)
-* feature: delete hook for invalid dir (effacé ou déplacé)
-* feature: bouger le curseur avec <- -> dans en prompt mode
 
 ### Refactor ###
 * refactor Message en dict?
 * refactor gestion path -> pathlib?
 * curses -> actor
-* séparation du library code et de l'application code
+
 * séparation des messages en messages lib et message application
     Message() pour lib, {'event': ''} pour code application
     utiliser du single dispatch pour match les types

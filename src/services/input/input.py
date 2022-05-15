@@ -1,5 +1,5 @@
 import curses
-from collections import deque
+import logging
 
 from ...external.actors import Actor, Message, Sig, actor_system
 from ...wcurses import stdscr
@@ -15,6 +15,7 @@ class Input(Actor, metaclass=SingletonMeta):
         super().__init__(pid, parent, name, **kwargs)
         self._prompt_mode = 0
         self.buff: list[str] = []
+        self.log_lvl = logging.INFO
 
     def run(self) -> None:
         while 1:
@@ -43,6 +44,12 @@ class Input(Actor, metaclass=SingletonMeta):
 
                 case curses.KEY_DOWN:
                     self.buff = CmdCache().next()
+
+                case curses.KEY_LEFT:
+                    ...
+
+                case curses.KEY_RIGHT:
+                    ...
 
                 case _:
                     self.buff.append(chr(c))

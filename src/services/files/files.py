@@ -19,7 +19,7 @@ class Files(Actor, metaclass=SingletonMeta):
         super().__init__(pid, parent, name, **kwargs)
         self.files_tree: dict[tuple[str, ...], list[tuple[str, str]]] = defaultdict(list)
         self.dir_tree: dict[tuple[str, ...], set[str]] = defaultdict(set)
-        self.log_lvl = logging.ERROR
+        self.log_lvl = logging.INFO
 
     def dispatch(self, sender: int, msg: Message) -> None:
         match msg:
@@ -62,21 +62,36 @@ class Files(Actor, metaclass=SingletonMeta):
 
             case Message(sig=Sig.FILES_GET, args=args):
                 match args:
-                    case [p1] if isinstance(p1, int) and p1 > 0 and p1 < len(self.files):
+                    case [p1, None] if isinstance(p1, int) and p1 > 0 and p1 < len(self.files):
+                        # selection valide 1+
+                        # selection en range de la liste de fichiers affichés
+                        # selection d'UN fichier
+                        f, e = self.files[p1]
+                        actor_system.send('MediaDispatcher', Message(sig=Sig.FILES_GET, args=[f'{CWD().realpath}{f}{e}',]))
+
+                    case [p1] if p1 > 0 and p1 < len(self.files):
                         args = [ f'{CWD().realpath}{f}{e}' for f, e in self.files[p1:] ]
+                        actor_system.send(sender, Message(sig=Sig.FILES_GET, args=args))
+
                     case [p1, p2] if (p1 > 0 and p1 < len(self.files)) and (p2 > 0 and p2 < len(self.files)):
                         if p1 < p2:
                             args = [ f'{CWD().realpath}{f}{e}' for f, e in self.files[p1:p2+1] ]
+                            actor_system.send(sender, Message(sig=Sig.FILES_GET, args=args))
                         elif p1 > p2:
                             args = [ f'{CWD().realpath}{f}{e}' for f, e in self.files[p1:p2-1:-1] ]
+                            actor_system.send(sender, Message(sig=Sig.FILES_GET, args=args))
                         else:
-                            ...
-                            # self.post(Message(sig=Sig.PATH_SET, args=p1))
+                            self.post(Message(sig=Sig.FILES_GET, args=[p1, None]))
+
                     case None:
                         args = [ f'{CWD().realpath}{f}{e}' for f, e in self.files[1:] ]
+                        actor_system.send(sender, Message(sig=Sig.FILES_GET, args=args))
+
                     case _:
-                        return
-                actor_system.send(sender, Message(sig=Sig.FILES_GET, args=args))
+                        # selection invalide
+                        # envoi d'un message d'erreur
+                        actor_system.send('Display', Message(sig=Sig.ERROR, args=f'Invalid selection: {args}'))
+
 
             case Message(sig=Sig.PATH_SET, args=param) if isinstance(param, int):
                 if not param:
@@ -88,17 +103,8 @@ class Files(Actor, metaclass=SingletonMeta):
                     # default vers selection parmi les dossiers
                     CWD().push(f"{self.dirs[param]}")
                     self.post(Message(sig=Sig.PATH_CONTENT))
-                elif self.files[1:] and param < len(self.files):
-                    # selection valide 1+
-                    # selection en range de la liste de fichiers affichés
-                    # selection d'UN fichier
-                    f, e = self.files[param]
-                    args = [f'{CWD().realpath}{f}{e}',]
-                    actor_system.send('MediaDispatcher', Message(sig=Sig.FILES_GET, args=args))
                 else:
-                    # selection invalide
-                    # envoi d'un message d'erreur
-                    actor_system.send('Display', Message(sig=Sig.ERROR, args=f'Invalid selection: {param}'))
+                    self.post(Message(sig=Sig.FILES_GET, args=[param, None]))
 
             case Message(sig=Sig.PATH_SET, args=param) if isinstance(param, list | tuple):
                 # bookmark overload de path?

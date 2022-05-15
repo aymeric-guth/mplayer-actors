@@ -1,9 +1,15 @@
+13/05/22
 * feature: anchor / marque page dans le menu de navigation (dynamique)
 * feature: loop mode on / off + intégration playlist
 * feature: gui loop
+14/05/22
 * feature: historique des commandes (promt)
 * bugfix: normal playback fin playback
 * bugfix: loopmode sur playlist (Sig.NEXT quand envoie alt_h ou alt_l)
 * bugfix: keybinds playback quand le player n'est pas lancé
+15/05/22
 * refactor: migration vers une api ou le caller et le receiver sont agnostique de la ref à l'acteur
     utilisation des pid pour l'api publique, seul l'acteur systeme voit les references aux instances des acteurs
+* bugfix: fichiers placeholders affichés au chargement de l'application
+* bugfix: une ref était encore utilisée pour le cas ou un actor s'envoyait un message à lui même
+* refactor: séparation du library code et de l'application code
