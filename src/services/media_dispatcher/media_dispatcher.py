@@ -43,6 +43,14 @@ class MediaDispatcher(Actor):
             case Message(sig=Sig.PLAY_PAUSE, args=args) as msg:
                 actor_system.send('MPV', msg)
 
+            case {'event': 'command', 'name': 'next', 'args': None}:
+                item = self.pl.next()
+                self.post(Message(sig=Sig.PLAY, args=item))
+
+            case {'event': 'command', 'name': 'previous', 'args': None}:
+                item = self.pl.prev()
+                self.post(Message(sig=Sig.PLAY, args=item))
+
             case Message(sig=Sig.NEXT, args=None):
                 match self.playback:
                     case PlaybackMode.NORMAL:

@@ -7,7 +7,7 @@ from ...utils import SingletonMeta, clamp
 
 
 def eval_cmd(cmd: str) -> tuple[str, Message]:
-    match cmd.split(' '):
+    match cmd.lstrip().rstrip().split(' '):
         case ['..']:
             # goes back 1 node
             return 'Files', Message(sig=Sig.PATH_SET, args=0)

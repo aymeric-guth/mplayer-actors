@@ -70,10 +70,10 @@ class Input(Actor):
                 actor_system.send(recipient, response)
 
             case Key.ALT_H:
-                actor_system.send('MediaDispatcher', Message(sig=Sig.PREVIOUS))
+                actor_system.send('MediaDispatcher', {'event': 'command', 'name': 'previous', 'args': None})
 
             case Key.ALT_L:
-                actor_system.send('MediaDispatcher', Message(sig=Sig.NEXT))
+                actor_system.send('MediaDispatcher', {'event': 'command', 'name': 'next', 'args': None})
 
             case Key.SPACE:
                 actor_system.send('MediaDispatcher', Message(sig=Sig.PLAY_PAUSE))

@@ -139,13 +139,15 @@ class MPV(Actor):
                 self.post(Message(sig=Sig.VOLUME))
 
             case Message(sig=Sig.STOP, args=None):
-                args = [b'stop', b'', None]
-                self.command(*args)
+                if self.state == 1 or self.state == 2:
+                    args = [b'stop', b'', None]
+                    self.command(*args)
 
             case Message(sig=Sig.SEEK, args=args):
-                p = str(args).encode('utf-8')
-                args = [b'seek', p, b'relative', b'default-precise', None]
-                self.command(*args)
+                if self.state == 1 or self.state == 2:
+                    p = str(args).encode('utf-8')
+                    args = [b'seek', p, b'relative', b'default-precise', None]
+                    self.command(*args)
 
             case Message(sig=Sig.DONE, args=args) as msg:
                 actor_system.send(self.parent, msg)
@@ -159,9 +161,6 @@ class MPV(Actor):
             case Message(sig=Sig.POISON, args=None):
                 self.terminate()
                 raise Exception
-
-            case Message(sig=Sig.AUDIT, args=None):
-                actor_system.send(sender, {'event': 'audit', 'data': self.introspect()})
 
             case Message(sig=Sig.SIGQUIT):
                 self.terminate()

@@ -1,7 +1,6 @@
 ### Bugfix ###
 * bugfix keybinds playback quand le player n'est pas lancé
-* bugfix loopmode sur playlist 
-* bugfix normal playback fin playback
+* bugfix loopmode sur playlist (Sig.NEXT quand envoie alt_h ou alt_l)
 
 
 ### Features ###

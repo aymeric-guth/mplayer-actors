@@ -2,3 +2,4 @@
 * loop mode on / off + intégration playlist
 * gui loop
 * historique des commandes (promt)
+* bugfix normal playback fin playback
