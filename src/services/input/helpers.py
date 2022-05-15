@@ -102,12 +102,65 @@ class CmdCache(metaclass=SingletonMeta):
 
     def next(self) -> list[str]:
         self.p += 1
-        return list() if self.p == len(self._container) else list(self._container[self.p])
+        if not len(self._container):
+            return list()
+        elif self.p == len(self._container):
+            return list()
+        else:
+            return list(self._container[self.p])
 
     def prev(self) -> list[str]:
         self.p -= 1
-        return list(self._container[self.p])
+        if not len(self._container):
+            return list()
+        else:
+            return list(self._container[self.p])
 
     def push(self, value: list[str]) -> None:
         self._container.append(tuple(value))
         self.p = len(self._container)
+
+
+class CmdBuffer(metaclass=SingletonMeta):
+    def __init__(self) -> None:
+        self._container: list[str] = []
+        self._p = 0
+
+    @property
+    def p(self) -> int:
+        assert self._p <= len(self._container) and self._p >= 0
+        return self._p
+
+    @p.setter
+    def p(self, value: int) -> None:
+        self._p = value
+        assert self._p <= len(self._container) and self._p >= 0
+
+    def insert(self, value: str) -> None:
+        self._container.insert(self.p, value)
+        self.p += 1
+    
+    def delete(self, ofst: int=0) -> None:
+        if not self._container:
+            return
+        if not ofst:
+            self.p -= 1
+            del self._container[self.p]
+        else:
+            del self._container[self.p]
+
+    def clear(self) -> None:
+        self._container.clear()
+        self.p = 0
+
+
+# key left
+# key right
+# del
+# supr
+# char
+# enter
+
+# [a, b, c]
+#  0  1  2
+# cur = 3

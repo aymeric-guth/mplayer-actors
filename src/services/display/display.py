@@ -3,7 +3,7 @@ from typing import Any
 from signal import signal, SIGWINCH
 import logging
 
-from ...utils import SingletonMeta
+from ...utils import SingletonMeta, clamp
 from ...external.actors import Actor, Message, Sig, actor_system, ActorGeneric
 from . import helpers
 
@@ -39,6 +39,7 @@ class Display(Actor, metaclass=SingletonMeta):
         self.cmd_overlay = 0
         self.cmd_dims: tuple[int, int, int, int]
         self.cmd_buff: list[str] = []
+        self._cur = 0
 
         self.set_dims = lambda: helpers.set_dims(self)
         self.draw_cmd = lambda: helpers.draw_cmd(self)
@@ -47,20 +48,29 @@ class Display(Actor, metaclass=SingletonMeta):
         self.log_lvl = logging.ERROR
 
     def dispatch(self, sender: int, msg: Message) -> None:
+        # super().dispatch(sender, msg)
         match msg:
             case Message(sig=Sig.CWD_GET, args=args):
                 dir_list, files_list = args.get('dir_list'), args.get('files_list')
                 self.files_buff = [dir_list, files_list]
                 self.post(Message(sig=Sig.DRAW_SCREEN))
 
-            case Message(sig=Sig.PROMPT, args=args) if isinstance(args, int):
+            case Message(sig=Sig.PROMPT, args=args) if isinstance(args, bool):
                 # initialisation de la fenetre du prompt
                 self.cmd_overlay = args
                 if not self.cmd_overlay:
                     self.cmd_buff.clear()
                     curses.curs_set(0)
+                    self.cur = 0
                 else:
                     ...
+                self.post(Message(sig=Sig.DRAW_SCREEN))
+
+            case Message(sig=Sig.PROMPT, args=args) if isinstance(args, int):
+                if self.cmd_overlay:
+                    self.cur += args
+                    self.draw_cmd()
+
                 self.post(Message(sig=Sig.DRAW_SCREEN))
 
             case Message(sig=Sig.PROMPT, args=args) if isinstance(args, list):
@@ -72,6 +82,7 @@ class Display(Actor, metaclass=SingletonMeta):
                 if self.cmd_overlay:
                     # helpers.set_dims(self)
                     # helpers.draw_cmd(self)
+                    self.cur += 1
                     self.set_dims()
                     self.draw_cmd()
                     curses.doupdate()
@@ -137,3 +148,11 @@ class Display(Actor, metaclass=SingletonMeta):
                 'media_meta': self.media_meta.copy(),
             }
         }.copy()
+
+    @property
+    def cur(self) -> int:
+        return self._cur
+
+    @cur.setter
+    def cur(self, value: int) -> None:
+        self._cur = value

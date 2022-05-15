@@ -1,5 +1,6 @@
 ### Bugfix ###
 * refactor: préparation class Files en vue de l'implémentation de la recherche récursive
+* bugfix: command history quan historique vide
 
 ### Features ###
 * search sur toute l'arbo, search recursif à partir du cwd
@@ -24,6 +25,7 @@ checks:
     utiliser du single dispatch pour match les types
     utiliser des méthodes pour la gestion des signaux lib
     (init, terminate, ...)
+    Sig.POISON, Sig.SIGQUIT, Sig.SIGINT, Sig.INIT, 
 
 ### Technos ###
 * migration vers un autre protocole de partage (streaming)

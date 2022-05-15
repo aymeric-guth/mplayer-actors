@@ -5,6 +5,7 @@ from pathlib import Path
 from collections import deque
 
 from ...external.fix_encoding import Str
+from ...utils import clamp
 from ...external.fix_ideo import StrIdeo
 from ...wcurses import stdscr
 
@@ -91,7 +92,8 @@ def draw_cmd(self) -> None:
     curses.curs_set(1)
     s = f'{PROMPT}{"".join(self.cmd_buff)}'
     win.addstr(1, 1, s[:width])
-    win.move(1, len(s) + 1)
+    self.cur = int(clamp(len(PROMPT)+1, len(s)+1)(self.cur))
+    win.move(1, self.cur)
     win.noutrefresh()
 
 
@@ -115,22 +117,22 @@ def draw_playback(self) -> None:
     metadata = self.media_meta.get('metadata', '')
 
     win = curses.newwin(height, width, y_ofst, x_ofst)
-    win.addstr(1, 1, f'File: {file}')
+    win.addstr(1, 2, f'File: {file}')
 
     pos = f'Position: {current}/{total} | '
-    win.addstr(2, 1, pos)
+    win.addstr(2, 2, pos)
 
     pb_mode = self.media_meta.get('playback-mode', 'Normal')
     pb_mode = f'Playback: {pb_mode}'
-    win.addstr(2, 1+len(pos), pb_mode)
+    win.addstr(2, 2+len(pos), pb_mode)
 
     media_state = f'Media State: {player_state}'
-    win.addstr(3, 1, media_state)
+    win.addstr(3, 2, media_state)
     volume = f' | Volume: {volume}%'
-    win.addstr(3, 1 + len(media_state), volume)
+    win.addstr(3, 2 + len(media_state), volume)
     playback = f' | Playback: {playback_time:03} / {duration:03} s'
     # playback = f' | {percent_pos:.1f}%'
-    win.addstr(3, 1 + len(media_state) + len(volume), playback)
+    win.addstr(3, 2 + len(media_state) + len(volume), playback)
 
     # playback_time
     # playtime_remaining
@@ -141,16 +143,36 @@ def draw_playback(self) -> None:
 
 def set_dims(self) -> None:
     max_height, max_width = stdscr.getmaxyx()
+    # (cmd_width, cmd_height) = (max_width, CMD_HEIGHT) if self.cmd_overlay else (0, 0)
+    if self.cmd_overlay:
+        cmd_width = max_width - 2
+        cmd_height = CMD_HEIGHT
+    else:
+        cmd_width = 0
+        cmd_height = 0
+    # (playback_width, playback_height) = (max_width, PLAYBACK_HEIGHT) if self.playback_overlay else (0, 0)
+    if self.playback_overlay:
+        playback_width = max_width - 2
+        playback_height = PLAYBACK_HEIGHT
+    else:
+        playback_width = 0
+        playback_height = 0
+    # (files_width, files_height) = (max_width, (max_height - cmd_height - playback_height)) if self.files_overlay else (0, 0)    
+    if self.files_overlay:
+        files_width = max_width
+        files_height = max_height - cmd_height - playback_height
+    else:
+        files_width = 0
+        files_height = 0
 
-    (cmd_width, cmd_height) = (max_width, CMD_HEIGHT) if self.cmd_overlay else (0, 0)
-    (playback_width, playback_height) = (max_width, PLAYBACK_HEIGHT) if self.playback_overlay else (0, 0)
-    (files_width, files_height) = (max_width, (max_height - cmd_height - playback_height)) if self.files_overlay else (0, 0)
-
-    files_x_ofst, files_y_ofst = 0, 0
+    files_x_ofst = 0
+    files_y_ofst = 0
     self.files_dims = (files_width, files_height, files_x_ofst, files_y_ofst)
 
-    playback_x_ofst, playback_y_ofst = 0, files_height
+    playback_x_ofst = 1
+    playback_y_ofst = files_height
     self.playback_dims = (playback_width, playback_height, playback_x_ofst, playback_y_ofst)
        
-    cmd_x_ofst, cmd_y_ofst = 0, (files_height + playback_height)
+    cmd_x_ofst = 1
+    cmd_y_ofst = files_height + playback_height
     self.cmd_dims = (cmd_width, cmd_height, cmd_x_ofst, cmd_y_ofst)

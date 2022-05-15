@@ -13,7 +13,7 @@ from ...utils import SingletonMeta
 class Input(Actor, metaclass=SingletonMeta):
     def __init__(self, pid: int, parent: int, name='', **kwargs) -> None:
         super().__init__(pid, parent, name, **kwargs)
-        self._prompt_mode = 0
+        self._prompt_mode = False
         self.buff: list[str] = []
         self.log_lvl = logging.INFO
 
@@ -29,7 +29,7 @@ class Input(Actor, metaclass=SingletonMeta):
         if self.prompt_mode:
             match c:
                 case Key.ENTER:
-                    self.prompt_mode = 0
+                    self.prompt_mode = False
                     (recipient, response) = eval_cmd(''.join(self.buff))
                     CmdCache().push(self.buff)
                     self.buff.clear()
@@ -39,6 +39,9 @@ class Input(Actor, metaclass=SingletonMeta):
                 case Key.BACKSPACE:
                     self.buff.pop() if self.buff else None
 
+                # case Key.SUPPR:
+                #     ...
+
                 case curses.KEY_UP:
                     self.buff = CmdCache().prev()
 
@@ -46,10 +49,12 @@ class Input(Actor, metaclass=SingletonMeta):
                     self.buff = CmdCache().next()
 
                 case curses.KEY_LEFT:
-                    ...
+                    actor_system.send('Display', Message(sig=Sig.PROMPT, args=-1))
+                    return
 
                 case curses.KEY_RIGHT:
-                    ...
+                    actor_system.send('Display', Message(sig=Sig.PROMPT, args=1))
+                    return
 
                 case _:
                     self.buff.append(chr(c))
@@ -62,7 +67,7 @@ class Input(Actor, metaclass=SingletonMeta):
                 ...
 
             case Key.COLON:
-                self.prompt_mode = 1
+                self.prompt_mode = True
 
             case Key.q | Key.Q:
                 actor_system.post(Message(sig=Sig.SIGQUIT))
@@ -131,11 +136,11 @@ class Input(Actor, metaclass=SingletonMeta):
                 self.logger.warning(f'Unhandled key press: {c}')
 
     @property
-    def prompt_mode(self) -> int:
+    def prompt_mode(self) -> bool:
         return self._prompt_mode
 
     @prompt_mode.setter
-    def prompt_mode(self, value) -> None:
+    def prompt_mode(self, value: bool) -> None:
         self._prompt_mode = value
         actor_system.send('Display', Message(sig=Sig.PROMPT, args=self._prompt_mode))
 
