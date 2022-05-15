@@ -25,9 +25,10 @@ class MediaDispatcher(Actor):
                 self.post(Message(sig=Sig.PLAY, args=item))
 
             case Message(sig=Sig.PLAY, args=args):
-                actor_system.send('MPV', Message(sig=Sig.PLAY, args=args))
-                actor_system.send('Display', Message(sig=Sig.MEDIA_META, args={'file': args}))
-                actor_system.send('Display', Message(sig=Sig.MEDIA_META, args={'pos': self.pl.pos()}))
+                if args is not None:
+                    actor_system.send('MPV', Message(sig=Sig.PLAY, args=args))
+                    actor_system.send('Display', Message(sig=Sig.MEDIA_META, args={'file': args}))
+                    actor_system.send('Display', Message(sig=Sig.MEDIA_META, args={'pos': self.pl.pos()}))
 
             case Message(sig=Sig.PLAYBACK_MODE, args=args):
                 if args >= PlaybackMode.NORMAL._value_ and args <= PlaybackMode.LOOP_ALL._value_:
