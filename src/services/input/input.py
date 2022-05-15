@@ -1,10 +1,12 @@
 import curses
+from collections import deque
 
 from ..base import Actor, Message, Sig, actor_system, ActorGeneric
 from ...wcurses import stdscr
 
+
 from .constants import num_mapping, Key
-from . import helpers
+from .helpers import CmdCache, eval_cmd
 
 
 
@@ -27,14 +29,20 @@ class Input(Actor):
             match c:
                 case Key.ENTER:
                     self.prompt_mode = 0
-                    (recipient, response) = helpers.eval_cmd(''.join(self.buff))
-                    actor_system.send(recipient, response)
+                    (recipient, response) = eval_cmd(''.join(self.buff))
+                    CmdCache().push(self.buff)
                     self.buff.clear()
+                    actor_system.send(recipient, response)
                     return
 
                 case Key.BACKSPACE:
-                    if self.buff:
-                        self.buff.pop(-1)
+                    self.buff.pop() if self.buff else None
+
+                case curses.KEY_UP:
+                    self.buff = CmdCache().prev()
+
+                case curses.KEY_DOWN:
+                    self.buff = CmdCache().next()
 
                 case _:
                     self.buff.append(chr(c))
@@ -54,11 +62,11 @@ class Input(Actor):
                 self.terminate()
 
             case Key.r | Key.R:
-                (recipient, response) = helpers.eval_cmd('refresh')
+                (recipient, response) = eval_cmd('refresh')
                 actor_system.send(recipient, response)
 
             case Key.p | Key.P:
-                (recipient, response) = helpers.eval_cmd('play')
+                (recipient, response) = eval_cmd('play')
                 actor_system.send(recipient, response)
 
             case Key.ALT_H:
@@ -71,7 +79,7 @@ class Input(Actor):
                 actor_system.send('MediaDispatcher', Message(sig=Sig.PLAY_PAUSE))
 
             case Key.DOT:
-                (recipient, response) = helpers.eval_cmd('..')
+                (recipient, response) = eval_cmd('..')
                 actor_system.send(recipient, response)
 
             case (Key.H | Key.L | Key.J | Key.K) as p:
@@ -109,7 +117,7 @@ class Input(Actor):
                 actor_system.send('MediaDispatcher', Message(sig=Sig.SEEK, args=arg))
 
             case p if p in num_mapping:
-                (recipient, response) = helpers.eval_cmd(num_mapping[p])
+                (recipient, response) = eval_cmd(num_mapping[p])
                 actor_system.send(recipient, response)
 
             case _:

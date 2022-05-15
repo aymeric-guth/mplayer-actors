@@ -1,6 +1,9 @@
 from typing import List, Any
 
+
 from ..base import Message, Sig, Actor, actor_system
+
+from ...utils import SingletonMeta, clamp
 
 
 def eval_cmd(cmd: str) -> tuple[str, Message]:
@@ -79,3 +82,32 @@ def eval_cmd(cmd: str) -> tuple[str, Message]:
             return 'Display', Message(sig=Sig.POPUP, args=f'Invalid command: {cmd}')
 
     return ('Dispatcher', Message(sig=Sig.ERROR))
+
+
+class CmdCache(metaclass=SingletonMeta):
+    def __init__(self) -> None:
+        self._container: list[tuple[str, ...]] = []
+        self._p = -1
+
+    @property
+    def p(self) -> int:        
+        return self._p
+
+    @p.setter
+    def p(self, value: int) -> None:
+        if not len(self._container):
+            self._p = -1
+        else:
+            self._p = int(clamp(0, len(self._container))(value))
+
+    def next(self) -> list[str]:
+        self.p += 1
+        return list() if self.p == len(self._container) else list(self._container[self.p])
+
+    def prev(self) -> list[str]:
+        self.p -= 1
+        return list(self._container[self.p])
+
+    def push(self, value: list[str]) -> None:
+        self._container.append(tuple(value))
+        self.p = len(self._container)

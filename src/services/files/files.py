@@ -82,7 +82,6 @@ class Files(Actor):
 
             case Message(sig=Sig.PATH_SET, args=param) if isinstance(param, int):
                 if not param:
-                    self.logger.error(f'CWD={CWD()!r}')
                     CWD().pop()
                     self.post(Message(sig=Sig.PATH_REFRESH))
                 elif param < len(self.dirs):

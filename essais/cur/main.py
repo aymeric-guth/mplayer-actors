@@ -38,4 +38,4 @@ def test(stdscr):
 
 # print(wrapper(main))
 # wrapper(poller)
-print(curses.wrapper(test))
+print(curses.wrapper(main))

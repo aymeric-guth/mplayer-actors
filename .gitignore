@@ -286,3 +286,5 @@ pymakr.conf
 .activate.sh
 .deactivate.sh
 cached.pckl
+
+essais/

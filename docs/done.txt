@@ -1,3 +1,4 @@
 * anchor / marque page dans le menu de navigation (dynamique)
-* loop mode on / off
+* loop mode on / off + intégration playlist
 * gui loop
+* historique des commandes (promt)

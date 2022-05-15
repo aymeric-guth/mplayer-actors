@@ -57,7 +57,7 @@ class MPV(Actor):
         args = (c_char_p*len(args))(*args)
         return _mpv.mpv_command(self.handle, args)
 
-    def set_property(self, name: str, value: list|dict|set|str):
+    def set_property(self, name: str, value: list | dict | set | str):
         ename = name.encode('utf-8')
         if isinstance(value, (list, set, dict)):
             _1, _2, _3, pointer = _mpv.make_node_str_list(value)
