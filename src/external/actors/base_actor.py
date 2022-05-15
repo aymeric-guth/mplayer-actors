@@ -7,12 +7,32 @@ import logging.handlers
 
 from .message import Message
 from .sig import Sig
+from .subststems import Logging
+
 from ...utils import clamp
 from ...settings import LOG_HOST, LOG_PORT, LOG_FORMAT
 
 
 T = TypeVar('T', bound='BaseActor')
 ActorGeneric = Union[int, str, T, type]
+
+
+# class ActorStr:
+#     def __init__(self, pid: int, parent: str, name: str, _cls: str) -> None:
+#         self.pid = pid
+#         self.parent = parent
+#         self.name = name
+#         self.cls = _cls
+
+#     def __str__(self) -> str:
+#         return f'{self.cls}(pid={self.pid}, parent={self.parent})'
+
+#     def __repr__(self) -> str:
+#         return self.__str__()
+
+#     @classmethod
+#     def from_actor(cls, pid: int, parent: str, name: str, _cls: str) -> ActorStr:
+#         return cls(pid, parent, name, _cls)
 
 
 class BaseActor:
@@ -24,23 +44,13 @@ class BaseActor:
         self._mq: Queue = Queue()
         self.subscribers: list[BaseActor] = []
 
-        self._last = 0
-        self._logger: logging.LoggerAdapter[logging.Logger]
-        self._log_l = threading.Lock()
-        
-        fmt = logging.Formatter(fmt=LOG_FORMAT)
-        handler = logging.handlers.SocketHandler(LOG_HOST, LOG_PORT)
-        handler.setFormatter(fmt)
-        _logger = logging.getLogger(self._name)
-        _logger.addHandler(handler)
-        self._logger = logging.LoggerAdapter(_logger, {'actor': self.__repr__()})
-        self.log_lvl = logging.ERROR
+        ### Subsystems ###
+        self._logger = Logging(self._name, self.__str__())
 
         # self.post(Message(sig=Sig.INIT))
 
     def run(self) -> None:
         while 1:
-            # (sender, msg) = self.get()
             (sender, msg) = self._mq.get()
             self.log_mq(sender, msg)
             try:
@@ -54,7 +64,6 @@ class BaseActor:
                 raise SystemExit
             else:
                 self._mq.task_done()
-                # self.done()
 
     def dispatch(self, sender: int, msg: Message) -> None:
         raise NotImplementedError
@@ -64,18 +73,15 @@ class BaseActor:
 
     def terminate(self) -> None:
         raise NotImplementedError
+    
+    def init(self) -> None:
+        raise NotImplementedError
 
-    def post(self, msg: Message, sender: Optional[int]=None) -> None:
+    def post(self, msg: Message|dict[str, Any], sender: Optional[int]=None) -> None:
         if sender is None:
             sender = self.pid  
         self.log_post(sender, msg)
         self._mq.put_nowait((sender, msg))
-
-    def get(self) -> tuple[int, Message]:
-        return self._mq.get()
-
-    def done(self) -> None:
-        self._mq.task_done()
 
     @property
     def pid(self) -> int:
@@ -103,25 +109,15 @@ class BaseActor:
 
     @property
     def log_lvl(self) -> int:
-        return self._log_lvl
+        return self._logger.log_lvl
 
     @log_lvl.setter
     def log_lvl(self, value: int) -> None:
-        self._log_lvl = int(clamp(0, 50)(value))
-        self.logger.setLevel(self._log_lvl)
-
-    @property
-    def log_lock(self) -> threading.Lock:
-        return self._log_l
-
-    @log_lock.setter
-    def log_lock(self, value: Any) -> None:
-        raise TypeError('Property is immutable')
+        self._logger.log_lvl = value
 
     @property
     def logger(self) -> logging.LoggerAdapter:
-        with self._log_l:
-            return self._logger
+        return self._logger.logger
 
     @logger.setter
     def logger(self, value: Any) -> None:
@@ -130,20 +126,14 @@ class BaseActor:
     def __repr__(self) -> str:
         return f'{self.__class__.__name__}(pid={self.pid})'
 
-    def __enter__(self) -> None:
-        self.log_lock.acquire()
-        self._last = self.log_lvl
-        self.log_lvl = 0
-
-    def __exit__(self, type: Any, value: Any, traceback: Any) -> None:
-        self.log_lvl = self._last
-        self.log_lock.release()
+    def __str__(self) -> str:
+        return f'{self.__class__.__name__}(pid={self.pid})'
 
     def __hash__(self) -> int:
         return hash(self.pid)
 
-    def log_mq(self, sender: Optional[int], msg: Message) -> None:
-        raise NotImplementedError
+    def log_mq(self, sender: Optional[int], msg: Message|dict[str, Any]) -> None:
+        return self._logger.log(self.pid, sender, msg, '### MQ ###')
     
-    def log_post(self, sender: Optional[int], msg: Message) -> None:
-        raise NotImplementedError
+    def log_post(self, sender: Optional[int], msg: Message|dict[str, Any]) -> None:
+        return self._logger.log(self.pid, sender, msg, '### POST ###')

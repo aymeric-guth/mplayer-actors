@@ -2,7 +2,7 @@ import curses
 import logging
 from typing import Optional
 
-from ...external.actors import Actor, Message, Sig, actor_system
+from ...external.actors import Actor, Message, Sig, actor_system, ActorIO
 from ...wcurses import stdscr
 
 
@@ -18,23 +18,17 @@ class Prompt(Actor):
         self.post(Message(sig=Sig.INIT))
 
     def dispatch(self, sender: int, msg: Message) -> None:
-        self.logger.info(f'New message: {msg}')
+        super().dispatch(sender, msg)
         match msg:
-            case Message(sig=Sig.INIT):
-                actor_system.send('Display', Message(sig=Sig.PROMPT, args=True))
-
-            case Message(sig=Sig.TERMINATE):
-                actor_system.send('ActorSystem', Message(sig=Sig.TERMINATE))
-
-            case Message(sig=Sig.PARSE, args=args):
+            case {'event': 'io', 'name': 'keypress', 'args': args}:
                 match args:
                     case Key.ENTER:
                         CmdCache().push(CmdBuffer().get())
                         actor_system.send('Display', Message(sig=Sig.PROMPT, args=False))
-                        # actor_system.send(self.parent, Message(sig=Sig.PARSE, args=CmdBuffer().to_str()))
                         actor_system.send(self.parent, {'event': 'command', 'name': 'parse', 'args': CmdBuffer().to_str()})
                         CmdBuffer().clear()
-                        self.post(Message(sig=Sig.TERMINATE))
+                        self.post(Message(sig=Sig.EXIT))
+                        return
 
                     case Key.BACKSPACE:
                         CmdBuffer().delete()
@@ -59,12 +53,16 @@ class Prompt(Actor):
                     
                 actor_system.send('Display', Message(sig=Sig.PROMPT, args=CmdBuffer().serialize()))
 
+    def init(self) -> None:
+        actor_system.send('Display', Message(sig=Sig.PROMPT, args=True))
+
     def terminate(self) -> None:
-        self.logger.warning(f'{self} terminated')
+        actor_system.send(self.parent, {'event': 'status', 'name': 'child-exit'})
+        actor_system.send('ActorSystem', Message(sig=Sig.EXIT))
         raise SystemExit
 
 
-class InputIO(Actor, metaclass=SingletonMeta):
+class InputIO(ActorIO, metaclass=SingletonMeta):
     def __init__(self, pid: int, parent: int, name='', **kwargs) -> None:
         super().__init__(pid, parent, name, **kwargs)
         self.log_lvl = logging.WARNING
@@ -75,33 +73,31 @@ class InputIO(Actor, metaclass=SingletonMeta):
             self.logger.info(f'Got new input c={c}')
             if c == -1: 
                 continue
-            actor_system.send(self.parent, {'event': 'io', 'name': 'key', 'args': c})
-            # actor_system.send(self.parent, Message(sig=Sig.PARSE, args=c))
+            self.handler({'event': 'io', 'name': 'keypress', 'args': c})
 
 
 class Input(Actor, metaclass=SingletonMeta):
     def __init__(self, pid: int, parent: int, name='', **kwargs) -> None:
         super().__init__(pid, parent, name, **kwargs)
-        self.log_lvl = logging.INFO
+        self.log_lvl = logging.WARNING
         self.child: Optional[int] = None
         self.sidecar: int
         self.post(Message(sig=Sig.INIT))
 
     def dispatch(self, sender: int, msg: Message) -> None:
-        self.logger.error(f'child={self.child}')
+        super().dispatch(sender, msg)
         match msg:
-            case Message(sig=Sig.INIT):
-                self.sidecar = actor_system.create_actor(InputIO)
+            case {'event': 'status', 'name': 'child-exit'}:
+                self.child = None
 
             case {'event': 'command', 'name': 'parse', 'args': args}:
-                self.child = None
                 (recipient, response) = eval_cmd(args)
                 actor_system.send(recipient, response)
 
-            case {'event': 'io', 'name': 'key', 'args': args} if self.child is not None:
-                actor_system.send(self.child, Message(sig=Sig.PARSE, args=args))
+            case {'event': 'io', 'name': 'keypress', 'args': args} as msg if self.child is not None:                
+                actor_system.send(self.child, msg)
 
-            case {'event': 'io', 'name': 'key', 'args': args}:
+            case {'event': 'io', 'name': 'keypress', 'args': args}:
                 match args:
                     case 0:
                         ...
@@ -110,8 +106,7 @@ class Input(Actor, metaclass=SingletonMeta):
                         self.child = actor_system.create_actor(Prompt)
 
                     case Key.q | Key.Q:
-                        actor_system.post(Message(sig=Sig.SIGQUIT))
-                        self.terminate()
+                        actor_system.send('ActorSystem', Message(sig=Sig.SIGQUIT))
 
                     case Key.r | Key.R:
                         (recipient, response) = eval_cmd('refresh')
@@ -172,14 +167,9 @@ class Input(Actor, metaclass=SingletonMeta):
                     case _:
                         self.logger.warning(f'Unhandled key press: {args}')
 
-    # @property
-    # def prompt_mode(self) -> bool:
-    #     return self._prompt_mode
-
-    # @prompt_mode.setter
-    # def prompt_mode(self, value: bool) -> None:
-    #     self._prompt_mode = value
-    #     actor_system.send('Display', Message(sig=Sig.PROMPT, args=self._prompt_mode))
+    def init(self) -> None:
+        self.sidecar = actor_system.create_actor(InputIO)
 
     def terminate(self) -> None:
-        raise SystemExit('SIGQUIT')
+        actor_system.send('ActorSystem', Message(sig=Sig.EXIT))
+        raise SystemExit

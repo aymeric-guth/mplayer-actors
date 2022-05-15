@@ -8,6 +8,18 @@ from .sig import Sig
 from .base_actor import BaseActor, ActorGeneric
 import sys
 
+# SIGQUIT
+
+# QUIT
+
+from signal import signal, SIGKILL, SIGQUIT, SIGTERM
+
+
+def signal_handler(signum, frame):
+    actor_system.logger.error(f'{signum=}')
+
+# signal(SIGTERM, signal_handler)
+
 
 class ActorSystem(BaseActor, metaclass=SingletonMeta):
     __pid: int = 0
@@ -19,7 +31,7 @@ class ActorSystem(BaseActor, metaclass=SingletonMeta):
         self._threads: dict[int, Thread] = {}
         self.log_lvl = logging.ERROR
 
-    def send(self, receiver: Union[int, str, type], msg: Message|dict[str, str]) -> None:
+    def send(self, receiver: Union[int, str, type], msg: Message|dict[str, Any]) -> None:
         sender = get_caller()
         recipient: Optional[BaseActor] = self._get_actor(receiver)
         if recipient is None:
@@ -122,8 +134,7 @@ class ActorSystem(BaseActor, metaclass=SingletonMeta):
                 self.logger.warning(f'Trying to regenerate Actor(pid={pid}, cls={cls}, parent={parent}, name={name}, kwargs={kwargs})')
                 self._create_actor(cls, pid=pid, parent=parent, name=name, **kwargs)
 
-            case Message(sig=Sig.TERMINATE):
-                self.logger.error(f'{self.resolve_parent(sender)} requested termination')
+            case Message(sig=Sig.EXIT):
                 try:
                     actor = self._registry.pop(sender)
                 except KeyError:
@@ -132,11 +143,8 @@ class ActorSystem(BaseActor, metaclass=SingletonMeta):
                     t = self._threads.pop(sender)
                 except KeyError:
                     t = None
-                # if actor is not None:
-                #     actor.terminate()
                 if t is not None:
                     t.join()
-                    # t._stop()
 
             case Message(sig=Sig.ERROR):
                 ...

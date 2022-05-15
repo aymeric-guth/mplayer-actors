@@ -70,6 +70,7 @@ class Sig(Enum):
     PLAYBACK_MODE = auto()
     PATH_CONTENT = auto()
     TERMINATE = auto()
+    EXIT = auto()
 
 # 'type': 'event'
 # 'type': 'error'

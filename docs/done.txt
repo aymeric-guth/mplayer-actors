@@ -13,3 +13,5 @@
 * bugfix: fichiers placeholders affichés au chargement de l'application
 * bugfix: une ref était encore utilisée pour le cas ou un actor s'envoyait un message à lui même
 * refactor: séparation du library code et de l'application code
+* feature: bouger le curseur avec <- -> dans en prompt mode
+* refactor: prompt -> actor

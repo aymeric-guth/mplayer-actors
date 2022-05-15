@@ -23,8 +23,11 @@ class Files(Actor, metaclass=SingletonMeta):
 
     def dispatch(self, sender: int, msg: Message) -> None:
         match msg:
-            case Message(sig=Sig.INIT, args=args):
-                ...
+            case Message(sig=Sig.INIT):
+                self.init()
+
+            case Message(sig=Sig.EXIT):
+                self.terminate()
 
             case Message(sig=Sig.CWD_GET, args=args):
                 actor_system.send(sender, Message(sig=Sig.CWD_GET, args=helpers.get_kwargs(self)))

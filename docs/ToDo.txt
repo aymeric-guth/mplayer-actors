@@ -5,7 +5,6 @@
 ### Features ###
 * search sur toute l'arbo, search recursif à partir du cwd
 * feature: delete hook for invalid dir (effacé ou déplacé)
-* feature: bouger le curseur avec <- -> dans en prompt mode
 * notifications / popup (reindex, get_files done etc)
 * delete dir (delete leaf directory and associated files) non recusive
 * purge file (move file to .deleted special dir if exists else create .deleted in cwd)

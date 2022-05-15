@@ -2,10 +2,9 @@ import curses
 from typing import Any
 from signal import signal, SIGWINCH
 import logging
-import pickle
 
 from ...utils import SingletonMeta, clamp
-from ...external.actors import Actor, Message, Sig, actor_system, ActorGeneric
+from ...external.actors import Actor, Message, Sig, actor_system
 from . import helpers
 
 from ...wcurses import stdscr, draw_popup

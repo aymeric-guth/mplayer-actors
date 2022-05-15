@@ -1,6 +1,6 @@
 from .sig import Sig
 from .message import Message
-from .actor import Actor
+from .actor import Actor, ActorIO
 from .actor_system import actor_system
 from .base_actor import ActorGeneric
 from .errors import ActorException, UnprocessableMessage

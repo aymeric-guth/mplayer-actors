@@ -15,6 +15,26 @@ class Actor(BaseActor):
         super().__init__(pid, parent=parent, name=name)
         self.kwargs = kwargs.copy()
 
+    def dispatch(self, sender: int, msg: Message) -> None:
+        match msg:
+            case Message(sig=Sig.INIT):
+                self.init()
+
+            case Message(sig=Sig.EXIT):
+                self.terminate()
+
+            case Message(sig=Sig.POISON):
+                self.poison()
+
+    def terminate(self) -> None:
+        raise SystemExit('SIGQUIT')
+
+    def init(self) -> None:
+        raise NotImplementedError
+
+    def poison(self) -> None:
+        raise NotImplementedError
+
     def handler(self, err: str) -> None:
         self.logger.error(f'Actor={self} encountered a failure: {err}')
         # actor_system.post(Message(sig=Sig.SIGINT))
@@ -25,25 +45,25 @@ class Actor(BaseActor):
             'log_lvl': self.log_lvl,
         }.copy()
 
-    def terminate(self) -> None:
-        raise SystemExit('SIGQUIT')
-
     def __repr__(self) -> str:
         # return f'{self.__class__.__name__}(pid={self.pid})'
         return f'{self.__class__.__name__}(pid={self.pid}, parent={actor_system.resolve_parent(self.parent)})'
 
-    def log_mq(self, sender: Optional[int], msg: Message) -> None:
-        if not isinstance(sender, int):
-            self.logger.error(f'### MQ ###\nGot unexpected Sender={sender}, type={type(sender)}\nmsg={msg}')
-        elif self.pid == sender:
-            self.logger.info(f'### MQ ###\nself={self!r}\n{msg=}')
-        else:
-            self.logger.info(f'### MQ ###\nreceiver={self!r}\nsender={actor_system.resolve_parent(sender).__repr__()}\n{msg=}')
+    def __str__(self) -> str:
+        return f'{self.__class__.__name__}(pid={self.pid}, parent={actor_system.resolve_parent(self.parent)})'
 
-    def log_post(self, sender: Optional[int], msg: Message) -> None:
-        if not isinstance(sender, int):
-            self.logger.error(f'### POST ###\nGot unexpected Sender={sender}, type={type(sender)}\nmsg={msg}')
-        elif self.pid == sender:
-            self.logger.info(f'### POST ###\nself={self!r}\n{msg=}')
-        else:
-            self.logger.info(f'### POST ###\nreceiver={self!r}\nsender={actor_system.resolve_parent(sender).__repr__()}\n{msg=}')
+
+class ActorIO(BaseActor):
+    def __init__(self, pid: int, parent: int, name:str='', **kwargs) -> None:
+        super().__init__(pid, parent=parent, name=name)
+        self.kwargs = kwargs.copy()
+
+    def handler(self, msg: Message|dict[str, Any]) -> None:
+        return actor_system.send(self.parent, msg)
+
+    def err_handler(self, err: str) -> None:
+        self.logger.error(f'Actor={self} encountered a failure: {err}')
+        # actor_system.post(Message(sig=Sig.SIGINT))
+
+    def __repr__(self) -> str:
+        return f'{self.__class__.__name__}(pid={self.pid}, parent={actor_system.resolve_parent(self.parent)})'
