@@ -1,7 +1,7 @@
 from typing import List, Any
 
 
-from ..base import Message, Sig, Actor, actor_system
+from ...external.actors import Message, Sig, Actor, actor_system
 
 from ...utils import SingletonMeta, clamp
 

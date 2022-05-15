@@ -11,9 +11,8 @@ T = TypeVar('T', bound='Actor')
 
 
 class Actor(BaseActor):
-    def __init__(self, pid: int, parent: ActorGeneric, name:str='', **kwargs) -> None:
+    def __init__(self, pid: int, parent: int, name:str='', **kwargs) -> None:
         super().__init__(pid, parent=parent, name=name)
-        # self._parent: Optional[BaseActor] = actor_system.get_actor(parent)
         self.kwargs = kwargs.copy()
 
     def handler(self, err: str) -> None:
@@ -29,6 +28,5 @@ class Actor(BaseActor):
     def terminate(self) -> None:
         raise SystemExit('SIGQUIT')
 
-    # def __repr__(self) -> str:
-    #     return f'{self.__class__.__name__}(pid={self.pid}, parent={self.parent})'#, kwargs={self.kwargs}
-
+    def __repr__(self) -> str:
+        return f'{self.__class__.__name__}(pid={self.pid}, parent={actor_system.resolve_parent(self.parent)})'

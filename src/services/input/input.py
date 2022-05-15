@@ -1,7 +1,7 @@
 import curses
 from collections import deque
 
-from ..base import Actor, Message, Sig, actor_system, ActorGeneric
+from ...external.actors import Actor, Message, Sig, actor_system
 from ...wcurses import stdscr
 
 
@@ -11,7 +11,7 @@ from .helpers import CmdCache, eval_cmd
 
 
 class Input(Actor):
-    def __init__(self, pid: int, parent: ActorGeneric, name='', **kwargs) -> None:
+    def __init__(self, pid: int, parent: int, name='', **kwargs) -> None:
         super().__init__(pid, parent, name, **kwargs)
         self._prompt_mode = 0
         self.buff: list[str] = []
@@ -21,9 +21,9 @@ class Input(Actor):
             c = stdscr.getch()
             self.logger.info(f'Got new input c={c}')
             if c == -1: continue
-            self.dispatch(self, Message(sig=Sig.PARSE, args=c))
+            self.dispatch(self.pid, Message(sig=Sig.PARSE, args=c))
 
-    def dispatch(self, sender: ActorGeneric, msg: Message) -> None:
+    def dispatch(self, sender: int, msg: Message) -> None:
         c = msg.args
         if self.prompt_mode:
             match c:

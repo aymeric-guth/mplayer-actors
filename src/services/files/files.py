@@ -2,20 +2,20 @@ from collections import defaultdict
 import os
 import logging
 
-from ..base import Actor, Message, Sig, actor_system, ActorGeneric
+from ...external.actors import Actor, Message, Sig, actor_system
 from ...settings import extensions_all
 from . import helpers
 from ._types import CWD
 
 
 class Files(Actor):
-    def __init__(self, pid: int, parent: ActorGeneric, name='', **kwargs) -> None:
+    def __init__(self, pid: int, parent: int, name='', **kwargs) -> None:
         super().__init__(pid, parent, name, **kwargs)
         self.files_tree: dict[tuple[str, ...], list[tuple[str, str]]] = defaultdict(list)
         self.dir_tree: dict[tuple[str, ...], set[str]] = defaultdict(set)
         self.log_lvl = logging.ERROR
 
-    def dispatch(self, sender: ActorGeneric, msg: Message) -> None:
+    def dispatch(self, sender: int, msg: Message) -> None:
         match msg:
             case Message(sig=Sig.INIT, args=args):
                 ...

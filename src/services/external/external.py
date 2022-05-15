@@ -4,17 +4,17 @@ import logging
 from pathlib import Path
 import pickle
 
-from ..base import Actor, Message, Sig, actor_system, ActorGeneric
+from ...external.actors import Actor, Message, Sig, actor_system
 from ...settings import ALLOWED_SHARES, MOUNT_POINT, SMB_USER, SMB_PASS, SMB_ADDR, SMB_PORT, ENV_PATH, VIDEO_PATH, MUSIC_PATH, ROOT, MUSIC_TODO
 from ..files._types import CWD
 
 
 class External(Actor):
-    def __init__(self, pid: int, parent: ActorGeneric, name='', **kwargs) -> None:
+    def __init__(self, pid: int, parent: int, name='', **kwargs) -> None:
         super().__init__(pid, parent, name, **kwargs)
         self.log_lvl = logging.ERROR
 
-    def dispatch(self, sender: ActorGeneric, msg: Message) -> None:
+    def dispatch(self, sender: int, msg: Message) -> None:
         jump_table: dict[str, list | tuple]
 
         match msg:

@@ -1,12 +1,13 @@
 import sys
+import traceback
 
 from .wcurses import deinit, wrapper
-from .services import ActorSystem, Dispatcher, API, Display, Files, Input, External, MediaDispatcher, SocketServer
+from .external.actors import actor_system
+from .services import Dispatcher, API, Display, Files, Input, External, MediaDispatcher#, SocketServer
 
 
 
 def main():
-    actor_system = ActorSystem()
     actor_system.create_actor(Dispatcher)
     actor_system.create_actor(API)
     actor_system.create_actor(Display)
@@ -18,11 +19,11 @@ def main():
 
     try:
         actor_system.run()
-    finally:
-        
+    finally:       
         deinit()
         # traceback.print_exc()
-        print(sys.exc_info())
+        errtype, errval, exc_traceback = sys.exc_info()
+        traceback.print_tb(exc_traceback, file=sys.stdout)
         return 0
 
     # try:

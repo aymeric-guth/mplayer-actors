@@ -4,6 +4,7 @@ import logging.handlers
 from . import config
 from . import fix_encoding
 from . import mpv_bootstrap as _mpv
+from . import actors
 
 LOG_HOST = '127.0.0.1'
 LOG_PORT = 8080

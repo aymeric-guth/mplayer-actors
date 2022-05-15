@@ -1,6 +1,6 @@
 import httpx
 
-from ..base import Actor, Message, Sig, actor_system, ActorGeneric
+from ...external.actors import Actor, Message, Sig, actor_system, ActorGeneric
 
 from . import helpers
 from ...settings import USERNAME, PASSWORD, extensions_all
@@ -8,7 +8,7 @@ from .constants import AUTH, NAS
 
 
 class API(Actor):
-    def __init__(self, pid: int, parent: ActorGeneric, name='', **kwargs) -> None:
+    def __init__(self, pid: int, parent: int, name='', **kwargs) -> None:
         super().__init__(pid, parent, name, **kwargs)
         self.username = USERNAME
         # stockage d'un mdp non crypté dans une globale
@@ -17,7 +17,7 @@ class API(Actor):
         self.extensions = extensions_all
         self.post(Message(sig=Sig.INIT))
 
-    def dispatch(self, sender: ActorGeneric, msg: Message) -> None:
+    def dispatch(self, sender: int, msg: Message) -> None:
         response: httpx.Response
         match msg:
             case Message(sig=Sig.INIT, args=args):

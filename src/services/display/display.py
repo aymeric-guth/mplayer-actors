@@ -2,8 +2,7 @@ import curses
 from typing import Any
 from signal import signal, SIGWINCH
 
-
-from ..base import Actor, Message, Sig, actor_system, ActorGeneric
+from ...external.actors import Actor, Message, Sig, actor_system, ActorGeneric
 from . import helpers
 
 from ...wcurses import stdscr, draw_popup
@@ -27,7 +26,7 @@ class Msg:
 
 
 class Display(Actor):
-    def __init__(self, pid: int, parent: ActorGeneric, name='', **kwargs) -> None:
+    def __init__(self, pid: int, parent: int, name='', **kwargs) -> None:
         super().__init__(pid, parent, name, **kwargs)
         self.files_overlay = 1
         self.files_dims: tuple[int, int, int, int]
@@ -45,7 +44,7 @@ class Display(Actor):
         self.draw_playback = lambda: helpers.draw_playback(self)
         # self.init_logger(__name__)
 
-    def dispatch(self, sender: ActorGeneric, msg: Message) -> None:
+    def dispatch(self, sender: int, msg: Message) -> None:
         match msg:
             case Message(sig=Sig.CWD_GET, args=args):
                 dir_list, files_list = args.get('dir_list'), args.get('files_list')

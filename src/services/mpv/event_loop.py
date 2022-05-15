@@ -3,8 +3,7 @@ from dataclasses import dataclass
 from ctypes import cast, sizeof, POINTER, create_string_buffer, pointer
 
 from ...external import _mpv
-from ..base import ActorGeneric, Actor, actor_system, Message, Sig
-
+from ...external.actors import ActorGeneric, Actor, actor_system, Message, Sig
 
 
 @dataclass(frozen=True)
@@ -19,7 +18,7 @@ class MpvEvent:
 
 
 class MPVEvent(Actor):
-    def __init__(self, pid: int, parent: ActorGeneric, name='', handle: Any=None, **kwargs) -> None:
+    def __init__(self, pid: int, parent: int, name='', handle: Any=None, **kwargs) -> None:
         super().__init__(pid, parent, name, **kwargs)
         if handle is None:
             raise SystemExit

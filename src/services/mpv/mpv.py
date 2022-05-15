@@ -8,14 +8,14 @@ from ...settings import VOLUME_DEFAULT
 from ...external import _mpv
 
 from ...utils import clamp
-from ..base import Actor, Message, Sig, actor_system, ActorGeneric
+from ...external.actors import Actor, Message, Sig, actor_system
 from .event_loop import MpvEvent, MPVEvent
 
 
 
 
 class MPV(Actor):
-    def __init__(self, pid: int, parent: ActorGeneric, name='', **kwargs) -> None:
+    def __init__(self, pid: int, parent: int, name='', **kwargs) -> None:
         super().__init__(pid, parent, name, **kwargs)
         self._state = 0
         self._volume: int|float
@@ -74,11 +74,10 @@ class MPV(Actor):
 
     def command(self, *args) -> int:
         try:        
-            self.logger.error(f'command {args=}')
             args = (c_char_p*len(args))(*args)
             return _mpv.mpv_command(self.handle, args)
         except SystemError:
-            ...
+            return -1
 
     def set_property(self, name: str, value: list | dict | set | str):
         ename = name.encode('utf-8')
@@ -92,7 +91,7 @@ class MPV(Actor):
         property_id = hash(name) & 0xffffffffffffffff
         _mpv.mpv_observe_property(self.handle, property_id, name.encode('utf-8'), _mpv.MpvFormat.NODE)
 
-    def dispatch(self, sender: ActorGeneric, msg: Message) -> None:
+    def dispatch(self, sender: int, msg: Message) -> None:
         match msg:
             case Message(sig=Sig.MPV_EVENT, args=args):
                 match args:
@@ -145,7 +144,6 @@ class MPV(Actor):
                     self.post(Message(sig=Sig.DONE))
 
             case Message(sig=Sig.PLAY, args=path):
-                self.logger.error(f'Sig.PLAY {path=}')
                 args = [b'loadfile', path.encode('utf-8'), b'replace', b'', None]
                 self.set_property('pause', 'no')
                 self.command(*args)
@@ -179,12 +177,6 @@ class MPV(Actor):
 
             case Message(sig=Sig.DONE, args=args) as msg:
                 actor_system.send(self.parent, msg)
-
-            case Message(sig=Sig.SIGINT, args=None):
-                self.terminate()
-                actor_system.send(self.parent, Message(sig=Sig.DONE))
-                self.parent = None
-                raise SystemExit
 
             case Message(sig=Sig.POISON, args=None):
                 self.terminate()

@@ -16,7 +16,7 @@ ActorGeneric = Union[int, str, T, type]
 
 
 class BaseActor:
-    def __init__(self, pid: int, parent: ActorGeneric, name: str='') -> None:
+    def __init__(self, pid: int, parent: int, name: str='') -> None:
         self._pid = pid
         self._parent = parent
         self._name = name if name else self.__class__.__name__
@@ -54,7 +54,7 @@ class BaseActor:
             else:
                 self.mq.task_done()
 
-    def dispatch(self, sender: ActorGeneric, msg: Message) -> None:
+    def dispatch(self, sender: int, msg: Message) -> None:
         raise NotImplementedError
     
     def handler(self, err) -> None:
@@ -63,7 +63,7 @@ class BaseActor:
     def terminate(self) -> None:
         raise NotImplementedError
 
-    def post(self, msg: Message|dict[str, str], sender: ActorGeneric=None) -> None:
+    def post(self, msg: Message|dict[str, str], sender: Optional[int]=None) -> None:
         self.mq.put((self, msg)) if sender is None else self.mq.put((sender, msg))
 
     @property
@@ -83,7 +83,7 @@ class BaseActor:
         raise TypeError('Property is immutable')
 
     @property
-    def parent(self) -> ActorGeneric:
+    def parent(self) -> int:
         return self._parent
 
     @parent.setter
@@ -117,8 +117,8 @@ class BaseActor:
         raise TypeError('Property is immutable')
 
     def __repr__(self) -> str:
-        return f'{self.__class__.__name__}(pid={self.pid}, parent={self.parent})'
-    
+        return f'{self.__class__.__name__}(pid={self.pid})'
+
     def __enter__(self) -> None:
         self.log_lock.acquire()
         self._last = self.log_lvl
