@@ -69,6 +69,7 @@ class Sig(Enum):
     JUMP = auto()
     PLAYBACK_MODE = auto()
     PATH_CONTENT = auto()
+    TERMINATE = auto()
 
 # 'type': 'event'
 # 'type': 'error'

@@ -1,4 +1,5 @@
 import logging
+from typing import Optional
 
 from ...external.actors import Actor, Message, Sig, actor_system
 
@@ -16,12 +17,13 @@ class MediaDispatcher(Actor, metaclass=SingletonMeta):
         self.pl: Playlist = None
         self.playback = PlaybackMode.NORMAL
         self.log_lvl = logging.ERROR
+        self.child: Optional[int] = None
         self.post(Message(sig=Sig.INIT))
        
     def dispatch(self, sender: int, msg: Message) -> None:
         match msg:
             case Message(sig=Sig.INIT, args=None):
-                actor_system.create_actor(MPV, wid=self.wid)
+                self.child = actor_system.create_actor(MPV, wid=self.wid)
 
             case Message(sig=Sig.PLAY_ALL, args=args):
                 actor_system.send('Files', Message(sig=Sig.FILES_GET, args=args))

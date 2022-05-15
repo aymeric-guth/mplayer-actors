@@ -19,7 +19,7 @@ class ActorSystem(BaseActor, metaclass=SingletonMeta):
         self._threads: dict[int, Thread] = {}
         self.log_lvl = logging.ERROR
 
-    def send(self, receiver: Union[int, str, type], msg: Message) -> None:
+    def send(self, receiver: Union[int, str, type], msg: Message|dict[str, str]) -> None:
         sender = get_caller()
         recipient: Optional[BaseActor] = self._get_actor(receiver)
         if recipient is None:
@@ -72,14 +72,14 @@ class ActorSystem(BaseActor, metaclass=SingletonMeta):
         parent: int,
         name: str='', 
         **kwargs
-    ) -> BaseActor:
-        self.logger.info(f'parent={parent} requested Actor({cls.__name__}) creation')
+    ) -> int:
+        # self.logger.error(f'parent={self.resolve_parent(parent)} requested Actor({cls.__name__}) creation')
         actor = cls(pid=pid, name=name, parent=parent, **kwargs)
         t = Thread(target=actor.run, daemon=True)
         self._registry.update({pid: actor})
         self._threads.update({pid: t})
         t.start()
-        return actor
+        return actor.pid
 
     def create_actor(
         self, 
@@ -87,7 +87,7 @@ class ActorSystem(BaseActor, metaclass=SingletonMeta):
         *,
         name: str='',
         **kwargs
-    ) -> BaseActor:
+    ) -> int:
         caller = self.get_caller()
         pid = self.get_pid()
         return self._create_actor(cls=cls, pid=pid, parent=caller.pid, name=name, **kwargs)
@@ -122,12 +122,28 @@ class ActorSystem(BaseActor, metaclass=SingletonMeta):
                 self.logger.warning(f'Trying to regenerate Actor(pid={pid}, cls={cls}, parent={parent}, name={name}, kwargs={kwargs})')
                 self._create_actor(cls, pid=pid, parent=parent, name=name, **kwargs)
 
+            case Message(sig=Sig.TERMINATE):
+                self.logger.error(f'{self.resolve_parent(sender)} requested termination')
+                try:
+                    actor = self._registry.pop(sender)
+                except KeyError:
+                    actor = None
+                try:
+                    t = self._threads.pop(sender)
+                except KeyError:
+                    t = None
+                # if actor is not None:
+                #     actor.terminate()
+                if t is not None:
+                    t.join()
+                    # t._stop()
+
             case Message(sig=Sig.ERROR):
                 ...
 
             case _:
                 self.logger.error(f'Unprocessable Message: msg={msg}')
-                self.post(Message(sig=Sig.SIGQUIT))
+                # self.post(Message(sig=Sig.SIGQUIT))
 
     def get_pid(self) -> int:
         with ActorSystem.__pid_l:

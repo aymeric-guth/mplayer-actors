@@ -17,7 +17,7 @@ class Actor(BaseActor):
 
     def handler(self, err: str) -> None:
         self.logger.error(f'Actor={self} encountered a failure: {err}')
-        actor_system.post(Message(sig=Sig.SIGINT))
+        # actor_system.post(Message(sig=Sig.SIGINT))
 
     def introspect(self) -> dict[Any, Any]:
         return {
@@ -29,8 +29,8 @@ class Actor(BaseActor):
         raise SystemExit('SIGQUIT')
 
     def __repr__(self) -> str:
-        return f'{self.__class__.__name__}(pid={self.pid})'
-        # return f'{self.__class__.__name__}(pid={self.pid}, parent={actor_system.resolve_parent(self.parent)})'
+        # return f'{self.__class__.__name__}(pid={self.pid})'
+        return f'{self.__class__.__name__}(pid={self.pid}, parent={actor_system.resolve_parent(self.parent)})'
 
     def log_mq(self, sender: Optional[int], msg: Message) -> None:
         if not isinstance(sender, int):

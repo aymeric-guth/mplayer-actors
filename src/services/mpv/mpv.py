@@ -24,6 +24,7 @@ class MPV(Actor):
         lc, enc = locale.getlocale(locale.LC_NUMERIC)
         locale.setlocale(locale.LC_NUMERIC, 'C')
         self.handle = _mpv.mpv_create()
+        self.child: Optional[int] = None
 
         # istr = lambda o: ('yes' if o else 'no') if type(o) is bool else str(o)
         _mpv.mpv_set_option_string(self.handle, b'audio-display', b'no')
@@ -129,7 +130,7 @@ class MPV(Actor):
                         ...
 
             case Message(sig=Sig.INIT, args=args):
-                actor_system.create_actor(MPVEvent, handle=self.handle)
+                self.child = actor_system.create_actor(MPVEvent, handle=self.handle)
                 self.observe_property('volume')
                 self.observe_property('percent-pos')
                 self.observe_property('time-pos')

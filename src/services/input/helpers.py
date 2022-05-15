@@ -156,6 +156,9 @@ class CmdBuffer(metaclass=SingletonMeta):
     def get(self) -> list[str]:
         return self._container
 
+    def to_str(self) -> str:
+        return ''.join(self._container)
+
     def init(self, value: list[str]) -> None:
         self._container = value
         self.p = len(self._container)
@@ -168,14 +171,3 @@ class CmdBuffer(metaclass=SingletonMeta):
 
     def serialize(self) -> tuple[str, int]:
         return (''.join(self._container), self.p)
-
-# key left
-# key right
-# del
-# supr
-# char
-# enter
-
-# [a, b, c]
-#  0  1  2
-# cur = 3
