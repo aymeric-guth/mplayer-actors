@@ -1,7 +1,9 @@
 import curses
 from typing import Any
 from signal import signal, SIGWINCH
+import logging
 
+from ...utils import SingletonMeta
 from ...external.actors import Actor, Message, Sig, actor_system, ActorGeneric
 from . import helpers
 
@@ -25,7 +27,7 @@ class Msg:
     args: Any = None
 
 
-class Display(Actor):
+class Display(Actor, metaclass=SingletonMeta):
     def __init__(self, pid: int, parent: int, name='', **kwargs) -> None:
         super().__init__(pid, parent, name, **kwargs)
         self.files_overlay = 1
@@ -42,7 +44,7 @@ class Display(Actor):
         self.draw_cmd = lambda: helpers.draw_cmd(self)
         self.draw_files = lambda: helpers.draw_files(self)
         self.draw_playback = lambda: helpers.draw_playback(self)
-        # self.init_logger(__name__)
+        self.log_lvl = logging.ERROR
 
     def dispatch(self, sender: int, msg: Message) -> None:
         match msg:

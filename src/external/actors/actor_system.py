@@ -15,10 +15,9 @@ class ActorSystem(BaseActor, metaclass=SingletonMeta):
 
     def __init__(self) -> None:
         super().__init__(pid=ActorSystem.__pid, name=self.__class__.__name__, parent=ActorSystem.__pid)
-        self._registry: dict[int, BaseActor] = {}
+        self._registry: dict[int, BaseActor] = {ActorSystem.__pid: self}
         self._threads: dict[int, Thread] = {}
         self.log_lvl = logging.ERROR
-        self._registry.update({ActorSystem.__pid: self})
 
     def send(self, receiver: Union[int, str, type], msg: Message) -> None:
         sender = get_caller()
@@ -110,7 +109,7 @@ class ActorSystem(BaseActor, metaclass=SingletonMeta):
                 if actor is None:
                     return
 
-                pid = actor.pid
+                pid = self.get_pid()
                 cls = actor.__class__
                 name = actor.name
                 parent = actor.parent
@@ -122,6 +121,13 @@ class ActorSystem(BaseActor, metaclass=SingletonMeta):
                     t._stop()
                 self.logger.warning(f'Trying to regenerate Actor(pid={pid}, cls={cls}, parent={parent}, name={name}, kwargs={kwargs})')
                 self._create_actor(cls, pid=pid, parent=parent, name=name, **kwargs)
+
+            case Message(sig=Sig.ERROR):
+                ...
+
+            case _:
+                self.logger.error(f'Unprocessable Message: msg={msg}')
+                self.post(Message(sig=Sig.SIGQUIT))
 
     def get_pid(self) -> int:
         with ActorSystem.__pid_l:
@@ -140,6 +146,23 @@ class ActorSystem(BaseActor, metaclass=SingletonMeta):
     def resolve_parent(self, pid: int) -> str:
         actor = self._registry.get(pid)
         return 'None' if actor is None else actor.__repr__()
+
+    def log_mq(self, sender: Optional[int], msg: Message) -> None:
+        if not isinstance(sender, int):
+            self.logger.error(f'### MQ ###\nGot unexpected Sender={sender}, type={type(sender)}\nmsg={msg}')
+        elif self.pid == sender:
+            self.logger.info(f'### MQ ###\nself={self!r}\n{msg=}')
+        else:
+            self.logger.info(f'### MQ ###\nreceiver={self!r}\nsender={actor_system.resolve_parent(sender).__repr__()}\n{msg=}')
+
+    def log_post(self, sender: Optional[int], msg: Message) -> None:
+        if not isinstance(sender, int):
+            self.logger.error(f'### POST ###\nGot unexpected Sender={sender}, type={type(sender)}\nmsg={msg}')
+        elif self.pid == sender:
+            self.logger.info(f'### POST ###\nself={self!r}\n{msg=}')
+        else:
+            self.logger.info(f'### POST ###\nreceiver={self!r}\nsender={actor_system.resolve_parent(sender).__repr__()}\n{msg=}')
+
 
 def get_caller() -> BaseActor:
     frame = sys._getframe(2)

@@ -3,12 +3,11 @@ import traceback
 
 from .wcurses import deinit, wrapper
 from .external.actors import actor_system
-from .services import Dispatcher, API, Display, Files, Input, External, MediaDispatcher#, SocketServer
+from .services import API, Display, Files, Input, External, MediaDispatcher#, SocketServer
 
 
 
 def main():
-    actor_system.create_actor(Dispatcher)
     actor_system.create_actor(API)
     actor_system.create_actor(Display)
     actor_system.create_actor(Files)

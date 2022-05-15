@@ -1,13 +1,16 @@
+import logging
+
 import httpx
 
-from ...external.actors import Actor, Message, Sig, actor_system, ActorGeneric
+from ...external.actors import Actor, Message, Sig, actor_system
 
+from ...utils import SingletonMeta
 from . import helpers
 from ...settings import USERNAME, PASSWORD, extensions_all
 from .constants import AUTH, NAS
 
 
-class API(Actor):
+class API(Actor, metaclass=SingletonMeta):
     def __init__(self, pid: int, parent: int, name='', **kwargs) -> None:
         super().__init__(pid, parent, name, **kwargs)
         self.username = USERNAME
@@ -15,6 +18,7 @@ class API(Actor):
         self.password = PASSWORD
         self.token = ''
         self.extensions = extensions_all
+        self.log_lvl = logging.ERROR
         self.post(Message(sig=Sig.INIT))
 
     def dispatch(self, sender: int, msg: Message) -> None:
@@ -28,7 +32,10 @@ class API(Actor):
                 self.post(Message(Sig.EXT_SET, args=list(self.extensions)))
 
             case Message(sig=Sig.LOGIN_FAILURE, args=args):
-                actor_system.send('Dispatcher', Message(sig=Sig.LOGIN_FAILURE, args=args))
+                raise SystemExit(args)
+
+            case Message(sig=Sig.NETWORK_FAILURE, args=args):
+                raise SystemExit(args)
 
             case Message(sig=Sig.EXT_SUCCESS, args=args):
                 actor_system.send('External', Message(sig=Sig.GET_CACHE))
@@ -45,7 +52,7 @@ class API(Actor):
                     )
                 except httpx.NetworkError as err:
                     # network error, introspection for cause, possible recovery
-                    actor_system.send('Dispatcher', Message(sig=Sig.NETWORK_FAILURE, args=str(err)))
+                    self.post(Message(sig=Sig.NETWORK_FAILURE, args=str(err)))
                 else:
                     token = response.json().get('token')
                     if token is None:
@@ -62,10 +69,10 @@ class API(Actor):
                         timeout=10.0
                     )
                 except httpx.NetworkError as err:
-                    actor_system.send('Dispatcher', Message(sig=Sig.NETWORK_FAILURE, args=str(err)))
+                    self.post(Message(sig=Sig.NETWORK_FAILURE, args=str(err)))
                 else:
                     if response.status_code != 200:
-                        actor_system.send('Dispatcher', Message(sig=Sig.NETWORK_FAILURE, args=response.json()))
+                        self.post(Message(sig=Sig.NETWORK_FAILURE, args=response.json()))
                     else:
                         self.post(Message(sig=Sig.EXT_SUCCESS))
             
@@ -77,10 +84,10 @@ class API(Actor):
                         timeout=20.0
                     )
                 except httpx.NetworkError as err:
-                    actor_system.send('Dispatcher', Message(sig=Sig.NETWORK_FAILURE, args=str(err)))
+                    self.post(Message(sig=Sig.NETWORK_FAILURE, args=str(err)))
                 else:
                     if response.status_code != 200:
-                        actor_system.send('Dispatcher', Message(sig=Sig.NETWORK_FAILURE, args=response.json()))
+                        self.post(Message(sig=Sig.NETWORK_FAILURE, args=response.json()))
                     else:
                         actor_system.send('External', Message(sig=Sig.FILES_NEW, args=response.json()))
 
@@ -92,10 +99,10 @@ class API(Actor):
                         timeout=10.0
                     )
                 except httpx.NetworkError as err:
-                    actor_system.send('Dispatcher', Message(sig=Sig.NETWORK_FAILURE, args=str(err)))
+                    self.post(Message(sig=Sig.NETWORK_FAILURE, args=str(err)))
                 else:
                     if response.status_code != 200:
-                        actor_system.send('Dispatcher', Message(sig=Sig.NETWORK_FAILURE, args=response.json()))
+                        self.post(Message(sig=Sig.NETWORK_FAILURE, args=response.json()))
                     else:
                         self.post(Message(sig=Sig.FILES_GET))
 

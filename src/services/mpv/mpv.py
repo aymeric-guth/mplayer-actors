@@ -32,6 +32,7 @@ class MPV(Actor):
         # mpv_load_config_file(self.handle, str(path).encode('utf-8'))
         _mpv.mpv_initialize(self.handle)
         self.log_lvl = logging.ERROR
+        self.post(Message(sig=Sig.INIT))
 
     @property
     def pos(self) -> float:

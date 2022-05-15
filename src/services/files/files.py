@@ -3,6 +3,8 @@ import os
 import re
 import logging
 
+from ...utils import SingletonMeta
+
 from ...external.actors import Actor, Message, Sig, actor_system
 from ...settings import extensions_all
 from . import helpers
@@ -12,7 +14,7 @@ from ._types import CWD
 # Synthetic CWD, recompose un tree à partir de critères de recherche
 # regroupe tous les noeuds matchs dans une nouvelle racine récursivement
 
-class Files(Actor):
+class Files(Actor, metaclass=SingletonMeta):
     def __init__(self, pid: int, parent: int, name='', **kwargs) -> None:
         super().__init__(pid, parent, name, **kwargs)
         self.files_tree: dict[tuple[str, ...], list[tuple[str, str]]] = defaultdict(list)
@@ -23,12 +25,6 @@ class Files(Actor):
         match msg:
             case Message(sig=Sig.INIT, args=args):
                 ...
-
-            case Message(sig=Sig.TEST, args=args):
-                ...
-                # actor_system.send('Dispatcher', Message(sig=Sig.PARSE, args='1'))
-                # actor_system.send('Dispatcher', Message(sig=Sig.PARSE, args='3'))
-                # actor_system.send('Dispatcher', Message(sig=Sig.PARSE, args='10'))
 
             case Message(sig=Sig.CWD_GET, args=args):
                 actor_system.send(sender, Message(sig=Sig.CWD_GET, args=helpers.get_kwargs(self)))
@@ -51,54 +47,47 @@ class Files(Actor):
                         self.dir_tree[key[:-1]].add(key[-1])
 
                 self.post(Message(sig=Sig.PATH_SET))
-                self.post(Message(sig=Sig.TEST))
 
             case Message(sig=Sig.SEARCH, args=args):
-                self.logger.error(f'{args=}')
                 pattern = re.compile(args, re.IGNORECASE)
-                self.logger.error(f'{pattern=}')
                 self.dirs = [ 
                     i for i in list(self.dir_tree.get(CWD().path, []))
                     if pattern.search(i)
-                    # if i and args.lower() in i.lower()
                 ]
                 self.files = [ 
                     i for i in list(self.files_tree.get(CWD().path, []))
                     if pattern.search(i[0])
-                    # if i and args.lower() in i[0].lower()
                 ]
-                self.dirs.sort()
-                self.files.sort()
-                self.dirs.insert(0, "..")
-                self.files.insert(0, ('', ''))
-                self.len_dir = len(self.dirs)
-                self.len_files = len(self.files)
-                actor_system.send('Display', Message(sig=Sig.CWD_GET, args=helpers.get_kwargs(self)))
+                self.post(Message(Sig.PATH_REFRESH))
 
             case Message(sig=Sig.FILES_GET, args=args):
                 match args:
-                    case [p1] if isinstance(p1, int) and p1 >= 0 and p1 < len(self.files):
+                    case [p1] if isinstance(p1, int) and p1 > 0 and p1 < len(self.files):
                         args = [ f'{CWD().realpath}{f}{e}' for f, e in self.files[p1:] ]
-                    case [p1, p2]:
-                        ...
-                    # case [p1, p2] if isinstance(p1, int) and isinstance(p2, int) and p1 >= 0 and p1 < len(self.files) and p2 >= 0 and p2 < len(self.files):
-                    #     args = [ f'{self.path_full}{f}{e}' for f, e in self.files[p1:] ]
+                    case [p1, p2] if (p1 > 0 and p1 < len(self.files)) and (p2 > 0 and p2 < len(self.files)):
+                        if p1 < p2:
+                            args = [ f'{CWD().realpath}{f}{e}' for f, e in self.files[p1:p2+1] ]
+                        elif p1 > p2:
+                            args = [ f'{CWD().realpath}{f}{e}' for f, e in self.files[p1:p2-1:-1] ]
+                        else:
+                            ...
+                            # self.post(Message(sig=Sig.PATH_SET, args=p1))
                     case None:
                         args = [ f'{CWD().realpath}{f}{e}' for f, e in self.files[1:] ]
                     case _:
-                        ...
+                        return
                 actor_system.send(sender, Message(sig=Sig.FILES_GET, args=args))
 
             case Message(sig=Sig.PATH_SET, args=param) if isinstance(param, int):
                 if not param:
                     CWD().pop()
-                    self.post(Message(sig=Sig.PATH_REFRESH))
+                    self.post(Message(sig=Sig.PATH_CONTENT))
                 elif param < len(self.dirs):
                     # selection valide 1+
                     # selection en range de la liste des dossisers affichés
                     # default vers selection parmi les dossiers
                     CWD().push(f"{self.dirs[param]}")
-                    self.post(Message(sig=Sig.PATH_REFRESH))
+                    self.post(Message(sig=Sig.PATH_CONTENT))
                 elif self.files[1:] and param < len(self.files):
                     # selection valide 1+
                     # selection en range de la liste de fichiers affichés
@@ -114,13 +103,18 @@ class Files(Actor):
             case Message(sig=Sig.PATH_SET, args=param) if isinstance(param, list | tuple):
                 # bookmark overload de path?
                 CWD().path = param
-                self.post(Message(sig=Sig.PATH_REFRESH))
+                self.post(Message(sig=Sig.PATH_CONTENT))
 
             case Message(sig=Sig.PATH_SET, args=param) if param is None:
-                self.post(Message(sig=Sig.PATH_REFRESH))
+                self.post(Message(sig=Sig.PATH_CONTENT))
 
             case Message(sig=Sig.PATH_SET, args=param):
                 actor_system.send(sender, Message(sig=Sig.ERROR, args=f'Invalid selection: {param}'))
+
+            case Message(sig=Sig.PATH_CONTENT):
+                self.dirs = list( self.dir_tree.get(CWD().path, []) )
+                self.files = list( self.files_tree.get(CWD().path, []) )
+                self.post(Message(sig=Sig.PATH_REFRESH))
 
             case Message(sig=Sig.PATH_REFRESH):
                 # Guard si un folder a été delete
@@ -129,8 +123,6 @@ class Files(Actor):
                         raise OSError
                     CWD().pop()
 
-                self.dirs = list( self.dir_tree.get(CWD().path, []) )
-                self.files = list( self.files_tree.get(CWD().path, []) )
                 self.dirs.sort()
                 self.files.sort()
                 self.dirs.insert(0, '..')

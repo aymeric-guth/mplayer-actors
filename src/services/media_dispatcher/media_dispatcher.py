@@ -1,16 +1,22 @@
+import logging
+
 from ...external.actors import Actor, Message, Sig, actor_system
 
 from ..mpv import MPV
 from .playlist import Playlist
 from ...settings import PlaybackMode
 
+from ...utils import SingletonMeta
 
-class MediaDispatcher(Actor):
+
+class MediaDispatcher(Actor, metaclass=SingletonMeta):
     def __init__(self, pid: int, parent: int, name='', **kwargs) -> None:
         super().__init__(pid, parent, name, **kwargs)
         self.wid = b'\x00\x00\x00\x00'
         self.pl: Playlist = None
         self.playback = PlaybackMode.NORMAL
+        self.log_lvl = logging.ERROR
+        self.post(Message(sig=Sig.INIT))
        
     def dispatch(self, sender: int, msg: Message) -> None:
         match msg:

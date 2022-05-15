@@ -7,10 +7,10 @@ from ...wcurses import stdscr
 
 from .constants import num_mapping, Key
 from .helpers import CmdCache, eval_cmd
+from ...utils import SingletonMeta
 
 
-
-class Input(Actor):
+class Input(Actor, metaclass=SingletonMeta):
     def __init__(self, pid: int, parent: int, name='', **kwargs) -> None:
         super().__init__(pid, parent, name, **kwargs)
         self._prompt_mode = 0

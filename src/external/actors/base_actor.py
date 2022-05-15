@@ -21,7 +21,7 @@ class BaseActor:
         self._parent = parent
         self._name = name if name else self.__class__.__name__
 
-        self.mq: Queue = Queue()
+        self._mq: Queue = Queue()
         self.subscribers: list[BaseActor] = []
 
         self._last = 0
@@ -36,12 +36,13 @@ class BaseActor:
         self._logger = logging.LoggerAdapter(_logger, {'actor': self.__repr__()})
         self.log_lvl = logging.ERROR
 
-        self.post(Message(sig=Sig.INIT))
+        # self.post(Message(sig=Sig.INIT))
 
     def run(self) -> None:
         while 1:
-            (sender, msg) = self.mq.get()
-            self.logger.info(f'receiver={self} sender={sender} {msg=}')
+            # (sender, msg) = self.get()
+            (sender, msg) = self._mq.get()
+            self.log_mq(sender, msg)
             try:
                 self.dispatch(sender, msg)
             except Exception as err:
@@ -52,7 +53,8 @@ class BaseActor:
                 self.handler(f'{err} {trace(1)[-1]}')
                 raise SystemExit
             else:
-                self.mq.task_done()
+                self._mq.task_done()
+                # self.done()
 
     def dispatch(self, sender: int, msg: Message) -> None:
         raise NotImplementedError
@@ -63,8 +65,17 @@ class BaseActor:
     def terminate(self) -> None:
         raise NotImplementedError
 
-    def post(self, msg: Message|dict[str, str], sender: Optional[int]=None) -> None:
-        self.mq.put((self, msg)) if sender is None else self.mq.put((sender, msg))
+    def post(self, msg: Message, sender: Optional[int]=None) -> None:
+        if sender is None:
+            sender = self.pid  
+        self.log_post(sender, msg)
+        self._mq.put_nowait((sender, msg))
+
+    def get(self) -> tuple[int, Message]:
+        return self._mq.get()
+
+    def done(self) -> None:
+        self._mq.task_done()
 
     @property
     def pid(self) -> int:
@@ -130,3 +141,9 @@ class BaseActor:
 
     def __hash__(self) -> int:
         return hash(self.pid)
+
+    def log_mq(self, sender: Optional[int], msg: Message) -> None:
+        raise NotImplementedError
+    
+    def log_post(self, sender: Optional[int], msg: Message) -> None:
+        raise NotImplementedError

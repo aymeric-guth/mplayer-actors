@@ -1,0 +1,756 @@
+New message available:
+[2022-05-15 16:49:01,888][INFO][API(pid=1)][API:47]
+[### POST ###
+self=API(pid=1)
+msg=Message(sig=Sig.INIT, args=<class 'NoneType'>)]
+
+New message available:
+[2022-05-15 16:49:01,889][INFO][API(pid=1)][API:39]
+[### MQ ###
+self=API(pid=1)
+msg=Message(sig=Sig.INIT, args=<class 'NoneType'>)]
+
+New message available:
+[2022-05-15 16:49:01,889][INFO][API(pid=1)][API:47]
+[### POST ###
+self=API(pid=1)
+msg=Message(sig=Sig.LOGIN, args=<class 'NoneType'>)]
+
+New message available:
+[2022-05-15 16:49:01,889][INFO][API(pid=1)][API:39]
+[### MQ ###
+self=API(pid=1)
+msg=Message(sig=Sig.INIT, args=<class 'NoneType'>)]
+
+New message available:
+[2022-05-15 16:49:01,889][INFO][API(pid=1)][API:47]
+[### POST ###
+self=API(pid=1)
+msg=Message(sig=Sig.LOGIN, args=<class 'NoneType'>)]
+
+New message available:
+[2022-05-15 16:49:01,890][INFO][API(pid=1)][API:39]
+[### MQ ###
+self=API(pid=1)
+msg=Message(sig=Sig.LOGIN, args=<class 'NoneType'>)]
+
+New message available:
+[2022-05-15 16:49:01,889][INFO][Display(pid=2)][Display:39]
+[### MQ ###
+self=Display(pid=2)
+msg=Message(sig=Sig.INIT, args=<class 'NoneType'>)]
+
+New message available:
+[2022-05-15 16:49:01,890][INFO][Display(pid=2)][Display:123]
+[Can't handle msg=Message(sig=Sig.INIT, args=<class 'NoneType'>)]
+
+New message available:
+[2022-05-15 16:49:01,891][INFO][Display(pid=2)][Display:49]
+[### POST ###
+receiver=Display(pid=2)
+sender='None'
+msg=Message(sig=Sig.MEDIA_META, args=<class 'dict'>)]
+
+New message available:
+[2022-05-15 16:49:01,892][INFO][Display(pid=2)][Display:41]
+[### MQ ###
+receiver=Display(pid=2)
+sender='MediaDispatcher(pid=6)'
+msg=Message(sig=Sig.MEDIA_META, args=<class 'dict'>)]
+
+New message available:
+[2022-05-15 16:49:01,892][INFO][Display(pid=2)][Display:47]
+[### POST ###
+self=Display(pid=2)
+msg={'event': 'property-change', 'name': 'draw-playback'}]
+
+New message available:
+[2022-05-15 16:49:01,892][INFO][Display(pid=2)][Display:39]
+[### MQ ###
+self=Display(pid=2)
+msg={'event': 'property-change', 'name': 'draw-playback'}]
+
+New connection
+New connection
+New connection
+New message available:
+[2022-05-15 16:49:01,890][INFO][Files(pid=3)][Files:39]
+[### MQ ###
+self=Files(pid=3)
+msg=Message(sig=Sig.INIT, args=<class 'NoneType'>)]
+
+New message available:
+[2022-05-15 16:49:01,891][INFO][External(pid=5)][External:39]
+[### MQ ###
+self=External(pid=5)
+msg=Message(sig=Sig.INIT, args=<class 'NoneType'>)]
+
+New message available:
+[2022-05-15 16:49:01,892][INFO][External(pid=5)][External:47]
+[### POST ###
+self=External(pid=5)
+msg=Message(sig=Sig.SMB_PING, args=<class 'int'>)]
+
+New message available:
+[2022-05-15 16:49:01,892][INFO][External(pid=5)][External:47]
+[### POST ###
+self=External(pid=5)
+msg=Message(sig=Sig.HOOK, args=<class 'tuple'>)]
+
+New message available:
+[2022-05-15 16:49:01,892][INFO][External(pid=5)][External:47]
+[### POST ###
+self=External(pid=5)
+msg=Message(sig=Sig.HOOK, args=<class 'tuple'>)]
+
+New message available:
+[2022-05-15 16:49:01,892][INFO][External(pid=5)][External:47]
+[### POST ###
+self=External(pid=5)
+msg=Message(sig=Sig.HOOK, args=<class 'tuple'>)]
+
+New message available:
+[2022-05-15 16:49:01,893][INFO][External(pid=5)][External:47]
+[### POST ###
+self=External(pid=5)
+msg=Message(sig=Sig.HOOK, args=<class 'tuple'>)]
+
+New message available:
+[2022-05-15 16:49:01,893][INFO][External(pid=5)][External:47]
+[### POST ###
+self=External(pid=5)
+msg=Message(sig=Sig.HOOK, args=<class 'tuple'>)]
+
+New message available:
+[2022-05-15 16:49:01,893][INFO][External(pid=5)][External:47]
+[### POST ###
+self=External(pid=5)
+msg=Message(sig=Sig.HOOK, args=<class 'tuple'>)]
+
+New message available:
+[2022-05-15 16:49:01,893][INFO][External(pid=5)][External:47]
+[### POST ###
+self=External(pid=5)
+msg=Message(sig=Sig.HOOK, args=<class 'tuple'>)]
+
+New message available:
+[2022-05-15 16:49:01,893][INFO][External(pid=5)][External:39]
+[### MQ ###
+self=External(pid=5)
+msg=Message(sig=Sig.SMB_PING, args=<class 'int'>)]
+
+New message available:
+[2022-05-15 16:49:01,893][INFO][External(pid=5)][External:46]
+[host: 192.168.1.200 on port: 445 is up, trying to connect]
+
+New message available:
+[2022-05-15 16:49:01,893][INFO][External(pid=5)][External:47]
+[### POST ###
+self=External(pid=5)
+msg=Message(sig=Sig.SMB_MOUNT, args=<class 'NoneType'>)]
+
+New message available:
+[2022-05-15 16:49:01,894][INFO][External(pid=5)][External:39]
+[### MQ ###
+self=External(pid=5)
+msg=Message(sig=Sig.HOOK, args=<class 'tuple'>)]
+
+New message available:
+[2022-05-15 16:49:01,894][INFO][External(pid=5)][External:39]
+[### MQ ###
+self=External(pid=5)
+msg=Message(sig=Sig.HOOK, args=<class 'tuple'>)]
+
+New message available:
+[2022-05-15 16:49:01,895][INFO][External(pid=5)][External:39]
+[### MQ ###
+self=External(pid=5)
+msg=Message(sig=Sig.HOOK, args=<class 'tuple'>)]
+
+New message available:
+[2022-05-15 16:49:01,895][INFO][External(pid=5)][External:39]
+[### MQ ###
+self=External(pid=5)
+msg=Message(sig=Sig.HOOK, args=<class 'tuple'>)]
+
+New message available:
+[2022-05-15 16:49:01,895][INFO][External(pid=5)][External:39]
+[### MQ ###
+self=External(pid=5)
+msg=Message(sig=Sig.HOOK, args=<class 'tuple'>)]
+
+New message available:
+[2022-05-15 16:49:01,896][INFO][External(pid=5)][External:39]
+[### MQ ###
+self=External(pid=5)
+msg=Message(sig=Sig.HOOK, args=<class 'tuple'>)]
+
+New message available:
+[2022-05-15 16:49:01,896][INFO][External(pid=5)][External:39]
+[### MQ ###
+self=External(pid=5)
+msg=Message(sig=Sig.HOOK, args=<class 'tuple'>)]
+
+New message available:
+[2022-05-15 16:49:01,891][INFO][MediaDispatcher(pid=6)][MediaDispatcher:39]
+[### MQ ###
+self=MediaDispatcher(pid=6)
+msg=Message(sig=Sig.INIT, args=<class 'NoneType'>)]
+
+New message available:
+[2022-05-15 16:49:01,898][INFO][MediaDispatcher(pid=6)][MediaDispatcher:49]
+[### POST ###
+receiver=MediaDispatcher(pid=6)
+sender='MPV(pid=7)'
+msg=Message(sig=Sig.WATCHER, args=<class 'dict'>)]
+
+New message available:
+[2022-05-15 16:49:01,898][INFO][MediaDispatcher(pid=6)][MediaDispatcher:49]
+[### POST ###
+receiver=MediaDispatcher(pid=6)
+sender='MPV(pid=7)'
+msg=Message(sig=Sig.WATCHER, args=<class 'dict'>)]
+
+New message available:
+[2022-05-15 16:49:01,898][INFO][External(pid=5)][External:39]
+[### MQ ###
+self=External(pid=5)
+msg=Message(sig=Sig.SMB_MOUNT, args=<class 'NoneType'>)]
+
+New message available:
+[2022-05-15 16:49:01,898][INFO][MediaDispatcher(pid=6)][MediaDispatcher:49]
+[### POST ###
+receiver=MediaDispatcher(pid=6)
+sender='MPV(pid=7)'
+msg=Message(sig=Sig.WATCHER, args=<class 'dict'>)]
+
+New message available:
+[2022-05-15 16:49:01,898][INFO][MediaDispatcher(pid=6)][MediaDispatcher:41]
+[### MQ ###
+receiver=MediaDispatcher(pid=6)
+sender='MPV(pid=7)'
+msg=Message(sig=Sig.WATCHER, args=<class 'dict'>)]
+
+New message available:
+[2022-05-15 16:49:01,898][INFO][MediaDispatcher(pid=6)][MediaDispatcher:49]
+[### POST ###
+receiver=MediaDispatcher(pid=6)
+sender='MPV(pid=7)'
+msg=Message(sig=Sig.WATCHER, args=<class 'dict'>)]
+
+New message available:
+[2022-05-15 16:49:01,902][INFO][MediaDispatcher(pid=6)][MediaDispatcher:49]
+[### POST ###
+receiver=MediaDispatcher(pid=6)
+sender='MPV(pid=7)'
+msg=Message(sig=Sig.WATCHER, args=<class 'dict'>)]
+
+New message available:
+[2022-05-15 16:49:01,902][INFO][MediaDispatcher(pid=6)][MediaDispatcher:41]
+[### MQ ###
+receiver=MediaDispatcher(pid=6)
+sender='MPV(pid=7)'
+msg=Message(sig=Sig.WATCHER, args=<class 'dict'>)]
+
+New message available:
+[2022-05-15 16:49:01,902][INFO][MediaDispatcher(pid=6)][MediaDispatcher:49]
+[### POST ###
+receiver=MediaDispatcher(pid=6)
+sender='MPV(pid=7)'
+msg=Message(sig=Sig.WATCHER, args=<class 'dict'>)]
+
+New message available:
+[2022-05-15 16:49:01,903][INFO][MediaDispatcher(pid=6)][MediaDispatcher:41]
+[### MQ ###
+receiver=MediaDispatcher(pid=6)
+sender='MPV(pid=7)'
+msg=Message(sig=Sig.WATCHER, args=<class 'dict'>)]
+
+New message available:
+[2022-05-15 16:49:01,901][INFO][Display(pid=2)][Display:49]
+[### POST ###
+receiver=Display(pid=2)
+sender='MediaDispatcher(pid=6)'
+msg=Message(sig=Sig.MEDIA_META, args=<class 'dict'>)]
+
+New message available:
+[2022-05-15 16:49:01,902][INFO][Display(pid=2)][Display:41]
+[### MQ ###
+receiver=Display(pid=2)
+sender='MediaDispatcher(pid=6)'
+msg=Message(sig=Sig.MEDIA_META, args=<class 'dict'>)]
+
+New message available:
+[2022-05-15 16:49:01,902][INFO][Display(pid=2)][Display:49]
+[### POST ###
+receiver=Display(pid=2)
+sender='MediaDispatcher(pid=6)'
+msg=Message(sig=Sig.MEDIA_META, args=<class 'dict'>)]
+
+New message available:
+[2022-05-15 16:49:01,903][INFO][Display(pid=2)][Display:47]
+[### POST ###
+self=Display(pid=2)
+msg={'event': 'property-change', 'name': 'draw-playback'}]
+
+New message available:
+[2022-05-15 16:49:01,903][INFO][Display(pid=2)][Display:41]
+[### MQ ###
+receiver=Display(pid=2)
+sender='MediaDispatcher(pid=6)'
+msg=Message(sig=Sig.MEDIA_META, args=<class 'dict'>)]
+
+New message available:
+[2022-05-15 16:49:01,903][INFO][Display(pid=2)][Display:49]
+[### POST ###
+receiver=Display(pid=2)
+sender='MediaDispatcher(pid=6)'
+msg=Message(sig=Sig.MEDIA_META, args=<class 'dict'>)]
+
+New message available:
+[2022-05-15 16:49:01,903][INFO][Display(pid=2)][Display:47]
+[### POST ###
+self=Display(pid=2)
+msg={'event': 'property-change', 'name': 'draw-playback'}]
+
+New message available:
+[2022-05-15 16:49:01,904][INFO][Display(pid=2)][Display:49]
+[### POST ###
+receiver=Display(pid=2)
+sender='MediaDispatcher(pid=6)'
+msg=Message(sig=Sig.MEDIA_META, args=<class 'dict'>)]
+
+New message available:
+[2022-05-15 16:49:01,904][INFO][Display(pid=2)][Display:39]
+[### MQ ###
+self=Display(pid=2)
+msg={'event': 'property-change', 'name': 'draw-playback'}]
+
+New message available:
+[2022-05-15 16:49:01,904][INFO][Display(pid=2)][Display:49]
+[### POST ###
+receiver=Display(pid=2)
+sender='MediaDispatcher(pid=6)'
+msg=Message(sig=Sig.MEDIA_META, args=<class 'dict'>)]
+
+New message available:
+[2022-05-15 16:49:01,905][INFO][Display(pid=2)][Display:41]
+[### MQ ###
+receiver=Display(pid=2)
+sender='MediaDispatcher(pid=6)'
+msg=Message(sig=Sig.MEDIA_META, args=<class 'dict'>)]
+
+New message available:
+[2022-05-15 16:49:01,903][INFO][MediaDispatcher(pid=6)][MediaDispatcher:49]
+[### POST ###
+receiver=MediaDispatcher(pid=6)
+sender='MPV(pid=7)'
+msg=Message(sig=Sig.WATCHER, args=<class 'dict'>)]
+
+New message available:
+[2022-05-15 16:49:01,903][INFO][MediaDispatcher(pid=6)][MediaDispatcher:49]
+[### POST ###
+receiver=MediaDispatcher(pid=6)
+sender='MPV(pid=7)'
+msg=Message(sig=Sig.DONE, args=<class 'NoneType'>)]
+
+New message available:
+[2022-05-15 16:49:01,904][INFO][MediaDispatcher(pid=6)][MediaDispatcher:41]
+[### MQ ###
+receiver=MediaDispatcher(pid=6)
+sender='MPV(pid=7)'
+msg=Message(sig=Sig.WATCHER, args=<class 'dict'>)]
+
+New message available:
+[2022-05-15 16:49:01,904][INFO][MediaDispatcher(pid=6)][MediaDispatcher:41]
+[### MQ ###
+receiver=MediaDispatcher(pid=6)
+sender='MPV(pid=7)'
+msg=Message(sig=Sig.WATCHER, args=<class 'dict'>)]
+
+New message available:
+[2022-05-15 16:49:01,905][INFO][MediaDispatcher(pid=6)][MediaDispatcher:41]
+[### MQ ###
+receiver=MediaDispatcher(pid=6)
+sender='MPV(pid=7)'
+msg=Message(sig=Sig.WATCHER, args=<class 'dict'>)]
+
+New message available:
+[2022-05-15 16:49:01,905][INFO][Display(pid=2)][Display:47]
+[### POST ###
+self=Display(pid=2)
+msg={'event': 'property-change', 'name': 'draw-playback'}]
+
+New message available:
+[2022-05-15 16:49:01,905][INFO][Display(pid=2)][Display:49]
+[### POST ###
+receiver=Display(pid=2)
+sender='MediaDispatcher(pid=6)'
+msg=Message(sig=Sig.MEDIA_META, args=<class 'dict'>)]
+
+New message available:
+[2022-05-15 16:49:01,905][INFO][Display(pid=2)][Display:39]
+[### MQ ###
+self=Display(pid=2)
+msg={'event': 'property-change', 'name': 'draw-playback'}]
+
+New message available:
+[2022-05-15 16:49:01,905][INFO][Display(pid=2)][Display:49]
+[### POST ###
+receiver=Display(pid=2)
+sender='MediaDispatcher(pid=6)'
+msg=Message(sig=Sig.MEDIA_META, args=<class 'dict'>)]
+
+New message available:
+[2022-05-15 16:49:01,905][INFO][Display(pid=2)][Display:41]
+[### MQ ###
+receiver=Display(pid=2)
+sender='MediaDispatcher(pid=6)'
+msg=Message(sig=Sig.MEDIA_META, args=<class 'dict'>)]
+
+New message available:
+[2022-05-15 16:49:01,906][INFO][Display(pid=2)][Display:47]
+[### POST ###
+self=Display(pid=2)
+msg={'event': 'property-change', 'name': 'draw-playback'}]
+
+New message available:
+[2022-05-15 16:49:01,906][INFO][Display(pid=2)][Display:41]
+[### MQ ###
+receiver=Display(pid=2)
+sender='MediaDispatcher(pid=6)'
+msg=Message(sig=Sig.MEDIA_META, args=<class 'dict'>)]
+
+New message available:
+[2022-05-15 16:49:01,906][INFO][Display(pid=2)][Display:47]
+[### POST ###
+self=Display(pid=2)
+msg={'event': 'property-change', 'name': 'draw-playback'}]
+
+New message available:
+[2022-05-15 16:49:01,906][INFO][Display(pid=2)][Display:39]
+[### MQ ###
+self=Display(pid=2)
+msg={'event': 'property-change', 'name': 'draw-playback'}]
+
+New message available:
+[2022-05-15 16:49:01,906][INFO][Display(pid=2)][Display:41]
+[### MQ ###
+receiver=Display(pid=2)
+sender='MediaDispatcher(pid=6)'
+msg=Message(sig=Sig.MEDIA_META, args=<class 'dict'>)]
+
+New message available:
+[2022-05-15 16:49:01,906][INFO][Display(pid=2)][Display:47]
+[### POST ###
+self=Display(pid=2)
+msg={'event': 'property-change', 'name': 'draw-playback'}]
+
+New message available:
+[2022-05-15 16:49:01,906][INFO][Display(pid=2)][Display:41]
+[### MQ ###
+receiver=Display(pid=2)
+sender='MediaDispatcher(pid=6)'
+msg=Message(sig=Sig.MEDIA_META, args=<class 'dict'>)]
+
+New message available:
+[2022-05-15 16:49:01,906][INFO][Display(pid=2)][Display:47]
+[### POST ###
+self=Display(pid=2)
+msg={'event': 'property-change', 'name': 'draw-playback'}]
+
+New message available:
+[2022-05-15 16:49:01,906][INFO][Display(pid=2)][Display:39]
+[### MQ ###
+self=Display(pid=2)
+msg={'event': 'property-change', 'name': 'draw-playback'}]
+
+New message available:
+[2022-05-15 16:49:01,906][INFO][Display(pid=2)][Display:39]
+[### MQ ###
+self=Display(pid=2)
+msg={'event': 'property-change', 'name': 'draw-playback'}]
+
+New message available:
+[2022-05-15 16:49:01,905][INFO][MediaDispatcher(pid=6)][MediaDispatcher:41]
+[### MQ ###
+receiver=MediaDispatcher(pid=6)
+sender='MPV(pid=7)'
+msg=Message(sig=Sig.WATCHER, args=<class 'dict'>)]
+
+New message available:
+[2022-05-15 16:49:01,905][INFO][MediaDispatcher(pid=6)][MediaDispatcher:41]
+[### MQ ###
+receiver=MediaDispatcher(pid=6)
+sender='MPV(pid=7)'
+msg=Message(sig=Sig.DONE, args=<class 'NoneType'>)]
+
+New message available:
+[2022-05-15 16:49:01,906][INFO][Display(pid=2)][Display:39]
+[### MQ ###
+self=Display(pid=2)
+msg={'event': 'property-change', 'name': 'draw-playback'}]
+
+New message available:
+[2022-05-15 16:49:01,906][INFO][Display(pid=2)][Display:39]
+[### MQ ###
+self=Display(pid=2)
+msg={'event': 'property-change', 'name': 'draw-playback'}]
+
+New message available:
+[2022-05-15 16:49:02,265][INFO][API(pid=1)][API:47]
+[### POST ###
+self=API(pid=1)
+msg=Message(sig=Sig.LOGIN_SUCCESS, args=<class 'str'>)]
+
+New message available:
+[2022-05-15 16:49:02,265][INFO][API(pid=1)][API:39]
+[### MQ ###
+self=API(pid=1)
+msg=Message(sig=Sig.LOGIN, args=<class 'NoneType'>)]
+
+New message available:
+[2022-05-15 16:49:02,635][INFO][API(pid=1)][API:47]
+[### POST ###
+self=API(pid=1)
+msg=Message(sig=Sig.LOGIN_SUCCESS, args=<class 'str'>)]
+
+New message available:
+[2022-05-15 16:49:02,635][INFO][API(pid=1)][API:39]
+[### MQ ###
+self=API(pid=1)
+msg=Message(sig=Sig.LOGIN_SUCCESS, args=<class 'str'>)]
+
+New message available:
+[2022-05-15 16:49:02,635][INFO][API(pid=1)][API:47]
+[### POST ###
+self=API(pid=1)
+msg=Message(sig=Sig.EXT_SET, args=<class 'list'>)]
+
+New message available:
+[2022-05-15 16:49:02,635][INFO][API(pid=1)][API:39]
+[### MQ ###
+self=API(pid=1)
+msg=Message(sig=Sig.LOGIN_SUCCESS, args=<class 'str'>)]
+
+New message available:
+[2022-05-15 16:49:02,635][INFO][API(pid=1)][API:47]
+[### POST ###
+self=API(pid=1)
+msg=Message(sig=Sig.EXT_SET, args=<class 'list'>)]
+
+New message available:
+[2022-05-15 16:49:02,635][INFO][API(pid=1)][API:39]
+[### MQ ###
+self=API(pid=1)
+msg=Message(sig=Sig.EXT_SET, args=<class 'list'>)]
+
+New message available:
+[2022-05-15 16:49:02,833][INFO][API(pid=1)][API:47]
+[### POST ###
+self=API(pid=1)
+msg=Message(sig=Sig.EXT_SUCCESS, args=<class 'NoneType'>)]
+
+New message available:
+[2022-05-15 16:49:02,833][INFO][API(pid=1)][API:39]
+[### MQ ###
+self=API(pid=1)
+msg=Message(sig=Sig.EXT_SET, args=<class 'list'>)]
+
+New message available:
+[2022-05-15 16:49:02,994][INFO][API(pid=1)][API:47]
+[### POST ###
+self=API(pid=1)
+msg=Message(sig=Sig.EXT_SUCCESS, args=<class 'NoneType'>)]
+
+New message available:
+[2022-05-15 16:49:02,994][INFO][API(pid=1)][API:39]
+[### MQ ###
+self=API(pid=1)
+msg=Message(sig=Sig.EXT_SUCCESS, args=<class 'NoneType'>)]
+
+New message available:
+[2022-05-15 16:49:02,995][INFO][API(pid=1)][API:39]
+[### MQ ###
+self=API(pid=1)
+msg=Message(sig=Sig.EXT_SUCCESS, args=<class 'NoneType'>)]
+
+New message available:
+[2022-05-15 16:49:02,994][INFO][External(pid=5)][External:49]
+[### POST ###
+receiver=External(pid=5)
+sender='API(pid=1)'
+msg=Message(sig=Sig.GET_CACHE, args=<class 'NoneType'>)]
+
+New message available:
+[2022-05-15 16:49:02,995][INFO][External(pid=5)][External:49]
+[### POST ###
+receiver=External(pid=5)
+sender='API(pid=1)'
+msg=Message(sig=Sig.GET_CACHE, args=<class 'NoneType'>)]
+
+New message available:
+[2022-05-15 16:49:02,995][INFO][External(pid=5)][External:41]
+[### MQ ###
+receiver=External(pid=5)
+sender='API(pid=1)'
+msg=Message(sig=Sig.GET_CACHE, args=<class 'NoneType'>)]
+
+New message available:
+[2022-05-15 16:49:03,112][INFO][Files(pid=3)][Files:49]
+[### POST ###
+receiver=Files(pid=3)
+sender='External(pid=5)'
+msg=Message(sig=Sig.FILES_NEW, args=<class 'list'>)]
+
+New message available:
+[2022-05-15 16:49:03,112][INFO][External(pid=5)][External:41]
+[### MQ ###
+receiver=External(pid=5)
+sender='API(pid=1)'
+msg=Message(sig=Sig.GET_CACHE, args=<class 'NoneType'>)]
+
+New message available:
+[2022-05-15 16:49:03,113][INFO][Files(pid=3)][Files:41]
+[### MQ ###
+receiver=Files(pid=3)
+sender='External(pid=5)'
+msg=Message(sig=Sig.FILES_NEW, args=<class 'list'>)]
+
+New message available:
+[2022-05-15 16:49:03,351][INFO][Files(pid=3)][Files:49]
+[### POST ###
+receiver=Files(pid=3)
+sender='External(pid=5)'
+msg=Message(sig=Sig.FILES_NEW, args=<class 'list'>)]
+
+New message available:
+[2022-05-15 16:49:03,764][INFO][Files(pid=3)][Files:47]
+[### POST ###
+self=Files(pid=3)
+msg=Message(sig=Sig.PATH_SET, args=<class 'NoneType'>)]
+
+New message available:
+[2022-05-15 16:49:03,776][INFO][Files(pid=3)][Files:41]
+[### MQ ###
+receiver=Files(pid=3)
+sender='External(pid=5)'
+msg=Message(sig=Sig.FILES_NEW, args=<class 'list'>)]
+
+New message available:
+[2022-05-15 16:49:04,372][INFO][Files(pid=3)][Files:47]
+[### POST ###
+self=Files(pid=3)
+msg=Message(sig=Sig.PATH_SET, args=<class 'NoneType'>)]
+
+New message available:
+[2022-05-15 16:49:04,385][INFO][Files(pid=3)][Files:39]
+[### MQ ###
+self=Files(pid=3)
+msg=Message(sig=Sig.PATH_SET, args=<class 'NoneType'>)]
+
+New message available:
+[2022-05-15 16:49:04,385][INFO][Files(pid=3)][Files:47]
+[### POST ###
+self=Files(pid=3)
+msg=Message(sig=Sig.PATH_CONTENT, args=<class 'NoneType'>)]
+
+New message available:
+[2022-05-15 16:49:04,385][INFO][Files(pid=3)][Files:39]
+[### MQ ###
+self=Files(pid=3)
+msg=Message(sig=Sig.PATH_SET, args=<class 'NoneType'>)]
+
+New message available:
+[2022-05-15 16:49:04,385][INFO][Files(pid=3)][Files:47]
+[### POST ###
+self=Files(pid=3)
+msg=Message(sig=Sig.PATH_CONTENT, args=<class 'NoneType'>)]
+
+New message available:
+[2022-05-15 16:49:04,385][INFO][Files(pid=3)][Files:39]
+[### MQ ###
+self=Files(pid=3)
+msg=Message(sig=Sig.PATH_CONTENT, args=<class 'NoneType'>)]
+
+New message available:
+[2022-05-15 16:49:04,385][INFO][Files(pid=3)][Files:47]
+[### POST ###
+self=Files(pid=3)
+msg=Message(sig=Sig.PATH_REFRESH, args=<class 'NoneType'>)]
+
+New message available:
+[2022-05-15 16:49:04,385][INFO][Files(pid=3)][Files:39]
+[### MQ ###
+self=Files(pid=3)
+msg=Message(sig=Sig.PATH_CONTENT, args=<class 'NoneType'>)]
+
+New message available:
+[2022-05-15 16:49:04,385][INFO][Files(pid=3)][Files:47]
+[### POST ###
+self=Files(pid=3)
+msg=Message(sig=Sig.PATH_REFRESH, args=<class 'NoneType'>)]
+
+New message available:
+[2022-05-15 16:49:04,385][INFO][Files(pid=3)][Files:39]
+[### MQ ###
+self=Files(pid=3)
+msg=Message(sig=Sig.PATH_REFRESH, args=<class 'NoneType'>)]
+
+New message available:
+[2022-05-15 16:49:04,386][INFO][Files(pid=3)][Files:39]
+[### MQ ###
+self=Files(pid=3)
+msg=Message(sig=Sig.PATH_REFRESH, args=<class 'NoneType'>)]
+
+New message available:
+[2022-05-15 16:49:04,386][INFO][Display(pid=2)][Display:49]
+[### POST ###
+receiver=Display(pid=2)
+sender='Files(pid=3)'
+msg=Message(sig=Sig.CWD_GET, args=<class 'dict'>)]
+
+New message available:
+[2022-05-15 16:49:04,386][INFO][Display(pid=2)][Display:41]
+[### MQ ###
+receiver=Display(pid=2)
+sender='Files(pid=3)'
+msg=Message(sig=Sig.CWD_GET, args=<class 'dict'>)]
+
+New message available:
+[2022-05-15 16:49:04,386][INFO][Display(pid=2)][Display:49]
+[### POST ###
+receiver=Display(pid=2)
+sender='Files(pid=3)'
+msg=Message(sig=Sig.CWD_GET, args=<class 'dict'>)]
+
+New message available:
+[2022-05-15 16:49:04,386][INFO][Display(pid=2)][Display:47]
+[### POST ###
+self=Display(pid=2)
+msg=Message(sig=Sig.DRAW_SCREEN, args=<class 'NoneType'>)]
+
+New message available:
+[2022-05-15 16:49:04,386][INFO][Display(pid=2)][Display:41]
+[### MQ ###
+receiver=Display(pid=2)
+sender='Files(pid=3)'
+msg=Message(sig=Sig.CWD_GET, args=<class 'dict'>)]
+
+New message available:
+[2022-05-15 16:49:04,386][INFO][Display(pid=2)][Display:47]
+[### POST ###
+self=Display(pid=2)
+msg=Message(sig=Sig.DRAW_SCREEN, args=<class 'NoneType'>)]
+
+New message available:
+[2022-05-15 16:49:04,386][INFO][Display(pid=2)][Display:39]
+[### MQ ###
+self=Display(pid=2)
+msg=Message(sig=Sig.DRAW_SCREEN, args=<class 'NoneType'>)]
+
+New message available:
+[2022-05-15 16:49:04,391][INFO][Display(pid=2)][Display:39]
+[### MQ ###
+self=Display(pid=2)
+msg=Message(sig=Sig.DRAW_SCREEN, args=<class 'NoneType'>)]

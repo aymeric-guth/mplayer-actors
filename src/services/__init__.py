@@ -1,4 +1,3 @@
-from .dispatcher import Dispatcher
 from .api import API
 from .display import Display
 from .files import Files

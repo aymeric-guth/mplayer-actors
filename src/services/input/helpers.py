@@ -37,7 +37,7 @@ def eval_cmd(cmd: str) -> tuple[str, Message]:
             return 'MediaDispatcher', Message(sig=Sig.PLAYBACK_MODE, args=int(param))
 
         case ['quit' | 'q']:
-            return 'Dispatcher', Message(sig=Sig.SIGINT)
+            return 'ActorSystem', Message(sig=Sig.SIGQUIT)
 
         case [param] if param.isdigit():
             # basic digit selector
@@ -56,7 +56,7 @@ def eval_cmd(cmd: str) -> tuple[str, Message]:
                     return 'MediaDispatcher', Message(sig=Sig.PLAY_ALL, args=[int(param)])
 
                 case [param1, param2] if param1.isdigit() and param2.isdigit():
-                    ...
+                    return 'MediaDispatcher', Message(sig=Sig.PLAY_ALL, args=[int(param1), int(param2)])
 
                 case _:
                     ...
@@ -81,7 +81,7 @@ def eval_cmd(cmd: str) -> tuple[str, Message]:
         case _:
             return 'Display', Message(sig=Sig.POPUP, args=f'Invalid command: {cmd}')
 
-    return ('Dispatcher', Message(sig=Sig.ERROR))
+    return ('ActorSystem', Message(sig=Sig.ERROR))
 
 
 class CmdCache(metaclass=SingletonMeta):
