@@ -133,7 +133,7 @@ class CmdBuffer(metaclass=SingletonMeta):
 
     @p.setter
     def p(self, value: int) -> None:
-        self._p = value
+        self._p = int(clamp(0, len(self._container))(value))
         assert self._p <= len(self._container) and self._p >= 0
 
     def insert(self, value: str) -> None:
@@ -153,6 +153,21 @@ class CmdBuffer(metaclass=SingletonMeta):
         self._container.clear()
         self.p = 0
 
+    def get(self) -> list[str]:
+        return self._container
+
+    def init(self, value: list[str]) -> None:
+        self._container = value
+        self.p = len(self._container)
+
+    def mov(self, value: int=0) -> None:
+        if value:
+            self.p += 1
+        else:
+            self.p -= 1
+
+    def serialize(self) -> tuple[str, int]:
+        return (''.join(self._container), self.p)
 
 # key left
 # key right

@@ -90,10 +90,10 @@ def draw_cmd(self) -> None:
     win = curses.newwin(height, width, y_ofst, x_ofst)
     win.box()
     curses.curs_set(1)
-    s = f'{PROMPT}{"".join(self.cmd_buff)}'
+    (cmd, cur) = self.cmd_buff
+    s = f'{PROMPT}{"".join(cmd)}'
     win.addstr(1, 1, s[:width])
-    self.cur = int(clamp(len(PROMPT)+1, len(s)+1)(self.cur))
-    win.move(1, self.cur)
+    win.move(1, cur+len(PROMPT)+1)
     win.noutrefresh()
 
 

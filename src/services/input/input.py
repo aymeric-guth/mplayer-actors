@@ -1,12 +1,13 @@
 import curses
 import logging
+import pickle
 
 from ...external.actors import Actor, Message, Sig, actor_system
 from ...wcurses import stdscr
 
 
 from .constants import num_mapping, Key
-from .helpers import CmdCache, eval_cmd
+from .helpers import CmdCache, eval_cmd, CmdBuffer
 from ...utils import SingletonMeta
 
 
@@ -31,35 +32,44 @@ class Input(Actor, metaclass=SingletonMeta):
                 case Key.ENTER:
                     self.prompt_mode = False
                     (recipient, response) = eval_cmd(''.join(self.buff))
-                    CmdCache().push(self.buff)
-                    self.buff.clear()
+                    # CmdCache().push(self.buff)
+                    CmdCache().push(CmdBuffer().get())
+                    # self.buff.clear()
+                    CmdBuffer().clear()
                     actor_system.send(recipient, response)
                     return
 
                 case Key.BACKSPACE:
-                    self.buff.pop() if self.buff else None
+                    # self.buff.pop() if self.buff else None
+                    CmdBuffer().delete()
 
-                # case Key.SUPPR:
-                #     ...
+                case Key.DELETE:
+                    CmdBuffer().delete(1)
 
                 case curses.KEY_UP:
-                    self.buff = CmdCache().prev()
+                    # self.buff = CmdCache().prev()
+                    CmdBuffer().init(CmdCache().prev())
 
                 case curses.KEY_DOWN:
-                    self.buff = CmdCache().next()
+                    # self.buff = CmdCache().next()
+                    CmdBuffer().init(CmdCache().next())
 
                 case curses.KEY_LEFT:
-                    actor_system.send('Display', Message(sig=Sig.PROMPT, args=-1))
-                    return
+                    # actor_system.send('Display', Message(sig=Sig.PROMPT, args=-1))
+                    # return
+                    CmdBuffer().mov()
 
                 case curses.KEY_RIGHT:
-                    actor_system.send('Display', Message(sig=Sig.PROMPT, args=1))
-                    return
+                    # actor_system.send('Display', Message(sig=Sig.PROMPT, args=1))
+                    # return
+                    CmdBuffer().mov(1)
 
                 case _:
-                    self.buff.append(chr(c))
+                    # self.buff.append(chr(c))
+                    CmdBuffer().insert(chr(c))
                 
-            actor_system.send('Display', Message(sig=Sig.PROMPT, args=self.buff.copy()))
+            # actor_system.send('Display', Message(sig=Sig.PROMPT, args=self.buff.copy()))
+            actor_system.send('Display', Message(sig=Sig.PROMPT, args=CmdBuffer().serialize()))
             return
 
         match c:

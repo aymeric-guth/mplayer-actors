@@ -2,6 +2,7 @@ import curses
 from typing import Any
 from signal import signal, SIGWINCH
 import logging
+import pickle
 
 from ...utils import SingletonMeta, clamp
 from ...external.actors import Actor, Message, Sig, actor_system, ActorGeneric
@@ -38,7 +39,7 @@ class Display(Actor, metaclass=SingletonMeta):
         self.media_meta: dict[str, Any] = {}
         self.cmd_overlay = 0
         self.cmd_dims: tuple[int, int, int, int]
-        self.cmd_buff: list[str] = []
+        self.cmd_buff: tuple[str, int] = ('', 0)
         self._cur = 0
 
         self.set_dims = lambda: helpers.set_dims(self)
@@ -59,30 +60,19 @@ class Display(Actor, metaclass=SingletonMeta):
                 # initialisation de la fenetre du prompt
                 self.cmd_overlay = args
                 if not self.cmd_overlay:
-                    self.cmd_buff.clear()
                     curses.curs_set(0)
-                    self.cur = 0
+                    self.cmd_buff = ('', 0)
                 else:
                     ...
                 self.post(Message(sig=Sig.DRAW_SCREEN))
 
-            case Message(sig=Sig.PROMPT, args=args) if isinstance(args, int):
-                if self.cmd_overlay:
-                    self.cur += args
-                    self.draw_cmd()
-
-                self.post(Message(sig=Sig.DRAW_SCREEN))
-
-            case Message(sig=Sig.PROMPT, args=args) if isinstance(args, list):
-                self.cmd_buff = args.copy()
+            case Message(sig=Sig.PROMPT, args=args) if isinstance(args, tuple):
+                self.cmd_buff = args
                 self.post({'event': 'property-change', 'name': 'draw-cmd'})
 
             case {'event': 'property-change', 'name': 'draw-cmd'}:
             # case Msg(event='property-change', name='draw-cmd'):
                 if self.cmd_overlay:
-                    # helpers.set_dims(self)
-                    # helpers.draw_cmd(self)
-                    self.cur += 1
                     self.set_dims()
                     self.draw_cmd()
                     curses.doupdate()
