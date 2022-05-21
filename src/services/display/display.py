@@ -4,7 +4,7 @@ from signal import signal, SIGWINCH
 import logging
 
 from ...utils import SingletonMeta, clamp
-from ...external.actors import Actor, Message, Sig, actor_system
+from ...external.actors import Actor, Message, Sig, send
 from . import helpers
 
 from ...wcurses import stdscr, draw_popup
@@ -13,7 +13,7 @@ from ...wcurses import stdscr, draw_popup
 def resize_handler(signum, frame):
     curses.endwin()  # This could lead to crashes according to below comment
     stdscr.refresh()
-    actor_system.send('Display', Message(sig=Sig.DRAW_SCREEN))
+    send('Display', Message(sig=Sig.DRAW_SCREEN))
 
 
 signal(SIGWINCH, resize_handler)
@@ -48,12 +48,12 @@ class Display(Actor, metaclass=SingletonMeta):
         self.log_lvl = logging.ERROR
 
     def dispatch(self, sender: int, msg: Message) -> None:
-        # super().dispatch(sender, msg)
+        super().dispatch(sender, msg)
         match msg:
             case Message(sig=Sig.CWD_GET, args=args):
                 dir_list, files_list = args.get('dir_list'), args.get('files_list')
                 self.files_buff = [dir_list, files_list]
-                self.post(Message(sig=Sig.DRAW_SCREEN))
+                send(self.pid, Message(sig=Sig.DRAW_SCREEN))
 
             case Message(sig=Sig.PROMPT, args=args) if isinstance(args, bool):
                 # initialisation de la fenetre du prompt
@@ -63,11 +63,11 @@ class Display(Actor, metaclass=SingletonMeta):
                     self.cmd_buff = ('', 0)
                 else:
                     ...
-                self.post(Message(sig=Sig.DRAW_SCREEN))
+                send(self.pid, Message(sig=Sig.DRAW_SCREEN))
 
             case Message(sig=Sig.PROMPT, args=args) if isinstance(args, tuple):
                 self.cmd_buff = args
-                self.post({'event': 'property-change', 'name': 'draw-cmd'})
+                send(self.pid, {'event': 'property-change', 'name': 'draw-cmd'})
 
             case {'event': 'property-change', 'name': 'draw-cmd'}:
             # case Msg(event='property-change', name='draw-cmd'):
@@ -79,7 +79,7 @@ class Display(Actor, metaclass=SingletonMeta):
             case Message(sig=Sig.MEDIA_META, args=args):
                 k, v = [i for i in args.items()][0]
                 self.media_meta.update({k: v})
-                self.post({'event': 'property-change', 'name': 'draw-playback'})
+                send(self.pid, {'event': 'property-change', 'name': 'draw-playback'})
 
             case {'event': 'property-change', 'name': 'draw-playback'}:
                 if self.playback_overlay:
@@ -90,7 +90,6 @@ class Display(Actor, metaclass=SingletonMeta):
                     curses.doupdate()
 
             case Message(sig=Sig.DRAW_SCREEN):
-                # self.post(self, {'type': 'publish'})
                 self.set_dims()
                 self.draw_files()
                 self.draw_playback()
@@ -99,23 +98,13 @@ class Display(Actor, metaclass=SingletonMeta):
 
             case Message(sig=Sig.PLAYBACK_OVERLAY, args=args):
                 self.playback_overlay = not self.playback_overlay
-                self.post(Message(sig=Sig.DRAW_SCREEN))
+                send(self.pid, Message(sig=Sig.DRAW_SCREEN))
 
             case Message(sig=Sig.POPUP, args=args):
                 draw_popup(args)
 
             case Message(sig=Sig.POISON, args=args):
                 raise Exception(f'{msg!r}')
-
-            # case Message(sig=Sig.AUDIT, args=rid):
-            #     actor_system.send(sender, {'event': 'audit', 'rid': rid, 'data': self.introspect()})
-
-            # case {'type': 'subscribe'}:
-            #     self.subscribers.append(sender)
-
-            # case {'type': 'publish'}:
-            #     for a in self.subscribers:
-            #         actor_system.send(a, {'type': 'publish', 'args': self.introspect()})
 
             case Message(sig=Sig.SIGQUIT):
                 self.terminate()

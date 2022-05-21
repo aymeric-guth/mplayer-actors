@@ -8,7 +8,7 @@ from ...settings import VOLUME_DEFAULT
 from ...external import _mpv
 
 from ...utils import clamp
-from ...external.actors import Actor, Message, Sig, actor_system
+from ...external.actors import Actor, Message, Sig, send, create
 from .event_loop import MpvEvent, MPVEvent
 
 
@@ -33,7 +33,6 @@ class MPV(Actor):
         # mpv_load_config_file(self.handle, str(path).encode('utf-8'))
         _mpv.mpv_initialize(self.handle)
         self.log_lvl = logging.ERROR
-        self.post(Message(sig=Sig.INIT))
 
     @property
     def pos(self) -> float:
@@ -68,7 +67,7 @@ class MPV(Actor):
     @state.setter
     def state(self, value: int) -> None:
         self._state = int(clamp(0, 4)(value))
-        actor_system.send(self.parent, Message(sig=Sig.WATCHER, args={'player-state': self._state}))
+        send(self.parent, Message(sig=Sig.WATCHER, args={'player-state': self._state}))
 
     async def command_async(self, *args) -> int:
         args = [c_uint64(0xffff), (c_char_p*len(args))(*args)]
@@ -94,6 +93,7 @@ class MPV(Actor):
         _mpv.mpv_observe_property(self.handle, property_id, name.encode('utf-8'), _mpv.MpvFormat.NODE)
 
     def dispatch(self, sender: int, msg: Message) -> None:
+        super().dispatch(sender, msg)
         match msg:
             case Message(sig=Sig.MPV_EVENT, args=args):
                 match args:
@@ -101,13 +101,13 @@ class MPV(Actor):
                         self.logger.info(f'Processing base event: {args}')
                         match event:
                             case 'playback-restart' | 'start-file' | 'unpause':
-                                self.post(Message(sig=Sig.STATE_CHANGE, args=1))
+                                send(self.pid, Message(sig=Sig.STATE_CHANGE, args=1))
                             case 'idle':
-                                self.post(Message(sig=Sig.STATE_CHANGE, args=4))
+                                send(self.pid, Message(sig=Sig.STATE_CHANGE, args=4))
                             case 'pause':
-                                self.post(Message(sig=Sig.STATE_CHANGE, args=2))
+                                send(self.pid, Message(sig=Sig.STATE_CHANGE, args=2))
                             case 'seek':
-                                self.post(Message(sig=Sig.STATE_CHANGE, args=3))
+                                send(self.pid, Message(sig=Sig.STATE_CHANGE, args=3))
 
                     case MpvEvent(event=event, id=_id, name=name, data=data):
                         match event:
@@ -115,12 +115,12 @@ class MPV(Actor):
                                 match name:
                                     case 'time-pos':
                                         self.pos = data
-                                        actor_system.send(self.parent, Message(sig=Sig.WATCHER, args={name: data}))
+                                        send(self.parent, Message(sig=Sig.WATCHER, args={name: data}))
                                     case 'duration':
                                         self.duration = data
-                                        actor_system.send(self.parent, Message(sig=Sig.WATCHER, args={name: data}))
+                                        send(self.parent, Message(sig=Sig.WATCHER, args={name: data}))
                                     case 'volume' | 'playback-time' | 'playtime-remaining' | 'metadata':
-                                        actor_system.send(self.parent, Message(sig=Sig.WATCHER, args={name: data}))
+                                        send(self.parent, Message(sig=Sig.WATCHER, args={name: data}))
                                     case 'percent-pos':
                                         ...
                                     case _:
@@ -129,21 +129,10 @@ class MPV(Actor):
                     case event:
                         ...
 
-            case Message(sig=Sig.INIT, args=args):
-                self.child = actor_system.create_actor(MPVEvent, handle=self.handle)
-                self.observe_property('volume')
-                self.observe_property('percent-pos')
-                self.observe_property('time-pos')
-                self.observe_property('playback-time')
-                self.observe_property('playtime-remaining')
-                self.observe_property('duration')
-                self.observe_property('metadata')
-                self.post(Message(sig=Sig.VOLUME, args=VOLUME_DEFAULT))
-
             case Message(sig=Sig.STATE_CHANGE, args=state):
                 self.state = state
                 if self.state == 4:
-                    self.post(Message(sig=Sig.DONE))
+                    send(self.pid, Message(sig=Sig.DONE))
 
             case Message(sig=Sig.PLAY, args=path):
                 args = [b'loadfile', path.encode('utf-8'), b'replace', b'', None]
@@ -153,10 +142,10 @@ class MPV(Actor):
             case Message(sig=Sig.PLAY_PAUSE, args=None):
                 if self.state == 1:
                     self.set_property('pause', 'yes')
-                    self.post(Message(sig=Sig.STATE_CHANGE, args=2))
+                    send(self.pid, Message(sig=Sig.STATE_CHANGE, args=2))
                 elif self.state == 2:
                     self.set_property('pause', 'no')
-                    self.post(Message(sig=Sig.STATE_CHANGE, args=1))
+                    send(self.pid, Message(sig=Sig.STATE_CHANGE, args=1))
 
             case Message(sig=Sig.VOLUME, args=args):
                 if args is not None:
@@ -165,7 +154,7 @@ class MPV(Actor):
             
             case Message(sig=Sig.VOLUME_INC, args=args):
                 self.volume += args
-                self.post(Message(sig=Sig.VOLUME))
+                send(self.pid, Message(sig=Sig.VOLUME))
 
             case Message(sig=Sig.STOP, args=None):
                 args = [b'stop', b'', None]
@@ -178,14 +167,7 @@ class MPV(Actor):
                 self.command(*args)
 
             case Message(sig=Sig.DONE, args=args) as msg:
-                actor_system.send(self.parent, msg)
-
-            case Message(sig=Sig.POISON, args=None):
-                self.terminate()
-                raise Exception
-
-            case Message(sig=Sig.SIGQUIT):
-                self.terminate()
+                send(self.parent, msg)
 
             case _:
                 raise SystemExit(f'{msg=}')
@@ -196,3 +178,14 @@ class MPV(Actor):
         # self.event_loop.join()
         _mpv.mpv_terminate_destroy(handle)
         raise SystemExit('SIGQUIT')
+
+    def init(self) -> None:
+        self.child = create(MPVEvent, handle=self.handle)
+        self.observe_property('volume')
+        self.observe_property('percent-pos')
+        self.observe_property('time-pos')
+        self.observe_property('playback-time')
+        self.observe_property('playtime-remaining')
+        self.observe_property('duration')
+        self.observe_property('metadata')
+        send(self.pid, Message(sig=Sig.VOLUME, args=VOLUME_DEFAULT))

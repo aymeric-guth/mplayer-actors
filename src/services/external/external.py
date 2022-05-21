@@ -6,7 +6,7 @@ import pickle
 
 from ...utils import SingletonMeta
 
-from ...external.actors import Actor, Message, Sig, actor_system
+from ...external.actors import Actor, Message, Sig, send
 from ...settings import ALLOWED_SHARES, MOUNT_POINT, SMB_USER, SMB_PASS, SMB_ADDR, SMB_PORT, ENV_PATH, VIDEO_PATH, MUSIC_PATH, ROOT, MUSIC_TODO
 from ..files._types import CWD
 
@@ -15,24 +15,14 @@ class External(Actor, metaclass=SingletonMeta):
     def __init__(self, pid: int, parent: int, name='', **kwargs) -> None:
         super().__init__(pid, parent, name, **kwargs)
         self.log_lvl = logging.ERROR
-        self.post(Message(sig=Sig.INIT))
 
     def dispatch(self, sender: int, msg: Message) -> None:
+        super().dispatch(sender, msg)
         jump_table: dict[str, list | tuple]
 
         match msg:
-            case Message(sig=Sig.INIT, args=None):
-                self.post(Message(sig=Sig.SMB_PING, args=1))
-                self.post(Message(sig=Sig.HOOK, args=('root', ROOT[:])))
-                self.post(Message(sig=Sig.HOOK, args=('/', ROOT[:])))
-                self.post(Message(sig=Sig.HOOK, args=('music', MUSIC_PATH[:])))
-                self.post(Message(sig=Sig.HOOK, args=('video', VIDEO_PATH[:])))
-                self.post(Message(sig=Sig.HOOK, args=('vdo', VIDEO_PATH[:])))
-                self.post(Message(sig=Sig.HOOK, args=('td', MUSIC_TODO[:])))
-                self.post(Message(sig=Sig.HOOK, args=('todo', MUSIC_TODO[:])))
-
             case Message(sig=Sig.OPEN, args=None):
-                actor_system.send('Files', Message(sig=Sig.CWD_GET))
+                send('Files', Message(sig=Sig.CWD_GET))
 
             case Message(sig=Sig.CWD_GET, args=args):
                 subprocess.run(['open', args.get('path_full')])
@@ -44,10 +34,10 @@ class External(Actor, metaclass=SingletonMeta):
                         sock.connect((SMB_ADDR, SMB_PORT))
                 except socket.error as err:
                     self.logger.error(f'Could not join host: {SMB_ADDR} on port: {SMB_PORT} cause: {err}')
-                    self.post(Message(sig=Sig.SMB_PING, args=args+1))
+                    send(self.pid, Message(sig=Sig.SMB_PING, args=args+1))
                 else:
                     self.logger.info(f'host: {SMB_ADDR} on port: {SMB_PORT} is up, trying to connect')
-                    self.post(Message(sig=Sig.SMB_MOUNT))
+                    send(self.pid, Message(sig=Sig.SMB_MOUNT))
 
             case Message(sig=Sig.SMB_MOUNT, args=args):
                 result = subprocess.run(["mount", "-t", "smbfs"], capture_output=True)
@@ -65,16 +55,16 @@ class External(Actor, metaclass=SingletonMeta):
             case Message(sig=Sig.FILES_NEW, args=data):
                 with open(Path(ENV_PATH) / 'cache.pckl', 'wb') as f:
                     pickle.dump(data, f)
-                actor_system.send('Files', Message(sig=Sig.FILES_NEW, args=data))
+                send('Files', Message(sig=Sig.FILES_NEW, args=data))
 
             case Message(sig=Sig.GET_CACHE, args=args):
                 try:
                     with open(Path(ENV_PATH) / 'cache.pckl', 'rb') as f:
                         data = pickle.load(f)
                 except Exception:
-                    actor_system.send('API', Message(sig=Sig.FILES_GET, args=args))
+                    send('API', Message(sig=Sig.FILES_GET, args=args))
                 else:
-                    actor_system.send('Files', Message(sig=Sig.FILES_NEW, args=data))
+                    send('Files', Message(sig=Sig.FILES_NEW, args=data))
 
             case Message(sig=Sig.HOOK, args=args) if isinstance(args, list | tuple) and len(args) == 2:
                 k, v = args
@@ -107,13 +97,20 @@ class External(Actor, metaclass=SingletonMeta):
                     ...
                 else:
                     cwd = jump_table.get(args)
-                    actor_system.send('Files', Message(sig=Sig.PATH_SET, args=cwd))                       
-
-            case Message(sig=Sig.SIGQUIT):
-                self.terminate()
+                    send('Files', Message(sig=Sig.PATH_SET, args=cwd))                       
 
             case _:
                 ...
 
     def terminate(self) -> None:
         raise SystemExit('SIGQUIT')
+
+    def init(self) -> None:
+        send(self.pid, Message(sig=Sig.SMB_PING, args=1))
+        send(self.pid, Message(sig=Sig.HOOK, args=('root', ROOT[:])))
+        send(self.pid, Message(sig=Sig.HOOK, args=('/', ROOT[:])))
+        send(self.pid, Message(sig=Sig.HOOK, args=('music', MUSIC_PATH[:])))
+        send(self.pid, Message(sig=Sig.HOOK, args=('video', VIDEO_PATH[:])))
+        send(self.pid, Message(sig=Sig.HOOK, args=('vdo', VIDEO_PATH[:])))
+        send(self.pid, Message(sig=Sig.HOOK, args=('td', MUSIC_TODO[:])))
+        send(self.pid, Message(sig=Sig.HOOK, args=('todo', MUSIC_TODO[:])))

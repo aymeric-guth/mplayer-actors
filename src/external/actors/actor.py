@@ -4,7 +4,7 @@ import logging
 from .base_actor import BaseActor, ActorGeneric
 from .message import Message
 from .sig import Sig
-from .actor_system import actor_system
+from .actor_system import actor_system, send, create
 
 
 T = TypeVar('T', bound='Actor')
@@ -14,6 +14,7 @@ class Actor(BaseActor):
     def __init__(self, pid: int, parent: int, name:str='', **kwargs) -> None:
         super().__init__(pid, parent=parent, name=name)
         self.kwargs = kwargs.copy()
+        send(self.pid, Message(sig=Sig.INIT))
 
     def dispatch(self, sender: int, msg: Message) -> None:
         match msg:
@@ -30,14 +31,13 @@ class Actor(BaseActor):
         raise SystemExit('SIGQUIT')
 
     def init(self) -> None:
-        raise NotImplementedError
+        ...
 
     def poison(self) -> None:
-        raise NotImplementedError
+        ...
 
     def handler(self, err: str) -> None:
         self.logger.error(f'Actor={self} encountered a failure: {err}')
-        # actor_system.post(Message(sig=Sig.SIGINT))
 
     def introspect(self) -> dict[Any, Any]:
         return {
@@ -58,8 +58,8 @@ class ActorIO(BaseActor):
         super().__init__(pid, parent=parent, name=name)
         self.kwargs = kwargs.copy()
 
-    def handler(self, msg: Message|dict[str, Any]) -> None:
-        return actor_system.send(self.parent, msg)
+    # def handler(self, msg: Message|dict[str, Any]) -> None:
+    #     return actor_system.send(self.parent, msg)
 
     def err_handler(self, err: str) -> None:
         self.logger.error(f'Actor={self} encountered a failure: {err}')

@@ -7,10 +7,7 @@ import logging.handlers
 
 from .message import Message
 from .sig import Sig
-from .subststems import Logging
-
-from ...utils import clamp
-from ...settings import LOG_HOST, LOG_PORT, LOG_FORMAT
+from .subsystems import Logging
 
 
 T = TypeVar('T', bound='BaseActor')
@@ -46,8 +43,8 @@ class BaseActor:
 
         ### Subsystems ###
         self._logger = Logging(self._name, self.__str__())
+        self._cache = None
 
-        # self.post(Message(sig=Sig.INIT))
 
     def run(self) -> None:
         while 1:
@@ -107,6 +104,16 @@ class BaseActor:
     def parent(self, value: Any) -> None:
         raise TypeError('Property is immutable')
 
+    def __repr__(self) -> str:
+        return f'{self.__class__.__name__}(pid={self.pid})'
+
+    def __str__(self) -> str:
+        return f'{self.__class__.__name__}(pid={self.pid})'
+
+    def __hash__(self) -> int:
+        return hash(self.pid)
+
+    ### Interface Subsystem: Logger
     @property
     def log_lvl(self) -> int:
         return self._logger.log_lvl
@@ -122,15 +129,6 @@ class BaseActor:
     @logger.setter
     def logger(self, value: Any) -> None:
         raise TypeError('Property is immutable')
-
-    def __repr__(self) -> str:
-        return f'{self.__class__.__name__}(pid={self.pid})'
-
-    def __str__(self) -> str:
-        return f'{self.__class__.__name__}(pid={self.pid})'
-
-    def __hash__(self) -> int:
-        return hash(self.pid)
 
     def log_mq(self, sender: Optional[int], msg: Message|dict[str, Any]) -> None:
         return self._logger.log(self.pid, sender, msg, '### MQ ###')

@@ -29,10 +29,10 @@ class ActorSystem(BaseActor, metaclass=SingletonMeta):
         super().__init__(pid=ActorSystem.__pid, name=self.__class__.__name__, parent=ActorSystem.__pid)
         self._registry: dict[int, BaseActor] = {ActorSystem.__pid: self}
         self._threads: dict[int, Thread] = {}
-        self.log_lvl = logging.ERROR
+        self.log_lvl = logging.INFO
 
     def send(self, receiver: Union[int, str, type], msg: Message|dict[str, Any]) -> None:
-        sender = get_caller()
+        sender = get_caller(frame_idx=3)
         recipient: Optional[BaseActor] = self._get_actor(receiver)
         if recipient is None:
             return sender.post(sender=self.pid, msg=Message(sig=Sig.DISPATCH_ERROR))
@@ -100,7 +100,7 @@ class ActorSystem(BaseActor, metaclass=SingletonMeta):
         name: str='',
         **kwargs
     ) -> int:
-        caller = self.get_caller()
+        caller = get_caller(frame_idx=3)
         pid = self.get_pid()
         return self._create_actor(cls=cls, pid=pid, parent=caller.pid, name=name, **kwargs)
 
@@ -146,12 +146,9 @@ class ActorSystem(BaseActor, metaclass=SingletonMeta):
                 if t is not None:
                     t.join()
 
-            case Message(sig=Sig.ERROR):
-                ...
-
             case _:
-                self.logger.error(f'Unprocessable Message: msg={msg}')
-                # self.post(Message(sig=Sig.SIGQUIT))
+                self._logger._log(sender=self.resolve_parent(sender), receiver=self.__repr__(), msg=f'Unprocessable Message: msg={msg}')
+                send(self.pid, Message(sig=Sig.SIGQUIT))
 
     def get_pid(self) -> int:
         with ActorSystem.__pid_l:
@@ -159,37 +156,56 @@ class ActorSystem(BaseActor, metaclass=SingletonMeta):
             value = ActorSystem.__pid
         return value
 
-    def get_caller(self) -> BaseActor:
-        frame = sys._getframe(2)
-        arguments = frame.f_code.co_argcount
-        if arguments == 0:
-            return self
-        caller_calls_self = frame.f_code.co_varnames[0]
-        return frame.f_locals[caller_calls_self]
-
     def resolve_parent(self, pid: int) -> str:
         actor = self._registry.get(pid)
         return 'None' if actor is None else actor.__repr__()
 
-    def log_mq(self, sender: Optional[int], msg: Message) -> None:
-        if not isinstance(sender, int):
-            self.logger.error(f'### MQ ###\nGot unexpected Sender={sender}, type={type(sender)}\nmsg={msg}')
-        elif self.pid == sender:
-            self.logger.info(f'### MQ ###\nself={self!r}\n{msg=}')
-        else:
-            self.logger.info(f'### MQ ###\nreceiver={self!r}\nsender={actor_system.resolve_parent(sender).__repr__()}\n{msg=}')
+    # def log_mq(self, sender: Optional[int], msg: Message) -> None:
+    #     if not isinstance(sender, int):
+    #         self.logger.error(f'### MQ ###\nGot unexpected Sender={sender}, type={type(sender)}\nmsg={msg}')
+    #     elif self.pid == sender:
+    #         self.logger.info(f'### MQ ###\nself={self!r}\n{msg=}')
+    #     else:
+    #         self.logger.info(f'### MQ ###\nreceiver={self!r}\nsender={actor_system.resolve_parent(sender).__repr__()}\n{msg=}')
 
-    def log_post(self, sender: Optional[int], msg: Message) -> None:
-        if not isinstance(sender, int):
-            self.logger.error(f'### POST ###\nGot unexpected Sender={sender}, type={type(sender)}\nmsg={msg}')
-        elif self.pid == sender:
-            self.logger.info(f'### POST ###\nself={self!r}\n{msg=}')
-        else:
-            self.logger.info(f'### POST ###\nreceiver={self!r}\nsender={actor_system.resolve_parent(sender).__repr__()}\n{msg=}')
+    # def log_post(self, sender: Optional[int], msg: Message) -> None:
+    #     if not isinstance(sender, int):
+    #         self.logger.error(f'### POST ###\nGot unexpected Sender={sender}, type={type(sender)}\nmsg={msg}')
+    #     elif self.pid == sender:
+    #         self.logger.info(f'### POST ###\nself={self!r}\n{msg=}')
+    #     else:
+    #         self.logger.info(f'### POST ###\nreceiver={self!r}\nsender={actor_system.resolve_parent(sender).__repr__()}\n{msg=}')
+
+    def handler(self, err: str) -> None:
+        self.logger.error(f'Actor={self} encountered a failure: {err}')
+
+    ### Interface Subsystem: Logger
+    @property
+    def log_lvl(self) -> int:
+        return self._logger.log_lvl
+
+    @log_lvl.setter
+    def log_lvl(self, value: int) -> None:
+        self._logger.log_lvl = value
+
+    @property
+    def logger(self) -> logging.LoggerAdapter:
+        return self._logger.logger
+
+    @logger.setter
+    def logger(self, value: Any) -> None:
+        raise TypeError('Property is immutable')
+
+    def log_mq(self, sender: Optional[int], msg: Message|dict[str, Any]) -> None:
+        return self._logger.log(self.pid, sender, msg, '### MQ ###')
+    
+    def log_post(self, sender: Optional[int], msg: Message|dict[str, Any]) -> None:
+        return self._logger.log(self.pid, sender, msg, '### POST ###')
 
 
-def get_caller() -> BaseActor:
-    frame = sys._getframe(2)
+
+def get_caller(frame_idx: int) -> BaseActor:
+    frame = sys._getframe(frame_idx)
     arguments = frame.f_code.co_argcount
     if arguments == 0:
         return ActorSystem()
@@ -199,6 +215,17 @@ def get_caller() -> BaseActor:
         return ActorSystem()
     return frame.f_locals[caller_calls_self]
 
+
+def send(receiver: str|int|type, msg: Message|dict[str, Any]) -> None:
+    return ActorSystem().send(receiver, msg)
+
+
+def create(cls: type, *, name: str='', **kwargs) -> int:
+    return ActorSystem().create_actor(cls, name=name, **kwargs)
+
+
+def get_info(actor: int) -> str:
+    ...
 
 
 actor_system = ActorSystem()

@@ -3,6 +3,7 @@
 * bugfix: command history quan historique vide
 
 ### Features ###
+* implémentation cache en subsystem
 * search sur toute l'arbo, search recursif à partir du cwd
 * feature: delete hook for invalid dir (effacé ou déplacé)
 * notifications / popup (reindex, get_files done etc)

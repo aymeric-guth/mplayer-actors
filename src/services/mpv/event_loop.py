@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from ctypes import cast, sizeof, POINTER, create_string_buffer, pointer
 
 from ...external import _mpv
-from ...external.actors import ActorGeneric, Actor, actor_system, Message, Sig
+from ...external.actors import ActorIO, send, Message, Sig
 
 
 @dataclass(frozen=True)
@@ -17,7 +17,7 @@ class MpvEvent:
         return f'MpvEvent(event={self.event}, id={self.id}, name={self.name}, data={self.data})'
 
 
-class MPVEvent(Actor):
+class MPVEvent(ActorIO):
     def __init__(self, pid: int, parent: int, name='', handle: Any=None, **kwargs) -> None:
         super().__init__(pid, parent, name, **kwargs)
         if handle is None:
@@ -40,7 +40,7 @@ class MPVEvent(Actor):
                 )
                 _mpv.mpv_free_node_contents(out)
                 self.logger.info(f'event={event}')
-                actor_system.send(self.parent, Message(sig=Sig.MPV_EVENT, args=event))
+                send(self.parent, Message(sig=Sig.MPV_EVENT, args=event))
             except Exception as err:
                 self.logger.error(str(err))
                 self.logger.error(bytes(out))

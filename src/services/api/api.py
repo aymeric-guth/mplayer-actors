@@ -2,7 +2,7 @@ import logging
 
 import httpx
 
-from ...external.actors import Actor, Message, Sig, actor_system
+from ...external.actors import Actor, Message, Sig, actor_system, send, create
 
 from ...utils import SingletonMeta
 from . import helpers
@@ -18,18 +18,15 @@ class API(Actor, metaclass=SingletonMeta):
         self.password = PASSWORD
         self.token = ''
         self.extensions = extensions_all
-        self.log_lvl = logging.ERROR
-        self.post(Message(sig=Sig.INIT))
+        self.log_lvl = logging.INFO
 
     def dispatch(self, sender: int, msg: Message) -> None:
+        super().dispatch(sender, msg)
         response: httpx.Response
         match msg:
-            case Message(sig=Sig.INIT, args=args):
-                self.post(Message(Sig.LOGIN))
-
             case Message(sig=Sig.LOGIN_SUCCESS, args=token):
                 self.token = token
-                self.post(Message(Sig.EXT_SET, args=list(self.extensions)))
+                send(self.pid, Message(Sig.EXT_SET, args=list(self.extensions)))
 
             case Message(sig=Sig.LOGIN_FAILURE, args=args):
                 raise SystemExit(args)
@@ -38,7 +35,8 @@ class API(Actor, metaclass=SingletonMeta):
                 raise SystemExit(args)
 
             case Message(sig=Sig.EXT_SUCCESS, args=args):
-                actor_system.send('External', Message(sig=Sig.GET_CACHE))
+                send('External', Message(sig=Sig.GET_CACHE))
+                # actor_system.send('External', Message(sig=Sig.GET_CACHE))
 
             case Message(sig=Sig.LOGIN, args=args):
                 try:
@@ -52,13 +50,13 @@ class API(Actor, metaclass=SingletonMeta):
                     )
                 except httpx.NetworkError as err:
                     # network error, introspection for cause, possible recovery
-                    self.post(Message(sig=Sig.NETWORK_FAILURE, args=str(err)))
+                    send(self.pid, Message(sig=Sig.NETWORK_FAILURE, args=str(err)))
                 else:
                     token = response.json().get('token')
                     if token is None:
-                        self.post(Message(sig=Sig.LOGIN_FAILURE, args=response.json()))
+                        send(self.pid, Message(sig=Sig.LOGIN_FAILURE, args=response.json()))
                     else:
-                        self.post(Message(sig=Sig.LOGIN_SUCCESS, args=token))
+                        send(self.pid, Message(sig=Sig.LOGIN_SUCCESS, args=token))
 
             case Message(sig=Sig.EXT_SET, args=extensions):
                 try:
@@ -69,12 +67,12 @@ class API(Actor, metaclass=SingletonMeta):
                         timeout=10.0
                     )
                 except httpx.NetworkError as err:
-                    self.post(Message(sig=Sig.NETWORK_FAILURE, args=str(err)))
+                    send(self.pid, Message(sig=Sig.NETWORK_FAILURE, args=str(err)))
                 else:
                     if response.status_code != 200:
-                        self.post(Message(sig=Sig.NETWORK_FAILURE, args=response.json()))
+                        send(self.pid, Message(sig=Sig.NETWORK_FAILURE, args=response.json()))
                     else:
-                        self.post(Message(sig=Sig.EXT_SUCCESS))
+                        send(self.pid, Message(sig=Sig.EXT_SUCCESS))
             
             case Message(sig=Sig.FILES_GET, args=args):
                 try:
@@ -84,12 +82,12 @@ class API(Actor, metaclass=SingletonMeta):
                         timeout=20.0
                     )
                 except httpx.NetworkError as err:
-                    self.post(Message(sig=Sig.NETWORK_FAILURE, args=str(err)))
+                    send(self.pid, Message(sig=Sig.NETWORK_FAILURE, args=str(err)))
                 else:
                     if response.status_code != 200:
-                        self.post(Message(sig=Sig.NETWORK_FAILURE, args=response.json()))
+                        send(self.pid, Message(sig=Sig.NETWORK_FAILURE, args=response.json()))
                     else:
-                        actor_system.send('External', Message(sig=Sig.FILES_NEW, args=response.json()))
+                        send('External', Message(sig=Sig.FILES_NEW, args=response.json()))
 
             case Message(sig=Sig.FILES_REINDEX, args=args):
                 try:
@@ -99,15 +97,15 @@ class API(Actor, metaclass=SingletonMeta):
                         timeout=10.0
                     )
                 except httpx.NetworkError as err:
-                    self.post(Message(sig=Sig.NETWORK_FAILURE, args=str(err)))
+                    send(self.pid, Message(sig=Sig.NETWORK_FAILURE, args=str(err)))
                 else:
                     if response.status_code != 200:
-                        self.post(Message(sig=Sig.NETWORK_FAILURE, args=response.json()))
+                        send(self.pid, Message(sig=Sig.NETWORK_FAILURE, args=response.json()))
                     else:
-                        self.post(Message(sig=Sig.FILES_GET))
-
-            case Message(sig=Sig.SIGQUIT):
-                self.terminate()
+                        send(self.pid, Message(sig=Sig.FILES_GET))
 
             case _:
                 raise SystemExit(f'{msg=}')
+
+    def init(self) -> None:
+        send(self.pid, Message(Sig.LOGIN))

@@ -1,7 +1,7 @@
 import logging
 from typing import Optional
 
-from ...external.actors import Actor, Message, Sig, actor_system
+from ...external.actors import Actor, Message, Sig, send, create, actor_system
 
 from ..mpv import MPV
 from .playlist import Playlist
@@ -18,47 +18,44 @@ class MediaDispatcher(Actor, metaclass=SingletonMeta):
         self.playback = PlaybackMode.NORMAL
         self.log_lvl = logging.ERROR
         self.child: Optional[int] = None
-        self.post(Message(sig=Sig.INIT))
        
     def dispatch(self, sender: int, msg: Message) -> None:
+        super().dispatch(sender, msg)
         match msg:
-            case Message(sig=Sig.INIT, args=None):
-                self.child = actor_system.create_actor(MPV, wid=self.wid)
-
             case Message(sig=Sig.PLAY_ALL, args=args):
-                actor_system.send('Files', Message(sig=Sig.FILES_GET, args=args))
+                send('Files', Message(sig=Sig.FILES_GET, args=args))
 
             case Message(sig=Sig.FILES_GET, args=args):
                 self.pl = Playlist(args)
                 item = self.pl.next()
-                self.post(Message(sig=Sig.PLAY, args=item))
+                send(self.pid, Message(sig=Sig.PLAY, args=item))
 
             case Message(sig=Sig.PLAY, args=args):
                 if args is not None:
-                    actor_system.send('MPV', Message(sig=Sig.PLAY, args=args))
-                    actor_system.send('Display', Message(sig=Sig.MEDIA_META, args={'file': args}))
-                    actor_system.send('Display', Message(sig=Sig.MEDIA_META, args={'pos': self.pl.pos()}))
+                    send('MPV', Message(sig=Sig.PLAY, args=args))
+                    send('Display', Message(sig=Sig.MEDIA_META, args={'file': args}))
+                    send('Display', Message(sig=Sig.MEDIA_META, args={'pos': self.pl.pos()}))
 
             case Message(sig=Sig.PLAYBACK_MODE, args=args):
                 if args >= PlaybackMode.NORMAL._value_ and args <= PlaybackMode.LOOP_ALL._value_:
                     self.playback = args
 
             case Message(sig=Sig.VOLUME, args=args) as msg:
-                actor_system.send('MPV', msg)
+                send('MPV', msg)
 
             case Message(sig=Sig.VOLUME_INC, args=args) as msg:
-                actor_system.send('MPV', msg)
+                send('MPV', msg)
 
             case Message(sig=Sig.PLAY_PAUSE, args=args) as msg:
-                actor_system.send('MPV', msg)
+                send('MPV', msg)
 
             case {'event': 'command', 'name': 'next', 'args': None}:
                 item = self.pl.next()
-                self.post(Message(sig=Sig.PLAY, args=item))
+                send(self.pid, Message(sig=Sig.PLAY, args=item))
 
             case {'event': 'command', 'name': 'previous', 'args': None}:
                 item = self.pl.prev()
-                self.post(Message(sig=Sig.PLAY, args=item))
+                send(self.pid, Message(sig=Sig.PLAY, args=item))
 
             case Message(sig=Sig.NEXT, args=None):
                 match self.playback:
@@ -70,42 +67,26 @@ class MediaDispatcher(Actor, metaclass=SingletonMeta):
                         item = None
                     case _:
                         item = None
-                self.post(Message(sig=Sig.PLAY, args=item))
+                send(self.pid, Message(sig=Sig.PLAY, args=item))
 
             case Message(sig=Sig.PREVIOUS, args=None):
                 item = self.pl.prev()
-                self.post(Message(sig=Sig.PLAY, args=item))
+                send(self.pid, Message(sig=Sig.PLAY, args=item))
 
             case Message(sig=Sig.STOP, args=None):
                 if self.pl is not None:
                     self.pl.clear()
-                actor_system.send('MPV', msg)
+                send('MPV', msg)
 
             case Message(sig=Sig.DONE, args=None):
                 if self.pl is not None:
-                    self.post(Message(sig=Sig.NEXT))
+                    send(self.pid, Message(sig=Sig.NEXT))
 
             case Message(sig=Sig.SEEK, args=args) as msg:
-                actor_system.send('MPV', msg)
+                send('MPV', msg)
 
             case Message(sig=Sig.WATCHER, args=args) as msg:
-                # self.post(args)
-                actor_system.send('Display', Message(sig=Sig.MEDIA_META, args=args))
-
-            # case Message(sig=Sig.PLAYBACK_CHANGE, args=args) as msg:
-            #     actor_system.send('Display', Message(sig=Sig.MEDIA_META, args={'player-state': args}))
-
-            # case Message(sig=Sig.VOLUME_CHANGE, args=args) as msg:
-            #     actor_system.send('Display', Message(sig=Sig.MEDIA_META, args={'player-volume': args}))
-
-            # case Message(sig=Sig.POS_CHANGE, args=args) as msg:
-            #     actor_system.send('Display', Message(sig=Sig.MEDIA_META, args={'playback': args}))
-
-            # case Message(sig=Sig.AUDIT, args=None):
-            #     actor_system.send(sender, {'event': 'audit', 'data': self.introspect()})
-
-            case Message(sig=Sig.SIGQUIT):
-                self.terminate()
+                send('Display', Message(sig=Sig.MEDIA_META, args=args))
 
             case _:
                 raise SystemExit(f'{msg=}')
@@ -126,4 +107,7 @@ class MediaDispatcher(Actor, metaclass=SingletonMeta):
             case _:
                 self._playback = PlaybackMode.NORMAL
 
-        actor_system.send('Display', Message(sig=Sig.MEDIA_META, args={'playback-mode': self.playback}))
+        send('Display', Message(sig=Sig.MEDIA_META, args={'playback-mode': self.playback}))
+
+    def init(self) -> None:
+        self.child = create(MPV, wid=self.wid)

@@ -3,9 +3,9 @@ import threading
 import logging
 import logging.handlers
 
-from ...settings import LOG_HOST, LOG_PORT, LOG_FORMAT
-from ...utils import clamp
-from .message import Message
+from ....settings import LOG_HOST, LOG_PORT, LOG_FORMAT
+from ....utils import clamp
+from ..message import Message
 
 # logging
 class Logging:
@@ -56,6 +56,14 @@ class Logging:
         else:
             self.logger.info(f'{fmt}\nreceiver={self!r}\nsender={sender}\n{msg=}')
  
+    def _log(self, sender: Optional[int], receiver: Optional[int], msg: Message|dict[str, Any], fmt: str='') -> None:
+        if not isinstance(sender, int):
+            self.logger.error(f'{fmt}\nGot unexpected Sender={sender}, type={type(sender)}\nmsg={msg}')
+        elif sender == receiver:
+            self.logger.error(f'{fmt}\nself={sender}\n{msg=}')
+        else:
+            self.logger.error(f'{fmt}\nreceiver={receiver}\nsender={sender}\n{msg=}')
+
     def __enter__(self) -> None:
         # self.log_lock.acquire()
         self._last = self.log_lvl

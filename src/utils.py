@@ -17,3 +17,12 @@ class SingletonMeta(type):
             instance = super().__call__(*args, **kwargs)
             cls._instances[cls] = instance
         return cls._instances[cls]
+
+
+def try_not(fnc, exc) -> Callable:
+    def inner(*args, **kwargs) -> None:
+        try:
+            fnc(*args, **kwargs)
+        except exc:
+            ...
+    return inner
