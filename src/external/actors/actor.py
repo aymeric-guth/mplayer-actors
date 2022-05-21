@@ -1,4 +1,4 @@
-from typing import TypeVar, Any, Optional
+from typing import TypeVar, Any, Optional, Union
 import logging
 
 from .base_actor import BaseActor, ActorGeneric
@@ -30,10 +30,10 @@ class Actor(BaseActor):
         raise SystemExit('SIGQUIT')
 
     def init(self) -> None:
-        raise NotImplementedError
+        ...
 
     def poison(self) -> None:
-        raise NotImplementedError
+        ...
 
     def handler(self, err: str) -> None:
         self.logger.error(f'Actor={self} encountered a failure: {err}')

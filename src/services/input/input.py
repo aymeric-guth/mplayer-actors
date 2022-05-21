@@ -2,7 +2,7 @@ import curses
 import logging
 from typing import Optional
 
-from ...external.actors import Actor, Message, Sig, actor_system, ActorIO
+from ...external.actors import Actor, Message, Sig, actor_system, ActorIO, create
 from ...wcurses import stdscr
 
 
@@ -15,7 +15,6 @@ class Prompt(Actor):
     def __init__(self, pid: int, parent: int, name='', **kwargs) -> None:
         super().__init__(pid, parent, name, **kwargs)
         self.log_lvl = logging.ERROR
-        self.post(Message(sig=Sig.INIT))
 
     def dispatch(self, sender: int, msg: Message) -> None:
         super().dispatch(sender, msg)
@@ -103,7 +102,8 @@ class Input(Actor, metaclass=SingletonMeta):
                         ...
 
                     case Key.COLON:
-                        self.child = actor_system.create_actor(Prompt)
+                        # self.child = actor_system.create_actor(Prompt)
+                        self.child = create(Prompt)
 
                     case Key.q | Key.Q:
                         actor_system.send('ActorSystem', Message(sig=Sig.SIGQUIT))
@@ -168,7 +168,8 @@ class Input(Actor, metaclass=SingletonMeta):
                         self.logger.warning(f'Unhandled key press: {args}')
 
     def init(self) -> None:
-        self.sidecar = actor_system.create_actor(InputIO)
+        # self.sidecar = actor_system.create_actor(InputIO)
+        self.sidecar = create(InputIO)
 
     def terminate(self) -> None:
         actor_system.send('ActorSystem', Message(sig=Sig.EXIT))

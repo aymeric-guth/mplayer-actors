@@ -7,7 +7,7 @@ import logging.handlers
 
 from .message import Message
 from .sig import Sig
-from .subststems import Logging
+from .subsystems import Logging
 
 from ...utils import clamp
 from ...settings import LOG_HOST, LOG_PORT, LOG_FORMAT

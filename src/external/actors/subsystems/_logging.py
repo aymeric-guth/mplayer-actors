@@ -1,11 +1,13 @@
 from typing import Any, Optional, Callable
+import sys
 import threading
 import logging
 import logging.handlers
 
-from ...settings import LOG_HOST, LOG_PORT, LOG_FORMAT
-from ...utils import clamp
-from .message import Message
+from ....settings import LOG_HOST, LOG_PORT, LOG_FORMAT
+from ....utils import clamp
+from ..message import Message
+
 
 # logging
 class Logging:
@@ -55,7 +57,22 @@ class Logging:
             self.logger.info(f'{fmt}\nself={self!r}\n{msg=}')
         else:
             self.logger.info(f'{fmt}\nreceiver={self!r}\nsender={sender}\n{msg=}')
- 
+
+    def frameinfo(self, frame) -> None:
+        self.logger.error(f'{frame.f_code.co_name=} {frame.f_code.co_varnames=} {frame.f_code.co_filename=} {frame.f_code.co_firstlineno=} {frame.f_locals=} {frame.f_lineno=}')
+
+    def info(self, message: str) -> None:
+        self.logger.info(message)
+
+    def error(self, message: str) -> None:
+        self.logger.error(message)
+
+    def warn(self, message: str) -> None:
+        self.logger.warn(message)
+
+    def warning(self, message: str) -> None:
+        self.logger.warning(message)
+
     def __enter__(self) -> None:
         # self.log_lock.acquire()
         self._last = self.log_lvl
