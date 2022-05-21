@@ -1,4 +1,5 @@
 from typing import Any, Optional, Callable
+import sys
 import threading
 import logging
 import logging.handlers
@@ -55,14 +56,21 @@ class Logging:
             self.logger.info(f'{fmt}\nself={self!r}\n{msg=}')
         else:
             self.logger.info(f'{fmt}\nreceiver={self!r}\nsender={sender}\n{msg=}')
- 
-    def _log(self, sender: Optional[int], receiver: Optional[int], msg: Message|dict[str, Any], fmt: str='') -> None:
-        if not isinstance(sender, int):
-            self.logger.error(f'{fmt}\nGot unexpected Sender={sender}, type={type(sender)}\nmsg={msg}')
-        elif sender == receiver:
-            self.logger.error(f'{fmt}\nself={sender}\n{msg=}')
-        else:
-            self.logger.error(f'{fmt}\nreceiver={receiver}\nsender={sender}\n{msg=}')
+
+    def frameinfo(self, frame) -> None:
+        self.logger.error(f'{frame.f_code.co_name=} {frame.f_code.co_varnames=} {frame.f_code.co_filename=} {frame.f_code.co_firstlineno=} {frame.f_locals=} {frame.f_lineno=}')
+
+    def info(self, message: str) -> None:
+        self.logger.info(message)
+
+    def error(self, message: str) -> None:
+        self.logger.error(message)
+
+    def warn(self, message: str) -> None:
+        self.logger.warn(message)
+
+    def warning(self, message: str) -> None:
+        self.logger.warning(message)
 
     def __enter__(self) -> None:
         # self.log_lock.acquire()

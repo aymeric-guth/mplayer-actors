@@ -2,7 +2,7 @@ import sys
 import traceback
 
 from .wcurses import deinit, wrapper
-from .external.actors import create, actor_system
+from .external.actors import actor_system, create
 from .services import API, Display, Files, Input, External, MediaDispatcher#, SocketServer
 
 

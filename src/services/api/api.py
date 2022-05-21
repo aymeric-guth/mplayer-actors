@@ -2,7 +2,7 @@ import logging
 
 import httpx
 
-from ...external.actors import Actor, Message, Sig, actor_system, send, create
+from ...external.actors import Actor, Message, Sig, actor_system, send
 
 from ...utils import SingletonMeta
 from . import helpers
@@ -18,12 +18,15 @@ class API(Actor, metaclass=SingletonMeta):
         self.password = PASSWORD
         self.token = ''
         self.extensions = extensions_all
-        self.log_lvl = logging.INFO
+        self.log_lvl = logging.ERROR
 
     def dispatch(self, sender: int, msg: Message) -> None:
         super().dispatch(sender, msg)
         response: httpx.Response
         match msg:
+            case Message(sig=Sig.INIT, args=args):
+                send(self.pid, Message(Sig.LOGIN))
+
             case Message(sig=Sig.LOGIN_SUCCESS, args=token):
                 self.token = token
                 send(self.pid, Message(Sig.EXT_SET, args=list(self.extensions)))
@@ -36,7 +39,6 @@ class API(Actor, metaclass=SingletonMeta):
 
             case Message(sig=Sig.EXT_SUCCESS, args=args):
                 send('External', Message(sig=Sig.GET_CACHE))
-                # actor_system.send('External', Message(sig=Sig.GET_CACHE))
 
             case Message(sig=Sig.LOGIN, args=args):
                 try:
@@ -103,6 +105,9 @@ class API(Actor, metaclass=SingletonMeta):
                         send(self.pid, Message(sig=Sig.NETWORK_FAILURE, args=response.json()))
                     else:
                         send(self.pid, Message(sig=Sig.FILES_GET))
+
+            case Message(sig=Sig.SIGQUIT):
+                self.terminate()
 
             case _:
                 raise SystemExit(f'{msg=}')

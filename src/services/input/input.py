@@ -2,7 +2,11 @@ import curses
 import logging
 from typing import Optional
 
+<<<<<<< HEAD
 from ...external.actors import Actor, Message, Sig, ActorIO, send, create
+=======
+from ...external.actors import Actor, Message, Sig, actor_system, ActorIO, create
+>>>>>>> temp
 from ...wcurses import stdscr
 
 
@@ -101,6 +105,10 @@ class Input(Actor, metaclass=SingletonMeta):
                         ...
 
                     case Key.COLON:
+<<<<<<< HEAD
+=======
+                        # self.child = actor_system.create_actor(Prompt)
+>>>>>>> temp
                         self.child = create(Prompt)
 
                     case Key.q | Key.Q:
@@ -166,6 +174,10 @@ class Input(Actor, metaclass=SingletonMeta):
                         self.logger.warning(f'Unhandled key press: {args}')
 
     def init(self) -> None:
+<<<<<<< HEAD
+=======
+        # self.sidecar = actor_system.create_actor(InputIO)
+>>>>>>> temp
         self.sidecar = create(InputIO)
 
     def terminate(self) -> None:

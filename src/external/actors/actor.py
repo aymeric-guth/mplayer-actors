@@ -1,4 +1,4 @@
-from typing import TypeVar, Any, Optional
+from typing import TypeVar, Any, Optional, Union
 import logging
 
 from .base_actor import BaseActor, ActorGeneric

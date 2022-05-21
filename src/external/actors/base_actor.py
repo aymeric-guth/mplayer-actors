@@ -9,6 +9,9 @@ from .message import Message
 from .sig import Sig
 from .subsystems import Logging
 
+from ...utils import clamp
+from ...settings import LOG_HOST, LOG_PORT, LOG_FORMAT
+
 
 T = TypeVar('T', bound='BaseActor')
 ActorGeneric = Union[int, str, T, type]
