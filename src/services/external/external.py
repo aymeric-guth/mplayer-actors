@@ -6,20 +6,23 @@ import pickle
 
 from ...utils import SingletonMeta
 
-from ...external.actors import Actor, Message, Sig, send
+from ...external.actors import Actor, Message, Sig, send, DispatchError
 from ...settings import ALLOWED_SHARES, MOUNT_POINT, SMB_USER, SMB_PASS, SMB_ADDR, SMB_PORT, ENV_PATH, VIDEO_PATH, MUSIC_PATH, ROOT, MUSIC_TODO
 from ..files._types import CWD
 
 
-class External(Actor, metaclass=SingletonMeta):
+class External(Actor):
     def __init__(self, pid: int, parent: int, name='', **kwargs) -> None:
         super().__init__(pid, parent, name, **kwargs)
         self.log_lvl = logging.ERROR
 
     def dispatch(self, sender: int, msg: Message) -> None:
-        super().dispatch(sender, msg)
-        jump_table: dict[str, list | tuple]
+        try:
+            super().dispatch(sender, msg)
+        except DispatchError:
+            return
 
+        jump_table: dict[str, list | tuple]
         match msg:
             case Message(sig=Sig.OPEN, args=None):
                 send('Files', Message(sig=Sig.CWD_GET))
@@ -100,7 +103,8 @@ class External(Actor, metaclass=SingletonMeta):
                     send('Files', Message(sig=Sig.PATH_SET, args=cwd))                       
 
             case _:
-                ...
+                self.logger.warning(f'Unprocessable msg={msg}')
+
 
     def terminate(self) -> None:
         raise SystemExit('SIGQUIT')

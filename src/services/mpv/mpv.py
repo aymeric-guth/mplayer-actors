@@ -8,7 +8,7 @@ from ...settings import VOLUME_DEFAULT
 from ...external import _mpv
 
 from ...utils import clamp
-from ...external.actors import Actor, Message, Sig, send, create
+from ...external.actors import Actor, Message, Sig, send, create, DispatchError
 from .event_loop import MpvEvent, MPVEvent
 
 
@@ -93,7 +93,11 @@ class MPV(Actor):
         _mpv.mpv_observe_property(self.handle, property_id, name.encode('utf-8'), _mpv.MpvFormat.NODE)
 
     def dispatch(self, sender: int, msg: Message) -> None:
-        super().dispatch(sender, msg)
+        try:
+            super().dispatch(sender, msg)
+        except DispatchError:
+            return
+
         match msg:
             case Message(sig=Sig.MPV_EVENT, args=args):
                 match args:
@@ -170,7 +174,8 @@ class MPV(Actor):
                 send(self.parent, msg)
 
             case _:
-                raise SystemExit(f'{msg=}')
+                self.logger.warning(f'Unprocessable msg={msg}')
+
 
     def terminate(self) -> None:
         self.handle, handle = None, self.handle

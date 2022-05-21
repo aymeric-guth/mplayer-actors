@@ -10,38 +10,17 @@ from .registry import ActorRegistry
 import sys
 from .subsystems import Logging
 
-# SIGQUIT
-
-# QUIT
-
-from signal import signal, SIGKILL, SIGQUIT, SIGTERM
-
-
-def signal_handler(signum, frame):
-    actor_system.logger.error(f'{signum=}')
-
-# signal(SIGTERM, signal_handler)
-
 
 class ActorSystem(BaseActor, metaclass=SingletonMeta):
     __pid: int = 0
     __pid_l: Lock = Lock()
-    __l: Lock = Lock()
 
     def __init__(self) -> None:
         super().__init__(pid=ActorSystem.__pid, name=self.__class__.__name__, parent=ActorSystem.__pid)
         self._registry = ActorRegistry()
         self._registry.register(ActorSystem.__pid, self)
         self._threads: dict[int, Thread] = {}
-        self.log_lvl = logging.INFO
-
-    def send(self, receiver: Union[int, str, type], msg: Message|dict[str, Any]) -> None:
-        sender = get_caller()
-        recipient: Optional[BaseActor] = self._registry.lookup(receiver)
-        if recipient is None:
-            return sender.post(sender=self.pid, msg=Message(sig=Sig.DISPATCH_ERROR))
-        else:
-            return recipient.post(sender=sender.pid, msg=msg)
+        self.log_lvl = logging.ERROR
 
     def _send(
         self, 
@@ -69,19 +48,7 @@ class ActorSystem(BaseActor, metaclass=SingletonMeta):
         self._registry.register(pid, actor)
         self._threads.update({pid: t})
         t.start()
-        self._send(self, actor.pid, Message(sig=Sig.INIT))
         return actor.pid
-
-    def create_actor(
-        self, 
-        cls: type,
-        *,
-        name: str='',
-        **kwargs
-    ) -> int:
-        caller = get_caller(frame_idx=3)
-        pid = self.get_pid()
-        return self._create_actor(cls=cls, pid=pid, parent=caller.pid, name=name, **kwargs)
 
     def dispatch(self, sender: int, msg: Message) -> None:
         actor: Optional[ActorGeneric]
@@ -89,6 +56,8 @@ class ActorSystem(BaseActor, metaclass=SingletonMeta):
         match msg:
             case Message(sig=Sig.INIT):
                 ...
+                # for pid, actor in self._registry:
+                #     actor.post(sender=self.pid, msg=Message(sig=Sig.INIT))
 
             case Message(sig=Sig.SIGQUIT):
                 for pid, actor in self._registry:
@@ -123,7 +92,7 @@ class ActorSystem(BaseActor, metaclass=SingletonMeta):
                     t.join()
 
             case _:
-                self._logger._log(sender=self.resolve_parent(sender), receiver=self.__repr__(), msg=f'Unprocessable Message: msg={msg}')
+                # self._logger._log(sender=self.resolve_parent(sender), receiver=self.__repr__(), msg=f'Unprocessable Message: msg={msg}')
                 send(self.pid, Message(sig=Sig.SIGQUIT))
 
     def get_pid(self) -> int:
@@ -148,30 +117,18 @@ class ActorSystem(BaseActor, metaclass=SingletonMeta):
         return self._registry.get(pid)
 
 
-    @logger.setter
-    def logger(self, value: Any) -> None:
-        raise TypeError('Property is immutable')
-
-def get_caller(frame_idx: int=2) -> BaseActor:
-    frame = sys._getframe(frame_idx)
-    arguments = frame.f_code.co_argcount
-    if arguments == 0:
-        return ActorSystem()
-    caller_calls_self = frame.f_code.co_varnames[0]
-    if not isinstance(frame.f_locals[caller_calls_self], BaseActor):
-        return ActorSystem()
-    return frame.f_locals[caller_calls_self]
-
-
 def __get_caller(frame_idx: int=2) -> BaseActor:
     frame = sys._getframe(frame_idx)
-    # ActorSystem().logger.frameinfo(frame)
     instance = frame.f_locals.get('self')
     if instance is None:
         return ActorSystem()
     actor = ActorSystem().get_actor(instance.pid)
     if actor is None:
         # Unhandled case: Actor is not present in ActorRegistry
+        # ActorSystem().logger.frameinfo(frame)
+        # ActorSystem().logger.error(instance)
+        # ActorSystem().logger.error(ActorSystem()._registry)
+        # ActorSystem().logger.frameinfo(sys._getframe(frame_idx-1))
         raise SystemExit
     return actor
 
@@ -181,7 +138,8 @@ def send(receiver: Union[int, str, type], msg: Message|dict[str, Any]) -> None:
         ActorSystem()
         ._send(
             sender=__get_caller(), 
-            receiver=receiver, msg=msg
+            receiver=receiver, 
+            msg=msg
         )
     )
 

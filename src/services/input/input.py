@@ -2,11 +2,7 @@ import curses
 import logging
 from typing import Optional
 
-<<<<<<< HEAD
-from ...external.actors import Actor, Message, Sig, ActorIO, send, create
-=======
-from ...external.actors import Actor, Message, Sig, actor_system, ActorIO, create
->>>>>>> temp
+from ...external.actors import Actor, Message, Sig, ActorIO, create, send, DispatchError
 from ...wcurses import stdscr
 
 
@@ -21,7 +17,11 @@ class Prompt(Actor):
         self.log_lvl = logging.ERROR
 
     def dispatch(self, sender: int, msg: Message) -> None:
-        super().dispatch(sender, msg)
+        try:
+            super().dispatch(sender, msg)
+        except DispatchError:
+            return
+
         match msg:
             case {'event': 'io', 'name': 'keypress', 'args': args}:
                 match args:
@@ -65,7 +65,7 @@ class Prompt(Actor):
         raise SystemExit
 
 
-class InputIO(ActorIO, metaclass=SingletonMeta):
+class InputIO(ActorIO):
     def __init__(self, pid: int, parent: int, name='', **kwargs) -> None:
         super().__init__(pid, parent, name, **kwargs)
         self.log_lvl = logging.WARNING
@@ -79,7 +79,7 @@ class InputIO(ActorIO, metaclass=SingletonMeta):
             send(self.parent, {'event': 'io', 'name': 'keypress', 'args': c})
 
 
-class Input(Actor, metaclass=SingletonMeta):
+class Input(Actor):
     def __init__(self, pid: int, parent: int, name='', **kwargs) -> None:
         super().__init__(pid, parent, name, **kwargs)
         self.log_lvl = logging.WARNING
@@ -87,7 +87,11 @@ class Input(Actor, metaclass=SingletonMeta):
         self.sidecar: int
 
     def dispatch(self, sender: int, msg: Message) -> None:
-        super().dispatch(sender, msg)
+        try:
+            super().dispatch(sender, msg)
+        except DispatchError:
+            return
+
         match msg:
             case {'event': 'status', 'name': 'child-exit'}:
                 self.child = None
@@ -105,11 +109,8 @@ class Input(Actor, metaclass=SingletonMeta):
                         ...
 
                     case Key.COLON:
-<<<<<<< HEAD
-=======
-                        # self.child = actor_system.create_actor(Prompt)
->>>>>>> temp
                         self.child = create(Prompt)
+                        send(self.child, Message(sig=Sig.INIT))
 
                     case Key.q | Key.Q:
                         send('ActorSystem', Message(sig=Sig.SIGQUIT))
@@ -172,13 +173,13 @@ class Input(Actor, metaclass=SingletonMeta):
 
                     case _:
                         self.logger.warning(f'Unhandled key press: {args}')
+            case _:
+                self.logger.warning(f'Unprocessable msg={msg}')
+
 
     def init(self) -> None:
-<<<<<<< HEAD
-=======
-        # self.sidecar = actor_system.create_actor(InputIO)
->>>>>>> temp
         self.sidecar = create(InputIO)
+        send(self.sidecar, Message(sig=Sig.INIT))
 
     def terminate(self) -> None:
         send('ActorSystem', Message(sig=Sig.EXIT))

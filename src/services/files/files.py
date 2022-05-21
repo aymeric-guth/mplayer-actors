@@ -5,7 +5,7 @@ import logging
 
 from ...utils import SingletonMeta
 
-from ...external.actors import Actor, Message, Sig, actor_system, send, create
+from ...external.actors import Actor, Message, Sig, send, DispatchError
 from ...settings import extensions_all
 from . import helpers
 from ._types import CWD
@@ -14,15 +14,19 @@ from ._types import CWD
 # Synthetic CWD, recompose un tree à partir de critères de recherche
 # regroupe tous les noeuds matchs dans une nouvelle racine récursivement
 
-class Files(Actor, metaclass=SingletonMeta):
+class Files(Actor):
     def __init__(self, pid: int, parent: int, name='', **kwargs) -> None:
         super().__init__(pid, parent, name, **kwargs)
         self.files_tree: dict[tuple[str, ...], list[tuple[str, str]]] = defaultdict(list)
         self.dir_tree: dict[tuple[str, ...], set[str]] = defaultdict(set)
-        self.log_lvl = logging.INFO
+        self.log_lvl = logging.ERROR
 
     def dispatch(self, sender: int, msg: Message) -> None:
-        super().dispatch(sender, msg)
+        try:
+            super().dispatch(sender, msg)
+        except DispatchError:
+            return
+
         match msg:
             case Message(sig=Sig.CWD_GET, args=args):
                 send(sender, Message(sig=Sig.CWD_GET, args=helpers.get_kwargs(self)))

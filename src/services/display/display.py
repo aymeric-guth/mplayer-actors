@@ -4,7 +4,7 @@ from signal import signal, SIGWINCH
 import logging
 
 from ...utils import SingletonMeta, clamp
-from ...external.actors import Actor, Message, Sig, send
+from ...external.actors import Actor, Message, Sig, send, DispatchError
 from . import helpers
 
 from ...wcurses import stdscr, draw_popup
@@ -27,7 +27,7 @@ class Msg:
     args: Any = None
 
 
-class Display(Actor, metaclass=SingletonMeta):
+class Display(Actor):
     def __init__(self, pid: int, parent: int, name='', **kwargs) -> None:
         super().__init__(pid, parent, name, **kwargs)
         self.files_overlay = 1
@@ -48,7 +48,11 @@ class Display(Actor, metaclass=SingletonMeta):
         self.log_lvl = logging.ERROR
 
     def dispatch(self, sender: int, msg: Message) -> None:
-        super().dispatch(sender, msg)
+        try:
+            super().dispatch(sender, msg)
+        except DispatchError:
+            return
+
         match msg:
             case Message(sig=Sig.CWD_GET, args=args):
                 dir_list, files_list = args.get('dir_list'), args.get('files_list')
@@ -110,8 +114,8 @@ class Display(Actor, metaclass=SingletonMeta):
                 self.terminate()
 
             case _:
-                self.logger.info(f'Can\'t handle msg={msg}')
-                # raise SystemExit(f'{msg=}')
+                self.logger.warning(f'Unprocessable msg={msg}')
+
 
     def introspect(self) -> dict[Any, Any]:
         return {

@@ -42,8 +42,8 @@ class Logging:
 
     @property
     def logger(self) -> logging.LoggerAdapter:
-        with self._log_l:
-            return self._logger
+        # with self._log_l:
+        return self._logger
 
     @logger.setter
     def logger(self, value: Any) -> None:

@@ -2,7 +2,7 @@ import logging
 
 import httpx
 
-from ...external.actors import Actor, Message, Sig, actor_system, send
+from ...external.actors import Actor, Message, Sig, send, DispatchError
 
 from ...utils import SingletonMeta
 from . import helpers
@@ -10,7 +10,7 @@ from ...settings import USERNAME, PASSWORD, extensions_all
 from .constants import AUTH, NAS
 
 
-class API(Actor, metaclass=SingletonMeta):
+class API(Actor):
     def __init__(self, pid: int, parent: int, name='', **kwargs) -> None:
         super().__init__(pid, parent, name, **kwargs)
         self.username = USERNAME
@@ -21,12 +21,13 @@ class API(Actor, metaclass=SingletonMeta):
         self.log_lvl = logging.ERROR
 
     def dispatch(self, sender: int, msg: Message) -> None:
-        super().dispatch(sender, msg)
+        try:
+            super().dispatch(sender, msg)
+        except DispatchError:
+            return
+        
         response: httpx.Response
         match msg:
-            case Message(sig=Sig.INIT, args=args):
-                send(self.pid, Message(Sig.LOGIN))
-
             case Message(sig=Sig.LOGIN_SUCCESS, args=token):
                 self.token = token
                 send(self.pid, Message(Sig.EXT_SET, args=list(self.extensions)))
@@ -106,11 +107,9 @@ class API(Actor, metaclass=SingletonMeta):
                     else:
                         send(self.pid, Message(sig=Sig.FILES_GET))
 
-            case Message(sig=Sig.SIGQUIT):
-                self.terminate()
-
             case _:
-                raise SystemExit(f'{msg=}')
+                self.logger.warning(f'Unprocessable msg={msg}')
+
 
     def init(self) -> None:
         send(self.pid, Message(Sig.LOGIN))

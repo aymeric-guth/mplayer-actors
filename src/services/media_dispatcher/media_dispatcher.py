@@ -1,7 +1,7 @@
 import logging
 from typing import Optional
 
-from ...external.actors import Actor, Message, Sig, send, create, actor_system
+from ...external.actors import Actor, Message, Sig, send, create, DispatchError
 
 from ..mpv import MPV
 from .playlist import Playlist
@@ -10,7 +10,7 @@ from ...settings import PlaybackMode
 from ...utils import SingletonMeta
 
 
-class MediaDispatcher(Actor, metaclass=SingletonMeta):
+class MediaDispatcher(Actor):
     def __init__(self, pid: int, parent: int, name='', **kwargs) -> None:
         super().__init__(pid, parent, name, **kwargs)
         self.wid = b'\x00\x00\x00\x00'
@@ -20,7 +20,11 @@ class MediaDispatcher(Actor, metaclass=SingletonMeta):
         self.child: Optional[int] = None
        
     def dispatch(self, sender: int, msg: Message) -> None:
-        super().dispatch(sender, msg)
+        try:
+            super().dispatch(sender, msg)
+        except DispatchError:
+            return
+
         match msg:
             case Message(sig=Sig.PLAY_ALL, args=args):
                 send('Files', Message(sig=Sig.FILES_GET, args=args))
@@ -89,7 +93,7 @@ class MediaDispatcher(Actor, metaclass=SingletonMeta):
                 send('Display', Message(sig=Sig.MEDIA_META, args=args))
 
             case _:
-                raise SystemExit(f'{msg=}')
+                self.logger.warning(f'Unprocessable msg={msg}')
 
     @property
     def playback(self) -> PlaybackMode:
@@ -106,8 +110,8 @@ class MediaDispatcher(Actor, metaclass=SingletonMeta):
                 self._playback = PlaybackMode.LOOP_ALL
             case _:
                 self._playback = PlaybackMode.NORMAL
-
-        send('Display', Message(sig=Sig.MEDIA_META, args={'playback-mode': self.playback}))
+        # send('Display', Message(sig=Sig.MEDIA_META, args={'playback-mode': self.playback}))
 
     def init(self) -> None:
         self.child = create(MPV, wid=self.wid)
+        send(self.child, Message(sig=Sig.INIT))

@@ -20,7 +20,6 @@ async def handle_client(
             if not size:
                 raise Exception
 
-            print('New message available:')
             message = await reader.readexactly(size)
             record = logging.makeLogRecord(pickle.loads(message))            
             fmt = logging.Formatter(fmt='[%(asctime)s][%(levelname)s][%(actor)s][%(name)s:%(lineno)s]\n[%(message)s]\n')
