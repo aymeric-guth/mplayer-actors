@@ -30,9 +30,9 @@ class ActorSystem(BaseActor, metaclass=SingletonMeta):
     ) -> None:
         recipient: Optional[BaseActor] = self._registry.lookup(receiver)
         if recipient is None:
-            return sender.post(sender=self.pid, msg=Message(sig=Sig.DISPATCH_ERROR))
+            return sender._post(self.pid, Message(sig=Sig.DISPATCH_ERROR))
         else:
-            return recipient.post(sender=sender.pid, msg=msg)
+            return recipient._post(sender.pid, msg)
 
     def _create_actor(
         self, 
@@ -61,7 +61,7 @@ class ActorSystem(BaseActor, metaclass=SingletonMeta):
 
             case Message(sig=Sig.SIGQUIT):
                 for pid, actor in self._registry:
-                    actor.post(sender=self.pid, msg=Message(sig=Sig.SIGQUIT))
+                    actor._post(self.pid, Message(sig=Sig.SIGQUIT))
                 raise SystemExit
 
             case Message(sig=Sig.SIGINT):
@@ -78,7 +78,8 @@ class ActorSystem(BaseActor, metaclass=SingletonMeta):
                     kwargs = kwargs.copy()
                 t = self._threads.get(pid)
                 if t is not None:
-                    t._stop()
+                    t.join()
+                    del self._threads[pid]
                 self.logger.warning(f'Trying to regenerate Actor(pid={pid}, cls={cls}, parent={parent}, name={name}, kwargs={kwargs})')
                 self._create_actor(cls, pid=pid, parent=parent, name=name, **kwargs)
 
@@ -104,14 +105,6 @@ class ActorSystem(BaseActor, metaclass=SingletonMeta):
     def resolve_parent(self, pid: int) -> str:
         actor = self._registry.get(pid)
         return 'None' if actor is None else actor.__repr__()
-
-    @property
-    def logger(self) -> Logging:
-        return self._logger
-
-    @logger.setter
-    def logger(self, value: Any) -> None:
-        raise TypeError('Property is immutable')
 
     def get_actor(self, pid: int) -> Optional[BaseActor]:
         return self._registry.get(pid)

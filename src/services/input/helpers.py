@@ -1,7 +1,4 @@
-from typing import List, Any
-
-
-from ...external.actors import Message, Sig, Actor, actor_system
+from ...external.actors import Message, Sig
 
 from ...utils import SingletonMeta, clamp
 
@@ -63,7 +60,7 @@ def eval_cmd(cmd: str) -> tuple[str, Message]:
 
         case ['volume' | 'v', value] if value.isdigit():
             # set volume to value
-            return 'MediaDispatcher', Message(sig=Sig.VOLUME, args=int(value))
+            return 'MediaDispatcher', Message(sig=Sig.VOLUME, args=value)
 
         case ['depth' | 'd', value] if value.isdigit() and int(value) > 0:
             # goes value nodes up
@@ -77,6 +74,9 @@ def eval_cmd(cmd: str) -> tuple[str, Message]:
 
         case ['?*', p] if p:
             return 'Files', Message(sig=Sig.SEARCH_ALL, args=p)
+
+        case ['send', actor, *msg] if actor and msg:            
+            return actor, Message(sig=Sig.PLAY_PAUSE)
 
         case _:
             return 'Display', Message(sig=Sig.POPUP, args=f'Invalid command: {cmd}')

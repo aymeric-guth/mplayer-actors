@@ -8,6 +8,7 @@ import logging.handlers
 from .message import Message
 from .sig import Sig
 from .subsystems import Logging
+from .errors import DispatchError, ActorException
 
 from ...utils import clamp
 from ...settings import LOG_HOST, LOG_PORT, LOG_FORMAT
@@ -52,17 +53,31 @@ class BaseActor:
     def run(self) -> None:
         while 1:
             (sender, msg) = self._mq.get()
-            self.log_mq(sender, msg)
+            # self.log_mq(sender, msg)
             try:
                 self.dispatch(sender, msg)
+            except ActorException as err:
+                # generic actor error
+                # logging + reschedule
+                self.handler(str(err))
+            except DispatchError as err:
+                # unhandled message
+                # logging
+                self.logger.warning(str(err))
+            except SystemExit as err:
+                # gracefull exit
+                # dealocating ressources, signaling childs to terminate
+                self.terminate()
             except Exception as err:
+                # unhandled exception
+                # logging + termination, signaling childs to terminate
                 # frameinfo = getframeinfo(currentframe())
                 # exc_info = str(sys.exc_info()[2]) + '\n' + repr(frameinfo)
                 # print(sys.exc_info()[2])
                 # traceback.format_exc()
-                self.handler(f'{err} {trace(1)[-1]}')
-                raise SystemExit
-            else:
+                self.logger.error(f'{err} {trace(1)[-1]}')
+                self.terminate()
+            finally:
                 self._mq.task_done()
 
     def dispatch(self, sender: int, msg: Message) -> None:
@@ -77,10 +92,8 @@ class BaseActor:
     def init(self) -> None:
         raise NotImplementedError
 
-    def post(self, msg: Message|dict[str, Any], sender: Optional[int]=None) -> None:
-        if sender is None:
-            sender = self.pid  
-        self.log_post(sender, msg)
+    def _post(self, sender: int, msg: Message|dict[str, Any]) -> None:
+        # self.log_post(sender, msg)
         self._mq.put_nowait((sender, msg))
 
     @property
@@ -126,15 +139,15 @@ class BaseActor:
         self._logger.log_lvl = value
 
     @property
-    def logger(self) -> logging.LoggerAdapter:
-        return self._logger.logger
+    def logger(self) -> Logging:
+        return self._logger
 
     @logger.setter
     def logger(self, value: Any) -> None:
         raise TypeError('Property is immutable')
 
-    def log_mq(self, sender: Optional[int], msg: Message|dict[str, Any]) -> None:
-        return self._logger.log(self.pid, sender, msg, '### MQ ###')
+    # def log_mq(self, sender: Optional[int], msg: Message|dict[str, Any]) -> None:
+    #     return self._logger.log(self.pid, sender, msg, '### MQ ###')
     
-    def log_post(self, sender: Optional[int], msg: Message|dict[str, Any]) -> None:
-        return self._logger.log(self.pid, sender, msg, '### POST ###')
+    # def log_post(self, sender: Optional[int], msg: Message|dict[str, Any]) -> None:
+    #     return self._logger.log(self.pid, sender, msg, '### POST ###')

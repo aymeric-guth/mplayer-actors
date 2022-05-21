@@ -12,8 +12,6 @@ from ...external.actors import Actor, Message, Sig, send, create, DispatchError
 from .event_loop import MpvEvent, MPVEvent
 
 
-
-
 class MPV(Actor):
     def __init__(self, pid: int, parent: int, name='', **kwargs) -> None:
         super().__init__(pid, parent, name, **kwargs)
@@ -24,9 +22,8 @@ class MPV(Actor):
         lc, enc = locale.getlocale(locale.LC_NUMERIC)
         locale.setlocale(locale.LC_NUMERIC, 'C')
         self.handle = _mpv.mpv_create()
-        self.child: Optional[int] = None
+        self.child: int
 
-        # istr = lambda o: ('yes' if o else 'no') if type(o) is bool else str(o)
         _mpv.mpv_set_option_string(self.handle, b'audio-display', b'no')
         _mpv.mpv_set_option_string(self.handle, b'input-default-bindings', b'yes')
         _mpv.mpv_set_option_string(self.handle, b'input-vo-keyboard', b'yes')
@@ -58,7 +55,8 @@ class MPV(Actor):
 
     @volume.setter
     def volume(self, value: int|float) -> None:
-        self._volume = clamp(0, 100)(value)
+        if value is not None:
+            self._volume = clamp(0, 100)(value)
 
     @property
     def state(self) -> int:
@@ -80,7 +78,7 @@ class MPV(Actor):
         except SystemError:
             return -1
 
-    def set_property(self, name: str, value: list | dict | set | str):
+    def set_property(self, name: str, value: list|dict|set|str):
         ename = name.encode('utf-8')
         if isinstance(value, (list, set, dict)):
             _1, _2, _3, pointer = _mpv.make_node_str_list(value)
@@ -96,7 +94,7 @@ class MPV(Actor):
         try:
             super().dispatch(sender, msg)
         except DispatchError:
-            return
+            raise
 
         match msg:
             case Message(sig=Sig.MPV_EVENT, args=args):
@@ -152,36 +150,37 @@ class MPV(Actor):
                     send(self.pid, Message(sig=Sig.STATE_CHANGE, args=1))
 
             case Message(sig=Sig.VOLUME, args=args):
-                if args is not None:
-                    self.volume = args
+                if args.startswith('+') or args.startswith('-'):
+                    self.volume += int(args)
+                else:
+                    self.volume = int(args)
                 self.set_property('volume', self.volume)
             
-            case Message(sig=Sig.VOLUME_INC, args=args):
-                self.volume += args
-                send(self.pid, Message(sig=Sig.VOLUME))
-
             case Message(sig=Sig.STOP, args=None):
                 args = [b'stop', b'', None]
                 self.command(*args)
 
             case Message(sig=Sig.SEEK, args=args):
-                req = clamp(0., self.duration-self.pos)(args)
-                p = str(req).encode('utf-8')
-                args = [b'seek', p, b'relative', b'default-precise', None]
+                if args < 0.:
+                    req = clamp(-self.pos, 0.)(args)                       
+                else:
+                    req = clamp(0., self.duration-self.pos)(args)
+                args = [b'seek', str(req).encode('utf-8'), b'relative', b'default-precise', None]
                 self.command(*args)
 
             case Message(sig=Sig.DONE, args=args) as msg:
                 send(self.parent, msg)
 
             case _:
-                self.logger.warning(f'Unprocessable msg={msg}')
+                raise DispatchError(f'Unprocessable msg={msg}')
 
 
     def terminate(self) -> None:
         self.handle, handle = None, self.handle
-        # self.event_loop.handle = None
         # self.event_loop.join()
+        send(self.child, Message(sig=Sig.EXIT))
         _mpv.mpv_terminate_destroy(handle)
+        send(0, Message(sig=Sig.EXIT))
         raise SystemExit('SIGQUIT')
 
     def init(self) -> None:
@@ -193,4 +192,4 @@ class MPV(Actor):
         self.observe_property('playtime-remaining')
         self.observe_property('duration')
         self.observe_property('metadata')
-        send(self.pid, Message(sig=Sig.VOLUME, args=VOLUME_DEFAULT))
+        send(self.pid, Message(sig=Sig.VOLUME, args=str(VOLUME_DEFAULT)))

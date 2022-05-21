@@ -15,3 +15,10 @@
 * refactor: séparation du library code et de l'application code
 * feature: bouger le curseur avec <- -> dans en prompt mode
 * refactor: prompt -> actor
+
+22/05/22
+* bugfix: command history quan historique vide
+* début migration séparation signaux et events
+    utiliser des méthodes pour la gestion des signaux lib
+    (init, terminate, ...)
+    Sig.POISON, Sig.SIGQUIT, Sig.SIGINT, Sig.INIT, 

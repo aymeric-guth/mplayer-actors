@@ -106,9 +106,6 @@ class External(Actor):
                 self.logger.warning(f'Unprocessable msg={msg}')
 
 
-    def terminate(self) -> None:
-        raise SystemExit('SIGQUIT')
-
     def init(self) -> None:
         send(self.pid, Message(sig=Sig.SMB_PING, args=1))
         send(self.pid, Message(sig=Sig.HOOK, args=('root', ROOT[:])))

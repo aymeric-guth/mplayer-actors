@@ -2,8 +2,5 @@ class ActorException(Exception):
     ...
 
 
-class UnprocessableMessage(ActorException):
-    ...
-
-class DispatchError(ActorException):
+class DispatchError(Exception):
     ...

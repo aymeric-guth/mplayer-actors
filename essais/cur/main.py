@@ -1,5 +1,6 @@
 import curses
 import select
+import sys
 
 
 def main(stdscr):
@@ -15,19 +16,19 @@ def main(stdscr):
 def poller(stdscr) -> None:
     stdscr.nodelay(1)
     while 1:
-        rr, _, _ = select.select([stdscr.getch], [], [])
+        rr, _, _ = select.select([sys.stdin], [], [])
         idx = 0
         if rr:
-            v = rr[0]
-            stdscr.addstr(idx, 0, v)
+            c = stdscr.getch()
+            stdscr.addstr(idx, 0, str(c))
             idx += 1
             stdscr.refresh()
 
 
 def test(stdscr):
-    height=25 
-    width=58 
-    y_ofst=0 
+    height=25
+    width=58
+    y_ofst=0
     x_ofst=0
     row=24
     col=29
@@ -37,5 +38,5 @@ def test(stdscr):
 
 
 # print(wrapper(main))
-# wrapper(poller)
-print(curses.wrapper(main))
+curses.wrapper(poller)
+# print(curses.wrapper(main))

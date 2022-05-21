@@ -3,7 +3,7 @@ import traceback
 
 from .wcurses import deinit, wrapper
 from .external.actors import create, ActorSystem, Sig, Message, send
-from .services import API, Display, Files, Input, External, MediaDispatcher#, SocketServer
+from .services import API, Display, Files, Input, External, MediaDispatcher, Dummy#, SocketServer
 
 
 def main():

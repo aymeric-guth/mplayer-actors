@@ -5,4 +5,5 @@ from .input import Input
 from .media_dispatcher import MediaDispatcher
 from .mpv import MPV
 from .external import External
+from .dummy import Dummy
 # from .introspecter import SocketServer

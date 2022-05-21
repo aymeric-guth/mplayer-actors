@@ -17,8 +17,8 @@ class MediaDispatcher(Actor):
         self.pl: Playlist = None
         self.playback = PlaybackMode.NORMAL
         self.log_lvl = logging.ERROR
-        self.child: Optional[int] = None
-       
+        self.child: int
+
     def dispatch(self, sender: int, msg: Message) -> None:
         try:
             super().dispatch(sender, msg)
@@ -45,9 +45,7 @@ class MediaDispatcher(Actor):
                     self.playback = args
 
             case Message(sig=Sig.VOLUME, args=args) as msg:
-                send('MPV', msg)
-
-            case Message(sig=Sig.VOLUME_INC, args=args) as msg:
+                self.logger.error(f'{args=} {type(args)=}')
                 send('MPV', msg)
 
             case Message(sig=Sig.PLAY_PAUSE, args=args) as msg:
@@ -77,7 +75,7 @@ class MediaDispatcher(Actor):
                 item = self.pl.prev()
                 send(self.pid, Message(sig=Sig.PLAY, args=item))
 
-            case Message(sig=Sig.STOP, args=None):
+            case Message(sig=Sig.STOP, args=None) as msg:
                 if self.pl is not None:
                     self.pl.clear()
                 send('MPV', msg)
@@ -89,7 +87,7 @@ class MediaDispatcher(Actor):
             case Message(sig=Sig.SEEK, args=args) as msg:
                 send('MPV', msg)
 
-            case Message(sig=Sig.WATCHER, args=args) as msg:
+            case Message(sig=Sig.WATCHER, args=args):
                 send('Display', Message(sig=Sig.MEDIA_META, args=args))
 
             case _:
@@ -115,3 +113,6 @@ class MediaDispatcher(Actor):
     def init(self) -> None:
         self.child = create(MPV, wid=self.wid)
         send(self.child, Message(sig=Sig.INIT))
+
+    def terminate(self) -> None:
+        send(self.child, Message(Sig.SIGQUIT))

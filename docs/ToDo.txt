@@ -1,6 +1,6 @@
 ### Bugfix ###
 * refactor: préparation class Files en vue de l'implémentation de la recherche récursive
-* bugfix: command history quan historique vide
+
 
 ### Features ###
 * implémentation cache en subsystem
@@ -14,23 +14,24 @@ checks:
 * purge . (delete .purge and all containing files)
 * copy to zdj
 * persistance user settings (SQLite, API REST, pickle)
+* hot reload d'un acteur quand son package a été modifié
+* sérialisation / déserialisation d'un acteur
+
 
 ### Refactor ###
 * refactor Message en dict?
 * refactor gestion path -> pathlib?
 * curses -> actor
-
 * séparation des messages en messages lib et message application
     Message() pour lib, {'event': ''} pour code application
     utiliser du single dispatch pour match les types
-    utiliser des méthodes pour la gestion des signaux lib
-    (init, terminate, ...)
-    Sig.POISON, Sig.SIGQUIT, Sig.SIGINT, Sig.INIT, 
+
 
 ### Technos ###
 * migration vers un autre protocole de partage (streaming)
 
 
+### Architecture
 api:
     async messaging
     request response
@@ -48,6 +49,13 @@ events externes (non-Message)
     partie polling dans un thread séparé et callback avec un post dans la mq?
 
 
+### Event Loop
+  Blocking Event Sources:
+    * MPV Event Loop
+    * STDIN - select
+    * network (TCP socket 8080, TCP socket Logs) - select
 
-* hot reload d'un acteur quand son package a été modifié
-* sérialisation / déserialisation d'un acteur
+Problem:
+  Socket:
+    model request -> response
+    model 2 canaux

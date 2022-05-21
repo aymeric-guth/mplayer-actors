@@ -1,6 +1,8 @@
 import curses
 import logging
-from typing import Optional
+from typing import Optional, Any
+import select
+import sys
 
 from ...external.actors import Actor, Message, Sig, ActorIO, create, send, DispatchError
 from ...wcurses import stdscr
@@ -72,6 +74,7 @@ class InputIO(ActorIO):
 
     def run(self) -> None:
         while 1:
+            rr, _, _ = select.select([sys.stdin], [], [])
             c = stdscr.getch()
             self.logger.info(f'Got new input c={c}')
             if c == -1: 
@@ -92,13 +95,13 @@ class Input(Actor):
         except DispatchError:
             return
 
+        arg: Any
         match msg:
             case {'event': 'status', 'name': 'child-exit'}:
                 self.child = None
 
             case {'event': 'command', 'name': 'parse', 'args': args}:
-                (recipient, response) = eval_cmd(args)
-                send(recipient, response)
+                send(*eval_cmd(args))
 
             case {'event': 'io', 'name': 'keypress', 'args': args} as msg if self.child is not None:                
                 send(self.child, msg)
@@ -116,12 +119,10 @@ class Input(Actor):
                         send('ActorSystem', Message(sig=Sig.SIGQUIT))
 
                     case Key.r | Key.R:
-                        (recipient, response) = eval_cmd('refresh')
-                        send(recipient, response)
+                        send(*eval_cmd('refresh'))
 
                     case Key.p | Key.P:
-                        (recipient, response) = eval_cmd('play')
-                        send(recipient, response)
+                        send(*eval_cmd('play'))
 
                     case Key.ALT_H:
                         send('MediaDispatcher', {'event': 'command', 'name': 'previous', 'args': None})
@@ -133,22 +134,21 @@ class Input(Actor):
                         send('MediaDispatcher', Message(sig=Sig.PLAY_PAUSE))
 
                     case Key.DOT:
-                        (recipient, response) = eval_cmd('..')
-                        send(recipient, response)
+                        send(*eval_cmd('..'))
 
                     case (Key.H | Key.L | Key.J | Key.K) as p:
                         match p:
                             case Key.H:
-                                arg = -5
+                                arg = '-5'
                             case Key.L:
-                                arg = 5
+                                arg = '+5'
                             case Key.J:
-                                arg = -10
+                                arg = '-10'
                             case Key.K:
-                                arg = 10
+                                arg = '+10'
                             case _:
-                                arg = None
-                        send('MediaDispatcher', Message(sig=Sig.VOLUME_INC, args=arg))
+                                arg = '0'
+                        send('MediaDispatcher', Message(sig=Sig.VOLUME, args=arg))
 
                     case (Key.d | Key.D):
                         send('Display', Message(sig=Sig.PLAYBACK_OVERLAY))
@@ -168,13 +168,12 @@ class Input(Actor):
                         send('MediaDispatcher', Message(sig=Sig.SEEK, args=arg))
 
                     case p if p in num_mapping:
-                        (recipient, response) = eval_cmd(num_mapping[p])
-                        send(recipient, response)
+                        send(*eval_cmd(num_mapping[p]))
 
                     case _:
                         self.logger.warning(f'Unhandled key press: {args}')
             case _:
-                self.logger.warning(f'Unprocessable msg={msg}')
+                raise DispatchError(f'Unprocessable msg={msg}')
 
 
     def init(self) -> None:
@@ -182,5 +181,8 @@ class Input(Actor):
         send(self.sidecar, Message(sig=Sig.INIT))
 
     def terminate(self) -> None:
+        send(self.sidecar, Message(Sig.EXIT))
+        if self.child is not None:
+            send(self.child, Message(Sig.EXIT))
         send('ActorSystem', Message(sig=Sig.EXIT))
         raise SystemExit

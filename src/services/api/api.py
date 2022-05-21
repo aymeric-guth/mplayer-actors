@@ -2,9 +2,8 @@ import logging
 
 import httpx
 
-from ...external.actors import Actor, Message, Sig, send, DispatchError
+from ...external.actors import Actor, Message, Sig, send, DispatchError, ActorException
 
-from ...utils import SingletonMeta
 from . import helpers
 from ...settings import USERNAME, PASSWORD, extensions_all
 from .constants import AUTH, NAS
@@ -33,10 +32,10 @@ class API(Actor):
                 send(self.pid, Message(Sig.EXT_SET, args=list(self.extensions)))
 
             case Message(sig=Sig.LOGIN_FAILURE, args=args):
-                raise SystemExit(args)
+                raise ActorException(args)
 
             case Message(sig=Sig.NETWORK_FAILURE, args=args):
-                raise SystemExit(args)
+                raise ActorException(args)
 
             case Message(sig=Sig.EXT_SUCCESS, args=args):
                 send('External', Message(sig=Sig.GET_CACHE))
@@ -108,7 +107,7 @@ class API(Actor):
                         send(self.pid, Message(sig=Sig.FILES_GET))
 
             case _:
-                self.logger.warning(f'Unprocessable msg={msg}')
+                raise DispatchError(f'Unprocessable msg={msg}')
 
 
     def init(self) -> None:
