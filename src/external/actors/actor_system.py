@@ -58,12 +58,9 @@ class ActorSystem(BaseActor, metaclass=SingletonMeta):
         match msg:
             case Message(sig=Sig.INIT):
                 ...
-                # for pid, actor in self._registry:
-                #     actor.post(sender=self.pid, msg=Message(sig=Sig.INIT))
 
             case Message(sig=Sig.SIGQUIT):
-                for pid, actor in self._registry:
-                    actor._post(self.pid, Message(sig=Sig.EXIT))
+                self.terminate()
 
             case Message(sig=Sig.SIGINT):
                 actor = self._registry.get(sender)
@@ -125,16 +122,11 @@ class ActorSystem(BaseActor, metaclass=SingletonMeta):
             actor = self._registry.get(pid)
             if actor is not None:
                 actor._post(self.pid, Message(sig=Sig.EXIT))
-            #     self._registry.unregister(pid)
-            #     actor._post(self.pid, Message(sig=Sig.EXIT))
-            # self.logger.error(f"Dealocating actor={actor}")
-            # t.join()
             self.logger.error(f'Termintating actor={actor}')
+
         actor = self._registry.get(0)
         if actor is not None:
             actor._post(0, Message(sig=Sig.EXIT))
-            
-                
 
 
 def __get_caller(frame_idx: int=2) -> BaseActor:
