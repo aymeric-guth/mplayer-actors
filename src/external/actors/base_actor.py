@@ -53,6 +53,7 @@ class BaseActor:
     def run(self) -> None:
         while 1:
             (sender, msg) = self._mq.get()
+            self.logger.log(sender=sender, receiver=repr(self), msg=msg)
             # self.log_mq(sender, msg)
             try:
                 self.dispatch(sender, msg)

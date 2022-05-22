@@ -4,7 +4,7 @@ from signal import signal, SIGWINCH
 import logging
 
 from ...utils import SingletonMeta, clamp
-from ...external.actors import Actor, Message, Sig, send, DispatchError, create, MsgCtx, forward
+from ...external.actors import Actor, Message, Sig, send, DispatchError, create, MsgCtx, forward, Event, Request, Response
 from . import helpers
 from .wcurses import Curses
 
@@ -40,7 +40,7 @@ class Display(Actor):
         self.draw_files = lambda: helpers.draw_files(self)
         self.draw_playback = lambda: helpers.draw_playback(self)
         self.child: int
-        self.log_lvl = logging.INFO
+        self.log_lvl = logging.ERROR
 
     def dispatch(self, sender: int, msg: Message) -> None:
         try:
@@ -52,9 +52,10 @@ class Display(Actor):
             case Message(sig=Sig.CWD_GET, args=args):
                 dir_list, files_list = args.get('dir_list'), args.get('files_list')
                 self.files_buff = [dir_list, files_list]
+                # send(self.pid, Request(type='render', name='draw'))
                 send(self.pid, Message(sig=Sig.DRAW_SCREEN))
 
-            case Message(sig=Sig.PROMPT, args=args) if isinstance(args, bool):
+            case Event(type='io', name='prompt', args=args) if isinstance(args, bool):
                 # initialisation de la fenetre du prompt
                 self.cmd_overlay = args
                 if not self.cmd_overlay:
@@ -64,17 +65,17 @@ class Display(Actor):
                     ...
                 send(self.pid, Message(sig=Sig.DRAW_SCREEN))
 
-            case Message(sig=Sig.PROMPT, args=args) if isinstance(args, tuple):
+            case Event(type='io', name='prompt', args=args) if isinstance(args, tuple):
                 self.cmd_buff = args
-                send(self.pid, {'event': 'property-change', 'name': 'draw-cmd'})
-
-            case {'event': 'property-change', 'name': 'draw-cmd'}:
-            # case Msg(event='property-change', name='draw-cmd'):
                 if self.cmd_overlay:
                     self.set_dims()
-                    send(self.child, {'event': 'render', 'name': 'cmd', 'args': (self.cmd_dims, self.cmd_buff)})
-                    # self.draw_cmd()
-                    # curses.doupdate()
+                    send(self.child, Request(type='render', name='cmd', args=(self.cmd_dims, self.cmd_buff)))
+
+                # self.cmd_buff = args
+                # if self.cmd_overlay:
+                #     self.set_dims()
+                #     self.draw_cmd()
+                #     curses.doupdate()
 
             case Message(sig=Sig.MEDIA_META, args=args):
                 k, v = [i for i in args.items()][0]
@@ -93,7 +94,7 @@ class Display(Actor):
                 self.set_dims()
                 self.draw_files()
                 self.draw_playback()
-                self.draw_cmd()
+                self.draw_cmd()               
                 curses.doupdate()
 
             case Message(sig=Sig.PLAYBACK_OVERLAY, args=args):
@@ -107,6 +108,7 @@ class Display(Actor):
                 raise DispatchError
 
     def dispatch_handler(self, sender: int, message: Message|dict[str, Any]) -> None:
+        self.logger.error(f'Reached dispatch_handler msg={message!r}')
         return forward(sender, self.child, message)
 
     def introspect(self) -> dict[Any, Any]:

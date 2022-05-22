@@ -80,7 +80,7 @@ class ActorSystem(BaseActor, metaclass=SingletonMeta):
                 if t is not None:
                     t.join()
                     del self._threads[pid]
-                self.logger.warning(f'Trying to regenerate Actor(pid={pid}, cls={cls}, parent={parent}, name={name}, kwargs={kwargs})')
+                self.logger.error(f'Trying to regenerate Actor(pid={pid}, cls={cls}, parent={parent}, name={name}, kwargs={kwargs})')
                 self._create_actor(cls, pid=pid, parent=parent, name=name, **kwargs)
 
             case Message(sig=Sig.EXIT):
@@ -92,15 +92,8 @@ class ActorSystem(BaseActor, metaclass=SingletonMeta):
                 if t is not None:
                     t.join()
 
-            case Message(sig=Sig.DISPATCH_ERROR, args=ctx):
-                ...
-                # op = ActorSystem().get_actor(sender)
-                # s = __get_caller()
-                # target = ActorSystem()._registry.lookup(receiver)
-                # if op is not None and target is not None: # null check
-                #     if s.pid == target.parent: # parent - child check
-                #         return ActorSystem()._send(sender=op, receiver=target.pid, msg=msg)
-                # return send(sender, Message(Sig.DISPATCH_ERROR))
+            case Message(sig=Sig.DISPATCH_ERROR, args=ctx):                
+                self.logger.error(f'Unprocessable from={self.get_actor(ctx.original_sender)!r} to={self.get_actor(ctx.original_recipient)!r} message={ctx.message!r}')
 
             case _:
                 # self._logger._log(sender=self.resolve_parent(sender), receiver=self.__repr__(), msg=f'Unprocessable Message: msg={msg}')
@@ -136,13 +129,13 @@ def __get_caller(frame_idx: int=2) -> BaseActor:
     return actor
 
 
-def send(receiver: Union[int, str, type], msg: Any) -> None:
+def send(to: Union[int, str, type], what: Any) -> None:
     return (
         ActorSystem()
         ._send(
             sender=__get_caller(), 
-            receiver=receiver, 
-            msg=msg
+            receiver=to, 
+            msg=what
         )
     )
 

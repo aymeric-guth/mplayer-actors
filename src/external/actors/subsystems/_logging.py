@@ -49,13 +49,17 @@ class Logging:
     def logger(self, value: Any) -> None:
         raise TypeError('Property is immutable')
 
-    def log(self, sender: Optional[int], receiver: Optional[int], msg: Message|dict[str, Any], fmt: str='') -> None:
-        if not isinstance(sender, int):
-            self.logger.error(f'{fmt}\nGot unexpected Sender={sender}, type={type(sender)}\nmsg={msg}')
-        elif sender == receiver:
-            self.logger.info(f'{fmt}\nself={self!r}\n{msg=}')
-        else:
-            self.logger.info(f'{fmt}\nreceiver={self!r}\nsender={sender}\n{msg=}')
+    def log(self, sender: str, receiver: str, msg: str) -> None:
+        self.logger.info(f'{sender=}\n{receiver=}\n{msg=}')
+
+
+    # def log(self, sender: Optional[int], receiver: Optional[int], msg: Message|dict[str, Any], fmt: str='') -> None:
+    #     if not isinstance(sender, int):
+    #         self.logger.error(f'{fmt}\nGot unexpected Sender={sender}, type={type(sender)}\nmsg={msg}')
+    #     elif sender == receiver:
+    #         self.logger.info(f'{fmt}\nself={self!r}\n{msg=}')
+    #     else:
+    #         self.logger.info(f'{fmt}\nreceiver={self!r}\nsender={sender}\n{msg=}')
 
     def frameinfo(self, frame) -> None:
         self.logger.error(f'{frame.f_code.co_name=} {frame.f_code.co_varnames=} {frame.f_code.co_filename=} {frame.f_code.co_firstlineno=} {frame.f_locals=} {frame.f_lineno=}')

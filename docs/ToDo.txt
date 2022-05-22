@@ -1,5 +1,7 @@
 ### Bugfix ###
 * refactor: préparation class Files en vue de l'implémentation de la recherche récursive
+* bugfix: montage démontage acteur Files au démarrage de l'app
+* refactor: routing des requests API en particulier /get_files
 
 
 ### Features ###

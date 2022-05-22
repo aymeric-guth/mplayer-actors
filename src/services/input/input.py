@@ -29,9 +29,8 @@ class Prompt(Actor):
                 match args:
                     case Key.ENTER:
                         CmdCache().push(CmdBuffer().get())
-                        send('Display', Message(sig=Sig.PROMPT, args=False))
-                        send(self.parent, Event(type='io', name='prompt', args=False))
-                        send(self.parent, Event(type='io', name='prompt', args=CmdBuffer().to_str()))
+                        send(to='Display', what=Event(type='io', name='prompt', args=False))
+                        send(to=self.parent, what=Event(type='io', name='prompt', args=CmdBuffer().to_str()))
                         CmdBuffer().clear()
                         send(self.pid, Message(sig=Sig.EXIT))
                         return
@@ -56,14 +55,13 @@ class Prompt(Actor):
 
                     case _:
                         CmdBuffer().insert(chr(args))
-
-                send('Display', Message(sig=Sig.PROMPT, args=CmdBuffer().serialize()))
+                send(to='Display', what=Event(type='io', name='prompt', args=CmdBuffer().serialize()))
 
     def init(self) -> None:
-        send('Display', Message(sig=Sig.PROMPT, args=True))
+        send('Display', Event(type='io', name='prompt', args=True))
 
     def terminate(self) -> None:
-        send(self.parent, {'event': 'status', 'name': 'child-exit'})
+        send(self.parent, Event(type='status', name='child-exit'))
         send('ActorSystem', Message(sig=Sig.EXIT))
         raise SystemExit
 
@@ -82,7 +80,7 @@ class Input(Actor):
 
         arg: Any
         match msg:
-            case Event(type='status', name='child-exit', args=args):
+            case Event(type='status', name='child-exit'):
                 # hanling in super().dispatch
                 self.child = None
 
@@ -99,10 +97,10 @@ class Input(Actor):
 
                     case Key.COLON:
                         self.child = create(Prompt)
-                        send(self.child, Message(sig=Sig.INIT))
+                        send(to=self.child, what=Message(sig=Sig.INIT))
 
                     case Key.q | Key.Q:
-                        send('ActorSystem', Message(sig=Sig.SIGQUIT))
+                        send(to='ActorSystem', what=Message(sig=Sig.SIGQUIT))
 
                     case Key.r | Key.R:
                         send(*eval_cmd('refresh'))
