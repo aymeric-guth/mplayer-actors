@@ -1,6 +1,7 @@
 from .sig import Sig
 from .message import Message, MsgCtx, Event, Request, Response
 from .actor import Actor, ActorIO
-from .actor_system import actor_system, send, create, forward, ActorSystem
+from .actor_system import actor_system, create, forward, ActorSystem, send
 from .base_actor import ActorGeneric
 from .errors import ActorException, DispatchError
+from ._send import Send

@@ -1,3 +1,4 @@
+from typing import Any
 import curses
 import logging
 import select
@@ -5,10 +6,10 @@ import sys
 from typing import Optional
 from pathlib import Path
 from math import ceil
+import threading
 
 from ...utils import SingletonMeta, clamp
 from ...external.actors import Actor, Message, Sig, send, DispatchError, Event, Request, Response, ActorIO, create
-# from ...wcurses import stdscr
 from .helpers import string_format, set_dims
 from .constants import PROMPT
 
@@ -21,11 +22,24 @@ class InputIO(ActorIO):
             raise SystemExit
         self.stdscr = stdscr
         self.log_lvl = logging.WARNING
+        self.t = threading.Thread(target=self._run, daemon=True)
+        self.t.start()
 
-    def run(self) -> None:
+    def _run(self) -> None:
         while 1:
             c = self.stdscr.getch()
             send(self.parent, Event(type='io', name='read-ready', args=c))
+
+    def dispatch(self, sender: int, msg: Any) -> None:
+        try:
+            super().dispatch(sender, msg)
+        except DispatchError:
+            return
+            
+    def terminate(self) -> None:
+        if self.t:
+            self.t.join()
+        raise SystemExit
 
 
 class Curses(Actor):
@@ -40,7 +54,6 @@ class Curses(Actor):
         self.files_overlay = 1
         self.playback_overlay = 1
         self.cmd_overlay = 0
-        # self.stdscr = stdscr
         self.log_lvl = logging.ERROR
 
     def dispatch(self, sender: int, msg: Message) -> None:

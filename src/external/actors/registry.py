@@ -18,9 +18,13 @@ class ActorRegistry(metaclass=SingletonMeta):
         else:
             raise Exception
 
-    def unregister(self, key: int) -> None:
-        if self.get(key) is not None:
-            del self._container[key]
+    def unregister(self, key: int) -> Optional[BaseActor]:
+        try:
+            return self._container.pop(key)
+        except KeyError:
+            return None
+        # if self.get(key) is not None:
+        #     del self._container[key]
 
     def get(self, key: int) -> Optional[BaseActor]:
         return self._container.get(key)
@@ -77,3 +81,9 @@ class ActorRegistry(metaclass=SingletonMeta):
 
     def __repr__(self) -> str:
         return self._container.__repr__()
+
+    def __getitem__(self, key: int) -> BaseActor:
+        return self._container[key]
+
+    def __delitem__(self, key: int) -> BaseActor:
+        return self.__getitem__(key)

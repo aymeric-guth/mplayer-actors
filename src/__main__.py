@@ -1,8 +1,7 @@
 import sys
 import traceback
 
-# from .wcurses import deinit, wrapper
-from .external.actors import create, ActorSystem, Sig, Message, send
+from .external.actors import create, ActorSystem, Sig, Message, send, Send
 from .services import API, Display, Files, Input, External, MediaDispatcher, Dummy#, SocketServer
 
 
@@ -17,17 +16,25 @@ def main():
 
     # ActorSystem().post(Message(sig=Sig.INIT))
     # send('ActorSystem', Message(sig=Sig.INIT))
-    send('API', Message(sig=Sig.INIT))
-    send('Display', Message(sig=Sig.INIT))
-    send('Files', Message(sig=Sig.INIT))
-    send('Input', Message(sig=Sig.INIT))
-    send('External', Message(sig=Sig.INIT))
-    send('MediaDispatcher', Message(sig=Sig.INIT))
+
+    Send().to('API').what(Message(sig=Sig.INIT))
+    Send().to('Display').what(Message(sig=Sig.INIT))
+    Send().to('Files').what(Message(sig=Sig.INIT))
+    Send().to('Input').what(Message(sig=Sig.INIT))
+    Send().to('External').what(Message(sig=Sig.INIT))
+    Send().to('MediaDispatcher').what(Message(sig=Sig.INIT))
+    
+    # send(to='API', what=Message(sig=Sig.INIT))
+    # send(to='Display', what=Message(sig=Sig.INIT))
+    # send(to='Files', what=Message(sig=Sig.INIT))
+    # send(to='Input', what=Message(sig=Sig.INIT))
+    # send(to='External', what=Message(sig=Sig.INIT))
+    # send(to='MediaDispatcher', what=Message(sig=Sig.INIT))
 
     try:
         ActorSystem().run()
-    finally:       
-        # deinit()
+    finally:
+        ActorSystem().terminate()
         traceback.print_exc()
         errtype, errval, exc_traceback = sys.exc_info()
         traceback.print_tb(exc_traceback, file=sys.stdout)

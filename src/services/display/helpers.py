@@ -7,7 +7,6 @@ from collections import deque
 from ...external.fix_encoding import Str
 from ...utils import clamp
 from ...external.fix_ideo import StrIdeo
-# from ...wcurses import stdscr
 
 from .constants import PROMPT, CMD_HEIGHT, PLAYBACK_HEIGHT
 
@@ -52,95 +51,6 @@ def string_format(
     return str_object
 
 
-def draw_files(self) -> None:
-    (width, height, x_ofst, y_ofst) = self.files_dims
-    if not height or not self.files_buff:
-        return
-    height -= 1
-
-    (dir_list, files_list) = self.files_buff
-    blocks = len(dir_list) + len(files_list)
-    display_mode = ceil(blocks / height)
-    display_mode = 1 if not display_mode else display_mode
-    display_width = width // display_mode
-
-    win = curses.newwin(height+1, width, y_ofst, x_ofst)
-    row, col = 0, 0
-    max_col = width // display_mode
-
-    for sub in string_format(dir_list, files_list, display_width):
-        try:
-            win.addstr(row, col, sub[:max_col])
-        except Exception as err:
-            self.logger.error(f'{row=} {col=} {max_col=} {display_mode=} {height=} {width=} {sub=} {err=}')
-            raise
-
-        col = col + max_col
-        if col > (width - max_col):
-            col = 0
-            row = (row + 1) % height
-    win.noutrefresh()
-
-
-def draw_cmd(self) -> None:
-    (width, height, x_ofst, y_ofst) = self.cmd_dims
-    if not height or self.cmd_buff and self.cmd_buff[-1] == '\n':
-        return
-
-    win = curses.newwin(height, width, y_ofst, x_ofst)
-    win.box()
-    curses.curs_set(1)
-    (cmd, cur) = self.cmd_buff
-    s = f'{PROMPT}{"".join(cmd)}'
-    win.addstr(1, 1, s[:width])
-    win.move(1, cur+len(PROMPT)+1)
-    win.noutrefresh()
-
-
-def draw_playback(self) -> None:
-    (width, height, x_ofst, y_ofst) = self.playback_dims
-    if not height:
-        return
-
-    player_state = self.media_meta.get('player-state', 0)
-    file = self.media_meta.get('file', '')
-    file = Path(file).name if file else file
-    current, total = self.media_meta.get('pos', (0, 0))
-    volume = self.media_meta.get('volume', 0)
-    # percent_pos = self.media_meta.get('percent-pos', 0.)
-    playback_time = self.media_meta.get('playback-time', 0)
-    playback_time = 0 if playback_time is None else int(playback_time)
-    playtime_remaining = self.media_meta.get('playtime-remaining', 0)
-    playtime_remaining = 0 if playtime_remaining is None else int(playtime_remaining)
-    duration = self.media_meta.get('duration', 0.)
-    duration = 0 if duration is None else int(duration)
-    metadata = self.media_meta.get('metadata', '')
-
-    win = curses.newwin(height, width, y_ofst, x_ofst)
-    win.addstr(1, 2, f'File: {file}')
-
-    pos = f'Position: {current}/{total} | '
-    win.addstr(2, 2, pos)
-
-    pb_mode = self.media_meta.get('playback-mode', 'Normal')
-    pb_mode = f'Playback: {pb_mode}'
-    win.addstr(2, 2+len(pos), pb_mode)
-
-    media_state = f'Media State: {player_state}'
-    win.addstr(3, 2, media_state)
-    volume = f' | Volume: {volume}%'
-    win.addstr(3, 2 + len(media_state), volume)
-    playback = f' | Playback: {playback_time:03} / {duration:03} s'
-    # playback = f' | {percent_pos:.1f}%'
-    win.addstr(3, 2 + len(media_state) + len(volume), playback)
-
-    # playback_time
-    # playtime_remaining
-    # duration
-    win.box()
-    win.noutrefresh()
-
-
 def set_dims(self) -> None:
     max_height, max_width = self.stdscr.getmaxyx()
     # (cmd_width, cmd_height) = (max_width, CMD_HEIGHT) if self.cmd_overlay else (0, 0)
@@ -176,3 +86,18 @@ def set_dims(self) -> None:
     cmd_x_ofst = 1
     cmd_y_ofst = files_height + playback_height
     self.cmd_dims = (cmd_width, cmd_height, cmd_x_ofst, cmd_y_ofst)
+
+
+# def draw_popup(s: str) -> None:
+#     global stdscr
+
+#     max_height, max_width = stdscr.getmaxyx()
+#     height, width = 3, max_width // 4
+#     offset_x = (max_width - width) // 2
+#     offset_y = (max_height - height) // 2
+#     popup = curses.newwin(height, width, offset_y, offset_x)
+    
+#     ofst = clamp(1, width, (width - len(s)) // 2)
+#     popup.addstr(1, ofst, s[:width-3])
+#     popup.box()
+#     popup.refresh()

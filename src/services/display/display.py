@@ -5,10 +5,7 @@ import logging
 
 from ...utils import SingletonMeta, clamp
 from ...external.actors import Actor, Message, Sig, send, DispatchError, create, MsgCtx, forward, Event, Request, Response
-from . import helpers
 from .wcurses import Curses
-
-# from ...wcurses import stdscr, draw_popup
 
 
 def resize_handler(signum, frame):

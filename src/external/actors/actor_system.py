@@ -63,8 +63,7 @@ class ActorSystem(BaseActor, metaclass=SingletonMeta):
 
             case Message(sig=Sig.SIGQUIT):
                 for pid, actor in self._registry:
-                    actor._post(self.pid, Message(sig=Sig.SIGQUIT))
-                raise SystemExit
+                    actor._post(self.pid, Message(sig=Sig.EXIT))
 
             case Message(sig=Sig.SIGINT):
                 actor = self._registry.get(sender)
@@ -90,14 +89,14 @@ class ActorSystem(BaseActor, metaclass=SingletonMeta):
 
             case Message(sig=Sig.EXIT):
                 actor = self.get_actor(sender)
-                if actor is not None and actor.parent:
-                    self._send(self, actor.parent, Message(sig=Sig.CHILD_INIT, args=0))
-                self._registry.unregister(sender)
-                try:
-                    t = self._threads.pop(sender)
-                except KeyError:
-                    t = None
+                if actor is not None:
+                    if  actor.parent:
+                        self._send(self, actor.parent, Message(sig=Sig.CHILD_INIT, args=0))
+                    self._registry.unregister(sender)
+
+                t = self._threads.get(sender)
                 if t is not None:
+                    del self._threads[sender]
                     t.join()
 
             case Message(sig=Sig.DISPATCH_ERROR, args=ctx):                
@@ -120,8 +119,40 @@ class ActorSystem(BaseActor, metaclass=SingletonMeta):
     def get_actor(self, pid: int) -> Optional[BaseActor]:
         return self._registry.get(pid)
 
+    def terminate(self) -> None:
+        for pid, t in self._threads.items():
+            if pid == self.pid: continue
+            actor = self._registry.get(pid)
+            if actor is not None:
+                actor._post(self.pid, Message(sig=Sig.EXIT))
+            #     self._registry.unregister(pid)
+            #     actor._post(self.pid, Message(sig=Sig.EXIT))
+            # self.logger.error(f"Dealocating actor={actor}")
+            # t.join()
+            self.logger.error(f'Termintating actor={actor}')
+        actor = self._registry.get(0)
+        if actor is not None:
+            actor._post(0, Message(sig=Sig.EXIT))
+            
+                
+
 
 def __get_caller(frame_idx: int=2) -> BaseActor:
+    frame = sys._getframe(frame_idx)
+    instance = frame.f_locals.get('self')
+    if instance is None:
+        return ActorSystem()
+    actor = ActorSystem().get_actor(instance.pid)
+    if actor is None:
+        # Unhandled case: Actor is not present in ActorRegistry
+        # ActorSystem().logger.frameinfo(frame)
+        # ActorSystem().logger.error(instance)
+        # ActorSystem().logger.error(ActorSystem()._registry)
+        # ActorSystem().logger.frameinfo(sys._getframe(frame_idx-1))
+        raise SystemExit
+    return actor
+
+def _get_caller(frame_idx: int=2) -> BaseActor:
     frame = sys._getframe(frame_idx)
     instance = frame.f_locals.get('self')
     if instance is None:

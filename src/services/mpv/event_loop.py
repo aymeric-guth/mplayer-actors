@@ -1,9 +1,10 @@
 from typing import Any
 from dataclasses import dataclass
 from ctypes import cast, sizeof, POINTER, create_string_buffer, pointer
+import threading
 
 from ...external import _mpv
-from ...external.actors import ActorIO, send, Message, Sig
+from ...external.actors import ActorIO, send, Message, Sig, DispatchError
 
 
 @dataclass(frozen=True)
@@ -24,8 +25,10 @@ class MPVEvent(ActorIO):
             raise SystemExit
         self.handle = handle
         self.event_handle = _mpv.mpv_create_client(self.handle, b'py_event_handler')
+        self.t = threading.Thread(target=self._run, daemon=True)
+        self.t.start()
 
-    def run(self) -> None:
+    def _run(self) -> None:
         while 1:
             mpv_event = _mpv.mpv_wait_event(self.handle, -1).contents            
             out = cast(create_string_buffer(sizeof(_mpv.MpvNode)), POINTER(_mpv.MpvNode))
@@ -44,3 +47,17 @@ class MPVEvent(ActorIO):
             except Exception as err:
                 self.logger.error(str(err))
                 self.logger.error(bytes(out))
+
+    def dispatch(self, sender: int, msg: Any) -> None:
+        try:
+            super().dispatch(sender, msg)
+        except DispatchError:
+            return
+            
+    def terminate(self) -> None:
+        self.handle, handle = None, self.handle
+        _mpv.mpv_render_context_free(self.handle)
+        if self.t:
+            self.t.join()
+        send(to=0, what=Message(sig=Sig.EXIT))
+        raise SystemExit

@@ -176,11 +176,10 @@ class MPV(Actor):
 
     def terminate(self) -> None:
         self.handle, handle = None, self.handle
-        # self.event_loop.join()
         send(self.child, Message(sig=Sig.EXIT))
-        _mpv.mpv_terminate_destroy(handle)
+        _mpv.mpv_render_context_free(self.handle)
         send(0, Message(sig=Sig.EXIT))
-        raise SystemExit('SIGQUIT')
+        raise SystemExit
 
     def init(self) -> None:
         create(MPVEvent, handle=self.handle)

@@ -21,7 +21,9 @@ from .mpv.mpv import (
     MpvHandle,
     _mpv_event_to_node as mpv_event_to_node,
     _mpv_free_node_contents as mpv_free_node_contents,
-    MpvNode
+    MpvNode,
+    _mpv_destroy as mpv_destroy,
+    _mpv_render_context_free as mpv_render_context_free
 )
 
 def patched_repr(self):
