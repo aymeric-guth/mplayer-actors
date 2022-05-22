@@ -62,8 +62,11 @@ class BaseActor:
                 self.handler(str(err))
             except DispatchError as err:
                 # unhandled message
+                # signal to actor system for delivery to child?
+                # direct forwrding to child? (implying parent has routing rights)
                 # logging
-                self.logger.warning(str(err))
+                # self.logger.warning(str(err))
+                self.dispatch_handler(sender, msg)
             except SystemExit as err:
                 # gracefull exit
                 # dealocating ressources, signaling childs to terminate
@@ -75,7 +78,8 @@ class BaseActor:
                 # exc_info = str(sys.exc_info()[2]) + '\n' + repr(frameinfo)
                 # print(sys.exc_info()[2])
                 # traceback.format_exc()
-                self.logger.error(f'{err} {trace(1)[-1]}')
+                # self.logger.error(f'{err} {trace(1)[-1]}')
+                self.handler(f'{err} {trace(1)[-1]}')
                 self.terminate()
             finally:
                 self._mq.task_done()
@@ -92,7 +96,10 @@ class BaseActor:
     def init(self) -> None:
         raise NotImplementedError
 
-    def _post(self, sender: int, msg: Message|dict[str, Any]) -> None:
+    def dispatch_handler(self, sender: int, message: Message|dict[str, Any]) -> None:
+        raise NotImplementedError
+
+    def _post(self, sender: int, msg: Any) -> None:
         # self.log_post(sender, msg)
         self._mq.put_nowait((sender, msg))
 

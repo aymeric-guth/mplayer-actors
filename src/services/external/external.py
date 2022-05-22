@@ -22,11 +22,16 @@ class External(Actor):
         except DispatchError:
             return
 
-        jump_table: dict[str, list | tuple]
+        jump_table: dict[str, list|tuple]
         match msg:
+            case {'event': 'command', 'name': 'os-open'}:
+                ...
             case Message(sig=Sig.OPEN, args=None):
                 send('Files', Message(sig=Sig.CWD_GET))
+                # send('Files', {'event': 'request', 'name': 'cwd-get'})
 
+            # case {'event': 'response', 'name': 'cwd-get', 'args': args}:
+            #     ...
             case Message(sig=Sig.CWD_GET, args=args):
                 subprocess.run(['open', args.get('path_full')])
 
@@ -81,6 +86,8 @@ class External(Actor):
                 with open(Path(ENV_PATH) / 'jump-table.pckl', 'wb') as f:
                     pickle.dump(jump_table, f)
 
+            case {'event': 'command', 'name': 'hook', 'args': args}:
+                ...
             case Message(sig=Sig.HOOK, args=args):
                 try:
                     with open(Path(ENV_PATH) / 'jump-table.pckl', 'rb') as f:
@@ -92,6 +99,8 @@ class External(Actor):
                 with open(Path(ENV_PATH) / 'jump-table.pckl', 'wb') as f:
                     pickle.dump(jump_table, f)
 
+            case {'event': 'command', 'name': 'jump', 'args': args}:
+                ...
             case Message(sig=Sig.JUMP, args=args):
                 try:
                     with open(Path(ENV_PATH) / 'jump-table.pckl', 'rb') as f:

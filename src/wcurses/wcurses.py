@@ -1,5 +1,4 @@
 import curses
-from collections import deque
 import sys
 
 

@@ -4,8 +4,9 @@ from signal import signal, SIGWINCH
 import logging
 
 from ...utils import SingletonMeta, clamp
-from ...external.actors import Actor, Message, Sig, send, DispatchError
+from ...external.actors import Actor, Message, Sig, send, DispatchError, create, MsgCtx, forward
 from . import helpers
+from .wcurses import Curses
 
 from ...wcurses import stdscr, draw_popup
 
@@ -18,13 +19,6 @@ def resize_handler(signum, frame):
 
 signal(SIGWINCH, resize_handler)
 
-from dataclasses import dataclass
-
-@dataclass(frozen=True)
-class Msg:
-    event: str
-    name: str
-    args: Any = None
 
 
 class Display(Actor):
@@ -45,7 +39,8 @@ class Display(Actor):
         self.draw_cmd = lambda: helpers.draw_cmd(self)
         self.draw_files = lambda: helpers.draw_files(self)
         self.draw_playback = lambda: helpers.draw_playback(self)
-        self.log_lvl = logging.ERROR
+        self.child: int
+        self.log_lvl = logging.INFO
 
     def dispatch(self, sender: int, msg: Message) -> None:
         try:
@@ -77,8 +72,9 @@ class Display(Actor):
             # case Msg(event='property-change', name='draw-cmd'):
                 if self.cmd_overlay:
                     self.set_dims()
-                    self.draw_cmd()
-                    curses.doupdate()
+                    send(self.child, {'event': 'render', 'name': 'cmd', 'args': (self.cmd_dims, self.cmd_buff)})
+                    # self.draw_cmd()
+                    # curses.doupdate()
 
             case Message(sig=Sig.MEDIA_META, args=args):
                 k, v = [i for i in args.items()][0]
@@ -107,15 +103,11 @@ class Display(Actor):
             case Message(sig=Sig.POPUP, args=args):
                 draw_popup(args)
 
-            case Message(sig=Sig.POISON, args=args):
-                raise Exception(f'{msg!r}')
-
-            case Message(sig=Sig.SIGQUIT):
-                self.terminate()
-
             case _:
-                self.logger.warning(f'Unprocessable msg={msg}')
+                raise DispatchError
 
+    def dispatch_handler(self, sender: int, message: Message|dict[str, Any]) -> None:
+        return forward(sender, self.child, message)
 
     def introspect(self) -> dict[Any, Any]:
         return {
@@ -138,3 +130,7 @@ class Display(Actor):
     @cur.setter
     def cur(self, value: int) -> None:
         self._cur = value
+
+    def init(self) -> None:
+        self.child = create(Curses)
+        send(self.child, Message(sig=Sig.INIT))

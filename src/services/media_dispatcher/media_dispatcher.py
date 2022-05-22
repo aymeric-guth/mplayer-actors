@@ -45,7 +45,6 @@ class MediaDispatcher(Actor):
                     self.playback = args
 
             case Message(sig=Sig.VOLUME, args=args) as msg:
-                self.logger.error(f'{args=} {type(args)=}')
                 send('MPV', msg)
 
             case Message(sig=Sig.PLAY_PAUSE, args=args) as msg:

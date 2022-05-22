@@ -59,3 +59,10 @@ Problem:
   Socket:
     model request -> response
     model 2 canaux
+
+
+
+event
+request / response
+pour le moment (et le temps à venir) le modèle request / response est implémenté avec 2 messages différents
+event: fait, chose qui est arrivé

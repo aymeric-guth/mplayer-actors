@@ -41,3 +41,32 @@ class Msg:
     event: str
     name: str
     args: Any = None
+
+
+@dataclass(frozen=True)
+class MsgCtx:
+    original_sender: int
+    original_recipient: int
+    message: Message|dict[str, Any]
+
+
+@dataclass(frozen=True)
+class Base:
+    type: str
+    name: str = ''
+    args: Any = None  
+
+
+@dataclass(frozen=True)
+class Event(Base):
+    ...
+
+
+@dataclass(frozen=True)
+class Request(Base):
+    id: int =  -1
+
+
+@dataclass(frozen=True)
+class Response(Request):
+    ...

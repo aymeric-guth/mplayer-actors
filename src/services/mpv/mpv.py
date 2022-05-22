@@ -94,7 +94,7 @@ class MPV(Actor):
         try:
             super().dispatch(sender, msg)
         except DispatchError:
-            raise
+            return
 
         match msg:
             case Message(sig=Sig.MPV_EVENT, args=args):

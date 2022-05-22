@@ -3,7 +3,7 @@ from threading import Thread, Lock
 import logging
 
 from .utils import SingletonMeta
-from .message import Message
+from .message import Message, MsgCtx
 from .sig import Sig
 from .base_actor import BaseActor, ActorGeneric
 from .registry import ActorRegistry
@@ -68,7 +68,7 @@ class ActorSystem(BaseActor, metaclass=SingletonMeta):
                 actor = self._registry.get(sender)
                 if actor is None:
                     return
-
+                self._registry.unregister(actor.pid)
                 pid = self.get_pid()
                 cls = actor.__class__
                 name = actor.name
@@ -91,6 +91,16 @@ class ActorSystem(BaseActor, metaclass=SingletonMeta):
                     t = None
                 if t is not None:
                     t.join()
+
+            case Message(sig=Sig.DISPATCH_ERROR, args=ctx):
+                ...
+                # op = ActorSystem().get_actor(sender)
+                # s = __get_caller()
+                # target = ActorSystem()._registry.lookup(receiver)
+                # if op is not None and target is not None: # null check
+                #     if s.pid == target.parent: # parent - child check
+                #         return ActorSystem()._send(sender=op, receiver=target.pid, msg=msg)
+                # return send(sender, Message(Sig.DISPATCH_ERROR))
 
             case _:
                 # self._logger._log(sender=self.resolve_parent(sender), receiver=self.__repr__(), msg=f'Unprocessable Message: msg={msg}')
@@ -126,7 +136,7 @@ def __get_caller(frame_idx: int=2) -> BaseActor:
     return actor
 
 
-def send(receiver: Union[int, str, type], msg: Message|dict[str, Any]) -> None:
+def send(receiver: Union[int, str, type], msg: Any) -> None:
     return (
         ActorSystem()
         ._send(
@@ -135,6 +145,16 @@ def send(receiver: Union[int, str, type], msg: Message|dict[str, Any]) -> None:
             msg=msg
         )
     )
+
+
+def forward(sender: int, receiver: int, msg: Any) -> None:
+    op = ActorSystem().get_actor(sender)
+    s = __get_caller()
+    target = ActorSystem()._registry.lookup(receiver)
+    if op is not None and target is not None: # null check
+        if s.pid == target.parent: # parent - child check
+            return ActorSystem()._send(sender=op, receiver=target.pid, msg=msg)
+    return send(sender, Message(Sig.DISPATCH_ERROR))
 
 
 def create(cls: type, *, name: str='', **kwargs) -> int:

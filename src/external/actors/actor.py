@@ -1,14 +1,16 @@
 from typing import TypeVar, Any, Optional, Union
 import logging
+from dataclasses import dataclass
 
 from .base_actor import BaseActor, ActorGeneric
-from .message import Message
+from .message import Message, MsgCtx
 from .sig import Sig
 from .actor_system import actor_system, send, create
 from .errors import DispatchError, ActorException
 
 
 T = TypeVar('T', bound='Actor')
+
 
 
 class Actor(BaseActor):
@@ -44,8 +46,16 @@ class Actor(BaseActor):
         raise ActorException('Sig.POISON')
 
     def handler(self, err: str) -> None:
-        self.logger.warning(f'Actor={self!r} encountered a failure: {err}')
+        self.logger.error(f'Actor={self!r} encountered a failure: {err}')
         send(0, Message(sig=Sig.SIGINT))
+
+    def dispatch_handler(self, sender: int, message: Message|dict[str, Any]) -> None:
+        ctx = MsgCtx(
+            original_sender=sender,
+            original_recipient=self.pid,
+            message=message
+        )
+        send(0, Message(sig=Sig.DISPATCH_ERROR, args=ctx))
 
     def introspect(self) -> dict[Any, Any]:
         return {

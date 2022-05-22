@@ -4,8 +4,8 @@ from typing import Optional, Any
 import select
 import sys
 
-from ...external.actors import Actor, Message, Sig, ActorIO, create, send, DispatchError
-from ...wcurses import stdscr
+from ...external.actors import Actor, Message, Sig, ActorIO, create, send, DispatchError, Event, Request, Response
+# from ...wcurses import stdscr
 
 
 from .constants import num_mapping, Key
@@ -25,12 +25,13 @@ class Prompt(Actor):
             return
 
         match msg:
-            case {'event': 'io', 'name': 'keypress', 'args': args}:
+            case Event(type='io', name='keypress', args=args):
                 match args:
                     case Key.ENTER:
                         CmdCache().push(CmdBuffer().get())
                         send('Display', Message(sig=Sig.PROMPT, args=False))
-                        send(self.parent, {'event': 'command', 'name': 'parse', 'args': CmdBuffer().to_str()})
+                        send(self.parent, Event(type='io', name='prompt', args=False))
+                        send(self.parent, Event(type='io', name='prompt', args=CmdBuffer().to_str()))
                         CmdBuffer().clear()
                         send(self.pid, Message(sig=Sig.EXIT))
                         return
@@ -55,7 +56,7 @@ class Prompt(Actor):
 
                     case _:
                         CmdBuffer().insert(chr(args))
-                    
+
                 send('Display', Message(sig=Sig.PROMPT, args=CmdBuffer().serialize()))
 
     def init(self) -> None:
@@ -67,27 +68,11 @@ class Prompt(Actor):
         raise SystemExit
 
 
-class InputIO(ActorIO):
-    def __init__(self, pid: int, parent: int, name='', **kwargs) -> None:
-        super().__init__(pid, parent, name, **kwargs)
-        self.log_lvl = logging.WARNING
-
-    def run(self) -> None:
-        while 1:
-            rr, _, _ = select.select([sys.stdin], [], [])
-            c = stdscr.getch()
-            self.logger.info(f'Got new input c={c}')
-            if c == -1: 
-                continue
-            send(self.parent, {'event': 'io', 'name': 'keypress', 'args': c})
-
-
 class Input(Actor):
     def __init__(self, pid: int, parent: int, name='', **kwargs) -> None:
         super().__init__(pid, parent, name, **kwargs)
         self.log_lvl = logging.WARNING
         self.child: Optional[int] = None
-        self.sidecar: int
 
     def dispatch(self, sender: int, msg: Message) -> None:
         try:
@@ -97,16 +82,17 @@ class Input(Actor):
 
         arg: Any
         match msg:
-            case {'event': 'status', 'name': 'child-exit'}:
+            case Event(type='status', name='child-exit', args=args):
+                # hanling in super().dispatch
                 self.child = None
 
-            case {'event': 'command', 'name': 'parse', 'args': args}:
+            case Event(type='io', name='prompt', args=args):
                 send(*eval_cmd(args))
 
-            case {'event': 'io', 'name': 'keypress', 'args': args} as msg if self.child is not None:                
+            case Event(type='io', name='keypress', args=args) as msg if self.child is not None:
                 send(self.child, msg)
 
-            case {'event': 'io', 'name': 'keypress', 'args': args}:
+            case Event(type='io', name='keypress', args=args):
                 match args:
                     case 0:
                         ...
@@ -176,12 +162,7 @@ class Input(Actor):
                 raise DispatchError(f'Unprocessable msg={msg}')
 
 
-    def init(self) -> None:
-        self.sidecar = create(InputIO)
-        send(self.sidecar, Message(sig=Sig.INIT))
-
     def terminate(self) -> None:
-        send(self.sidecar, Message(Sig.EXIT))
         if self.child is not None:
             send(self.child, Message(Sig.EXIT))
         send('ActorSystem', Message(sig=Sig.EXIT))
