@@ -1,6 +1,7 @@
 from typing import TypeVar, Any, Optional, Union
 import logging
 from dataclasses import dataclass
+import threading
 
 from .base_actor import BaseActor, ActorGeneric
 from .message import Message, MsgCtx
@@ -77,36 +78,13 @@ class Actor(BaseActor):
         return f'{self.__class__.__name__}(pid={self.pid}, parent={actor_system.resolve_parent(self.parent)})'
 
 
-class ActorIO(BaseActor):
+class ActorIO(Actor):
     def __init__(self, pid: int, parent: int, name:str='', **kwargs) -> None:
         super().__init__(pid, parent=parent, name=name)
         self.kwargs = kwargs.copy()
 
-    def dispatch(self, sender: int, msg: Message) -> None:
-        match msg:
-            case Message(sig=Sig.INIT):
-                self.init()
-                raise DispatchError
-
-            case Message(sig=Sig.EXIT):
-                self.terminate()
-                raise DispatchError
-
-            case Message(sig=Sig.CHILD_INIT, args=pid):
-                self.child = pid
-                if self.child:
-                    send(self.child, Message(sig=Sig.INIT))
-                raise DispatchError
-
-            case _:
-                ...
-
-    def init(self) -> None:
-        ...
-
-    def terminate(self) -> None:
-        send(to=0, what=Message(sig=Sig.EXIT))
-        raise SystemExit
+    def _run(self) -> None:
+        raise NotImplementedError
 
     def err_handler(self, err: str) -> None:
         self.logger.error(f'Actor={self} encountered a failure: {err}')

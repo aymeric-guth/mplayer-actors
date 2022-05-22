@@ -1,5 +1,6 @@
 import sys
 import traceback
+import time
 
 from .external.actors import create, ActorSystem, Sig, Message, send, Send
 from .services import API, Display, Files, Input, External, MediaDispatcher, Dummy#, SocketServer
@@ -17,7 +18,11 @@ def main():
     # ActorSystem().post(Message(sig=Sig.INIT))
     # send('ActorSystem', Message(sig=Sig.INIT))
 
-    Send().to('API').what(Message(sig=Sig.INIT))
+    (
+        Send()
+        .to('API')
+        .what(Message(sig=Sig.INIT))
+    )
     Send().to('Display').what(Message(sig=Sig.INIT))
     Send().to('Files').what(Message(sig=Sig.INIT))
     Send().to('Input').what(Message(sig=Sig.INIT))
@@ -36,8 +41,8 @@ def main():
     finally:
         ActorSystem().terminate()
         traceback.print_exc()
-        errtype, errval, exc_traceback = sys.exc_info()
-        traceback.print_tb(exc_traceback, file=sys.stdout)
+        # errtype, errval, exc_traceback = sys.exc_info()
+        # traceback.print_tb(exc_traceback, file=sys.stdout)
         return 0
 
 

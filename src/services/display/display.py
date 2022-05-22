@@ -29,7 +29,6 @@ class Display(Actor):
         self.cmd_dims: tuple[int, int, int, int]
         self.cmd_buff: tuple[str, int] = ('', 0)
 
-        # self.set_dims = lambda: helpers.set_dims(self)
         self.log_lvl = logging.ERROR
 
     def dispatch(self, sender: int, msg: Message) -> None:
@@ -52,25 +51,21 @@ class Display(Actor):
             case Event(type='io', name='prompt', args=args) if isinstance(args, tuple):
                 self.cmd_buff = args
                 if self.cmd_overlay:
-                    # self.set_dims()
                     send(self.child, Request(type='render', name='cmd', args=self.cmd_buff))
 
             case Event(type='player', name='property-change', args=args):
                 k, v = [i for i in args.items()][0]
                 self.media_meta.update({k: v})
                 if self.playback_overlay:
-                    # self.set_dims()
                     send(self.child, Request(type='render', name='playback', args=self.media_meta))
 
             case Event(type='files', name='cwd-change', args=args):
                 dir_list, files_list = args.get('dir_list'), args.get('files_list')
                 self.files_buff = [dir_list, files_list]
                 if self.files_overlay:
-                    # self.set_dims()
                     send(self.child, Request(type='render', name='files', args=[dir_list, files_list]))
 
             case Event(type='io', name='resize'):
-                # self.set_dims()
                 (dir_list, files_list) = self.files_buff
                 if self.files_overlay:
                     send(self.child, Request(type='render', name='files', args=[dir_list, files_list]))
@@ -139,3 +134,7 @@ class Display(Actor):
 
     def init(self) -> None:
         create(Curses)
+
+    def terminate(self) -> None:
+        send(to=0, what=Message(sig=Sig.EXIT))
+        raise SystemExit

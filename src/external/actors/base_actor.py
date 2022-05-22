@@ -72,7 +72,8 @@ class BaseActor:
             except SystemExit as err:
                 # gracefull exit
                 # dealocating ressources, signaling childs to terminate
-                self.terminate()
+                # self.terminate()
+                raise
             except Exception as err:
                 # unhandled exception
                 # logging + termination, signaling childs to terminate

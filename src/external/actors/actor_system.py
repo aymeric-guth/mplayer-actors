@@ -1,6 +1,7 @@
 from typing import Any, Optional, Union
 from threading import Thread, Lock
 import logging
+import time
 
 from .utils import SingletonMeta
 from .message import Message, MsgCtx
@@ -9,6 +10,18 @@ from .base_actor import BaseActor, ActorGeneric
 from .registry import ActorRegistry
 import sys
 from .subsystems import Logging
+
+
+def thread_handler(func):
+    def inner(*args, **kwargs):
+        try:
+            return func(*args, **kwargs)
+        except SystemExit:
+            ...
+        finally:
+            ...
+            # ActorSystem().logger.error(f'{func.__name__} terminated')
+    return inner
 
 
 class ActorSystem(BaseActor, metaclass=SingletonMeta):
@@ -20,6 +33,9 @@ class ActorSystem(BaseActor, metaclass=SingletonMeta):
         self._registry = ActorRegistry()
         self._registry.register(ActorSystem.__pid, self)
         self._threads: dict[int, Thread] = {}
+        _t = Thread(target=self.run, daemon=True)
+        _t.start()
+        self._threads.update({self.pid: _t})
         self.log_lvl = logging.ERROR
 
     def _send(
@@ -44,6 +60,8 @@ class ActorSystem(BaseActor, metaclass=SingletonMeta):
         **kwargs
     ) -> int:
         actor = cls(pid=pid, name=name, parent=parent, **kwargs)
+        
+        # t = Thread(target=thread_handler(actor.run), daemon=True)
         t = Thread(target=actor.run, daemon=True)
         self._registry.register(pid, actor)
         self._threads.update({pid: t})
@@ -58,6 +76,11 @@ class ActorSystem(BaseActor, metaclass=SingletonMeta):
         match msg:
             case Message(sig=Sig.INIT):
                 ...
+
+            case Message(sig=Sig.SIGKILL):
+                while self._registry:
+                    time.sleep(0.1)
+                raise SystemExit
 
             case Message(sig=Sig.SIGQUIT):
                 self.terminate()
@@ -87,7 +110,7 @@ class ActorSystem(BaseActor, metaclass=SingletonMeta):
             case Message(sig=Sig.EXIT):
                 actor = self.get_actor(sender)
                 if actor is not None:
-                    if  actor.parent:
+                    if actor.parent:
                         self._send(self, actor.parent, Message(sig=Sig.CHILD_INIT, args=0))
                     self._registry.unregister(sender)
 
@@ -122,12 +145,15 @@ class ActorSystem(BaseActor, metaclass=SingletonMeta):
             actor = self._registry.get(pid)
             if actor is not None:
                 actor._post(self.pid, Message(sig=Sig.EXIT))
-            self.logger.error(f'Termintating actor={actor}')
 
         actor = self._registry.get(0)
         if actor is not None:
-            actor._post(0, Message(sig=Sig.EXIT))
-
+            self._registry.unregister(actor.pid)
+        _t = self._threads.get(0)
+        if _t is not None:
+            del self._threads[0]
+        self._post(0, Message(sig=Sig.SIGKILL))
+       
 
 def __get_caller(frame_idx: int=2) -> BaseActor:
     frame = sys._getframe(frame_idx)

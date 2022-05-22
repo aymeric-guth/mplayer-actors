@@ -21,9 +21,9 @@ class InputIO(ActorIO):
         if stdscr is None:
             raise SystemExit
         self.stdscr = stdscr
-        self.log_lvl = logging.WARNING
-        self.t = threading.Thread(target=self._run, daemon=True)
-        self.t.start()
+        self.log_lvl = logging.ERROR
+        self._t = threading.Thread(target=self._run, daemon=True)
+        self._t.start()
 
     def _run(self) -> None:
         while 1:
@@ -37,8 +37,9 @@ class InputIO(ActorIO):
             return
             
     def terminate(self) -> None:
-        if self.t:
-            self.t.join()
+        self.stdscr = None
+        if self._t:
+            self._t.join()
         raise SystemExit
 
 
@@ -181,10 +182,12 @@ class Curses(Actor):
         create(InputIO, stdscr=self.stdscr)
 
     def terminate(self) -> None:
-        send(0, Message(sig=Sig.EXIT))
-        curses.endwin()
+        send(to=0, what=Message(sig=Sig.EXIT))
+        self.stdscr.keypad(False)
         curses.nocbreak()
         curses.echo()
-        curses.curs_set(1)
-        self.stdscr.keypad(False)
+        curses.curs_set(1)       
+        self.stdscr.clear()
+        curses.endwin()
+        self.stdscr = None
         raise SystemExit

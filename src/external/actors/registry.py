@@ -87,3 +87,6 @@ class ActorRegistry(metaclass=SingletonMeta):
 
     def __delitem__(self, key: int) -> BaseActor:
         return self.__getitem__(key)
+
+    def __len__(self) -> int:
+        return len(self._container)
