@@ -29,23 +29,24 @@ class Display(Actor):
         self.cmd_dims: tuple[int, int, int, int]
         self.cmd_buff: tuple[str, int] = ('', 0)
 
-        self.log_lvl = logging.ERROR
+        self.log_lvl = logging.INFO
 
     def dispatch(self, sender: int, msg: Message) -> None:
         try:
             super().dispatch(sender, msg)
         except DispatchError:
             return
+        # state-change (overlay on/off)
+        #   -> render global
+        # data-change (new cwd, typing in prompt, media-playback update)
+        #   -> render de l'élément modifié
 
         match msg:
             case Event(type='io', name='prompt', args=args) if isinstance(args, bool):
                 # initialisation de la fenetre du prompt
                 self.cmd_overlay = args
                 if not self.cmd_overlay:
-                    curses.curs_set(0)
                     self.cmd_buff = ('', 0)
-                else:
-                    ...
                 send(to=self.pid, what=Event(type='io', name='resize'))
 
             case Event(type='io', name='prompt', args=args) if isinstance(args, tuple):
@@ -121,7 +122,7 @@ class Display(Actor):
     @playback_overlay.setter
     def playback_overlay(self, value: int) -> None:
         self._playback_overlay = value
-        send(to=self.child, what=Event(type='state-change', name='playback', args=self._cmd_overlay))
+        send(to=self.child, what=Event(type='state-change', name='playback', args=self._playback_overlay))
 
     @property
     def cmd_overlay(self) -> int:
@@ -134,7 +135,3 @@ class Display(Actor):
 
     def init(self) -> None:
         create(Curses)
-
-    def terminate(self) -> None:
-        send(to=0, what=Message(sig=Sig.EXIT))
-        raise SystemExit

@@ -15,14 +15,7 @@ def main():
     create(MediaDispatcher)
     # create(SocketServer)
 
-    # ActorSystem().post(Message(sig=Sig.INIT))
-    # send('ActorSystem', Message(sig=Sig.INIT))
-
-    (
-        Send()
-        .to('API')
-        .what(Message(sig=Sig.INIT))
-    )
+    Send().to('API').what(Message(sig=Sig.INIT))
     Send().to('Display').what(Message(sig=Sig.INIT))
     Send().to('Files').what(Message(sig=Sig.INIT))
     Send().to('Input').what(Message(sig=Sig.INIT))

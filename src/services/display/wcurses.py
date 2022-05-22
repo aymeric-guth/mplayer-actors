@@ -28,7 +28,7 @@ class InputIO(ActorIO):
     def _run(self) -> None:
         while 1:
             c = self.stdscr.getch()
-            send(self.parent, Event(type='io', name='read-ready', args=c))
+            send(to=self.parent, what=Event(type='io', name='read-ready', args=c))
 
     def dispatch(self, sender: int, msg: Any) -> None:
         try:
@@ -37,7 +37,6 @@ class InputIO(ActorIO):
             return
             
     def terminate(self) -> None:
-        self.stdscr = None
         if self._t:
             self._t.join()
         raise SystemExit
@@ -65,13 +64,18 @@ class Curses(Actor):
 
         match msg:
             case Event(type='state-change', name='files', args=files_overlay):
+                # candidat pour pub/sub
                 self.files_overlay = files_overlay
 
             case Event(type='state-change', name='playback', args=playback_overlay):
+                # candidat pour pub/sub
                 self.playback_overlay = playback_overlay
 
             case Event(type='state-change', name='cmd', args=cmd_overlay):
+                # candidat pour pub/sub
                 self.cmd_overlay = cmd_overlay
+                if not self.cmd_overlay:
+                    curses.curs_set(0)
 
             case Request(type='render', name='cmd', args=cmd_buff):
                 set_dims(self)
@@ -167,6 +171,7 @@ class Curses(Actor):
                     if col > (width - max_col):
                         col = 0
                         row = (row + 1) % height
+
                 win.noutrefresh()
                 send(self.pid, Event(type='rendered'))
 
@@ -189,5 +194,4 @@ class Curses(Actor):
         curses.curs_set(1)       
         self.stdscr.clear()
         curses.endwin()
-        self.stdscr = None
         raise SystemExit

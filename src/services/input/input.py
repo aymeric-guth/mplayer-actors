@@ -32,7 +32,7 @@ class Prompt(Actor):
                         send(to='Display', what=Event(type='io', name='prompt', args=False))
                         send(to=self.parent, what=Event(type='io', name='prompt', args=CmdBuffer().to_str()))
                         CmdBuffer().clear()
-                        send(self.pid, Message(sig=Sig.EXIT))
+                        send(to=self.pid, what=Message(sig=Sig.EXIT))
                         return
 
                     case Key.BACKSPACE:
@@ -58,11 +58,7 @@ class Prompt(Actor):
                 send(to='Display', what=Event(type='io', name='prompt', args=CmdBuffer().serialize()))
 
     def init(self) -> None:
-        send('Display', Event(type='io', name='prompt', args=True))
-
-    def terminate(self) -> None:
-        send('ActorSystem', Message(sig=Sig.EXIT))
-        raise SystemExit
+        send(to='Display', what=Event(type='io', name='prompt', args=True))
 
 
 class Input(Actor):
@@ -79,7 +75,8 @@ class Input(Actor):
         arg: Any
         match msg:
             case Event(type='io', name='prompt', args=args):
-                send(*eval_cmd(args))
+                (actor, message) = eval_cmd(args)
+                send(to=actor, what=message)
 
             case Event(type='io', name='keypress', args=args) as msg if self.child:
                 send(self.child, msg)
@@ -96,10 +93,12 @@ class Input(Actor):
                         send(to='ActorSystem', what=Message(sig=Sig.SIGQUIT))
 
                     case Key.r | Key.R:
-                        send(*eval_cmd('refresh'))
+                        (actor, message) = eval_cmd('refresh')
+                        send(to=actor, what=message)
 
                     case Key.p | Key.P:
-                        send(*eval_cmd('play'))
+                        (actor, message) = eval_cmd('play')
+                        send(to=actor, what=message)
 
                     case Key.ALT_H:
                         send('MediaDispatcher', {'event': 'command', 'name': 'previous', 'args': None})
@@ -111,7 +110,8 @@ class Input(Actor):
                         send('MediaDispatcher', Message(sig=Sig.PLAY_PAUSE))
 
                     case Key.DOT:
-                        send(*eval_cmd('..'))
+                        (actor, message) = eval_cmd('..')
+                        send(to=actor, what=message)
 
                     case (Key.H | Key.L | Key.J | Key.K) as p:
                         match p:
@@ -125,11 +125,10 @@ class Input(Actor):
                                 arg = '+10'
                             case _:
                                 arg = '0'
-                        send('MediaDispatcher', Message(sig=Sig.VOLUME, args=arg))
+                        send(to='MediaDispatcher', what=Message(sig=Sig.VOLUME, args=arg))
 
                     case (Key.d | Key.D):
                         send(to='Display', what=Event(type='keypress', name='playback-toggle'))
-                        # send('Display', Message(sig=Sig.PLAYBACK_OVERLAY))
 
                     case (curses.KEY_LEFT | Key.h | curses.KEY_RIGHT | Key.l | curses.KEY_UP | Key.k | curses.KEY_DOWN | Key.j) as p:
                         match p:
@@ -143,19 +142,21 @@ class Input(Actor):
                                 arg = -60
                             case _:
                                 arg = None
-                        send('MediaDispatcher', Message(sig=Sig.SEEK, args=arg))
+                        send(to='MediaDispatcher', what=Message(sig=Sig.SEEK, args=arg))
 
                     case p if p in num_mapping:
-                        send(*eval_cmd(num_mapping[p]))
+                        (actor, message) = eval_cmd(num_mapping[p])
+                        send(to=actor, what=message)
 
                     case _:
                         self.logger.warning(f'Unhandled key press: {args}')
+
             case _:
                 raise DispatchError(f'Unprocessable msg={msg}')
 
 
     def terminate(self) -> None:
         if self.child:
-            send(self.child, Message(Sig.EXIT))
-        send('ActorSystem', Message(sig=Sig.EXIT))
+            send(to=self.child, what=Message(Sig.EXIT))
+        send(to='ActorSystem', what=Message(sig=Sig.EXIT))
         raise SystemExit
