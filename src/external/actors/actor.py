@@ -35,8 +35,11 @@ class Actor(BaseActor):
 
             case Message(sig=Sig.CHILD_INIT, args=pid):
                 self.child = pid
-                if self.child:
-                    send(self.child, Message(sig=Sig.INIT))
+                send(self.child, Message(sig=Sig.INIT))                  
+                raise DispatchError
+
+            case Message(sig=Sig.CHILD_DEINIT, args=pid):
+                self.child = pid
                 raise DispatchError
 
             case _:

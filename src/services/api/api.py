@@ -112,3 +112,7 @@ class API(Actor):
 
     def init(self) -> None:
         send(self.pid, Message(Sig.LOGIN))
+
+    def terminate(self) -> None:
+        send(to='ActorSystem', what=Message(sig=Sig.EXIT))
+        raise SystemExit

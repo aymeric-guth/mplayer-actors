@@ -31,12 +31,14 @@ class ActorSystem(BaseActor, metaclass=SingletonMeta):
     def __init__(self) -> None:
         super().__init__(pid=ActorSystem.__pid, name=self.__class__.__name__, parent=ActorSystem.__pid)
         self._registry = ActorRegistry()
-        self._registry.register(ActorSystem.__pid, self)
         self._threads: dict[int, Thread] = {}
+        self._childs: list[int] = []
+        self.log_lvl = logging.ERROR
+
+        self._registry.register(self.pid, self)
         _t = Thread(target=self.run, daemon=True)
         _t.start()
         self._threads.update({self.pid: _t})
-        self.log_lvl = logging.ERROR
 
     def _send(
         self, 
@@ -60,14 +62,13 @@ class ActorSystem(BaseActor, metaclass=SingletonMeta):
         **kwargs
     ) -> int:
         actor = cls(pid=pid, name=name, parent=parent, **kwargs)
-        
-        # t = Thread(target=thread_handler(actor.run), daemon=True)
-        t = Thread(target=actor.run, daemon=True)
+        if actor.parent == self.pid:
+            self._childs.append(actor.pid)
+        _t = Thread(target=actor.run, daemon=True)
         self._registry.register(pid, actor)
-        self._threads.update({pid: t})
-        t.start()
-        if parent:
-            self._send(self, actor.parent, Message(sig=Sig.CHILD_INIT, args=actor.pid))
+        self._threads.update({pid: _t})
+        _t.start()
+        self._send(self, actor.parent, Message(sig=Sig.CHILD_INIT, args=actor.pid))
         return actor.pid
 
     def dispatch(self, sender: int, msg: Message) -> None:
@@ -76,10 +77,24 @@ class ActorSystem(BaseActor, metaclass=SingletonMeta):
         match msg:
             case Message(sig=Sig.INIT):
                 ...
+            
+            case Message(sig=Sig.CHILD_INIT, args=args):
+                self._childs.append(args)
+
+            case Message(sig=Sig.CHILD_DEINIT, args=args):
+                self._childs.remove(args)
 
             case Message(sig=Sig.SIGKILL):
-                while self._registry:
+                while len(self._registry) > 1:
+                    self.logger.error(str(self._registry) + f'{len(self._registry)=}')
                     time.sleep(0.1)
+
+                actor = self._registry.get(self.pid)
+                if actor is not None:
+                    self._registry.unregister(actor.pid)
+                _t = self._threads.get(self.pid)
+                if _t is not None:
+                    del self._threads[0]
                 raise SystemExit
 
             case Message(sig=Sig.SIGQUIT):
@@ -110,17 +125,16 @@ class ActorSystem(BaseActor, metaclass=SingletonMeta):
             case Message(sig=Sig.EXIT):
                 actor = self.get_actor(sender)
                 if actor is not None:
-                    if actor.parent:
-                        self._send(self, actor.parent, Message(sig=Sig.CHILD_INIT, args=0))
-                    self._registry.unregister(sender)
+                    self._send(self, actor.parent, Message(sig=Sig.CHILD_DEINIT, args=actor.pid))                       
+                    self._registry.unregister(actor.pid)
 
-                t = self._threads.get(sender)
-                if t is not None:
+                _t = self._threads.get(sender)
+                if _t is not None:
                     del self._threads[sender]
-                    t.join()
+                    _t.join()
 
-            case Message(sig=Sig.DISPATCH_ERROR, args=ctx):                
-                self.logger.error(f'Unprocessable from={self.get_actor(ctx.original_sender)!r} to={self.get_actor(ctx.original_recipient)!r} message={ctx.message!r}')
+            case Message(sig=Sig.DISPATCH_ERROR, args=ctx):
+                self.logger.error(f'Unprocessable {ctx=}')
 
             case _:
                 # self._logger._log(sender=self.resolve_parent(sender), receiver=self.__repr__(), msg=f'Unprocessable Message: msg={msg}')
@@ -140,19 +154,22 @@ class ActorSystem(BaseActor, metaclass=SingletonMeta):
         return self._registry.get(pid)
 
     def terminate(self) -> None:
-        for pid, t in self._threads.items():
-            if pid == self.pid: continue
-            actor = self._registry.get(pid)
-            if actor is not None:
-                actor._post(self.pid, Message(sig=Sig.EXIT))
+        for pid in self._childs:
+            self._send(self, pid, Message(sig=Sig.EXIT))
 
-        actor = self._registry.get(0)
-        if actor is not None:
-            self._registry.unregister(actor.pid)
-        _t = self._threads.get(0)
-        if _t is not None:
-            del self._threads[0]
-        self._post(0, Message(sig=Sig.SIGKILL))
+        # for pid, t in self._threads.items():
+        #     if pid == self.pid: continue
+        #     actor = self._registry.get(pid)
+        #     if actor is not None:
+        #         actor._post(self.pid, Message(sig=Sig.EXIT))
+
+        # actor = self._registry.get(self.pid)
+        # if actor is not None:
+        #     self._registry.unregister(actor.pid)
+        # _t = self._threads.get(self.pid)
+        # if _t is not None:
+        #     del self._threads[0]
+        self._post(self.pid, Message(sig=Sig.SIGKILL))
        
 
 def __get_caller(frame_idx: int=2) -> BaseActor:

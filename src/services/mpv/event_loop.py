@@ -25,8 +25,8 @@ class MPVEvent(ActorIO):
             raise SystemExit
         self.handle = handle
         self.event_handle = _mpv.mpv_create_client(self.handle, b'py_event_handler')
-        self.t = threading.Thread(target=self._run, daemon=True)
-        self.t.start()
+        self._t = threading.Thread(target=self._run, daemon=True)
+        self._t.start()
 
     def _run(self) -> None:
         while 1:
@@ -55,9 +55,10 @@ class MPVEvent(ActorIO):
             return
             
     def terminate(self) -> None:
+        send(to='ActorSystem', what=Message(sig=Sig.EXIT))
+        _mpv.mpv_destroy(self.handle)
+        # _mpv.mpv_render_context_free(self.handle)
         self.handle, handle = None, self.handle
-        _mpv.mpv_render_context_free(self.handle)
-        if self.t:
-            self.t.join()
-        send(to=0, what=Message(sig=Sig.EXIT))
+        if self._t:
+            self._t.join()
         raise SystemExit

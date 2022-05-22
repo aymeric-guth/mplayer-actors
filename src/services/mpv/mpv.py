@@ -174,11 +174,11 @@ class MPV(Actor):
                 raise DispatchError(f'Unprocessable msg={msg}')
 
 
-    def terminate(self) -> None:
+    def terminate(self) -> None:       
+        send(to='ActorSystem', what=Message(sig=Sig.EXIT))
+        send(to=self.child, what=Message(sig=Sig.EXIT))
         self.handle, handle = None, self.handle
-        send(self.child, Message(sig=Sig.EXIT))
-        _mpv.mpv_render_context_free(self.handle)
-        send(0, Message(sig=Sig.EXIT))
+        _mpv.mpv_render_context_free(handle)
         raise SystemExit
 
     def init(self) -> None:

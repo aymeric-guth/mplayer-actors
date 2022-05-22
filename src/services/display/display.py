@@ -29,7 +29,7 @@ class Display(Actor):
         self.cmd_dims: tuple[int, int, int, int]
         self.cmd_buff: tuple[str, int] = ('', 0)
 
-        self.log_lvl = logging.INFO
+        self.log_lvl = logging.ERROR
 
     def dispatch(self, sender: int, msg: Message) -> None:
         try:
@@ -135,3 +135,8 @@ class Display(Actor):
 
     def init(self) -> None:
         create(Curses)
+
+    def terminate(self) -> None:
+        send(to='ActorSystem', what=Message(sig=Sig.EXIT))
+        send(to=self.child, what=Message(sig=Sig.EXIT))
+        raise SystemExit

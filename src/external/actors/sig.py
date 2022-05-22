@@ -72,3 +72,4 @@ class Sig(Enum):
     TERMINATE = auto()
     EXIT = auto()
     CHILD_INIT = auto()
+    CHILD_DEINIT = auto()

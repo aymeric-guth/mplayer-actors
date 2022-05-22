@@ -112,4 +112,6 @@ class MediaDispatcher(Actor):
         create(MPV, wid=self.wid)
 
     def terminate(self) -> None:
-        send(self.child, Message(Sig.SIGQUIT))
+        send(to=self.child, what=Message(sig=Sig.EXIT))
+        send(to='ActorSystem', what=Message(sig=Sig.EXIT))
+        raise SystemExit

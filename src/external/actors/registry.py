@@ -90,3 +90,7 @@ class ActorRegistry(metaclass=SingletonMeta):
 
     def __len__(self) -> int:
         return len(self._container)
+
+    def items(self) -> dict[int, BaseActor]:
+        return self._container.items()
+

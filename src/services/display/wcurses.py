@@ -37,6 +37,7 @@ class InputIO(ActorIO):
             return
             
     def terminate(self) -> None:
+        send(to='ActorSystem', what=Message(sig=Sig.EXIT))
         if self._t:
             self._t.join()
         raise SystemExit
@@ -187,7 +188,8 @@ class Curses(Actor):
         create(InputIO, stdscr=self.stdscr)
 
     def terminate(self) -> None:
-        send(to=0, what=Message(sig=Sig.EXIT))
+        send(to='ActorSystem', what=Message(sig=Sig.EXIT))
+        send(to=self.child, what=Message(sig=Sig.EXIT))
         self.stdscr.keypad(False)
         curses.nocbreak()
         curses.echo()
