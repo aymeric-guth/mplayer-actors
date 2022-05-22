@@ -88,7 +88,7 @@ def draw_overlay(s: str) -> None:
     popup.refresh()
 
 
-init()
+# init()
 
 def wrapper(func, *args, **kwargs):
     try:

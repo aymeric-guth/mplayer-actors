@@ -1,7 +1,7 @@
 import sys
 import traceback
 
-from .wcurses import deinit, wrapper
+# from .wcurses import deinit, wrapper
 from .external.actors import create, ActorSystem, Sig, Message, send
 from .services import API, Display, Files, Input, External, MediaDispatcher, Dummy#, SocketServer
 
@@ -27,7 +27,7 @@ def main():
     try:
         ActorSystem().run()
     finally:       
-        deinit()
+        # deinit()
         traceback.print_exc()
         errtype, errval, exc_traceback = sys.exc_info()
         traceback.print_tb(exc_traceback, file=sys.stdout)

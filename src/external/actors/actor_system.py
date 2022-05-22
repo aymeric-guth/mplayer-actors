@@ -75,6 +75,9 @@ class ActorSystem(BaseActor, metaclass=SingletonMeta):
                 cls = actor.__class__
                 name = actor.name
                 parent = actor.parent
+                child = self.get_actor(actor.child)
+                if child is not None and child.pid:
+                    self._send(sender=child, receiver=self.pid, msg=Message(sig=Sig.EXIT))
                 kwargs = getattr(actor, 'kwargs')
                 if kwargs is not None:
                     kwargs = kwargs.copy()

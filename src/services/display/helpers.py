@@ -7,7 +7,7 @@ from collections import deque
 from ...external.fix_encoding import Str
 from ...utils import clamp
 from ...external.fix_ideo import StrIdeo
-from ...wcurses import stdscr
+# from ...wcurses import stdscr
 
 from .constants import PROMPT, CMD_HEIGHT, PLAYBACK_HEIGHT
 
@@ -142,7 +142,7 @@ def draw_playback(self) -> None:
 
 
 def set_dims(self) -> None:
-    max_height, max_width = stdscr.getmaxyx()
+    max_height, max_width = self.stdscr.getmaxyx()
     # (cmd_width, cmd_height) = (max_width, CMD_HEIGHT) if self.cmd_overlay else (0, 0)
     if self.cmd_overlay:
         cmd_width = max_width - 2

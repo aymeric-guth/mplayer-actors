@@ -8,8 +8,8 @@ from math import ceil
 
 from ...utils import SingletonMeta, clamp
 from ...external.actors import Actor, Message, Sig, send, DispatchError, Event, Request, Response, ActorIO, create
-from ...wcurses import stdscr
-from .helpers import string_format
+# from ...wcurses import stdscr
+from .helpers import string_format, set_dims
 from .constants import PROMPT
 
 
@@ -25,20 +25,22 @@ class InputIO(ActorIO):
     def run(self) -> None:
         while 1:
             c = self.stdscr.getch()
-            # rr, _, _ = select.select([sys.stdin], [], [])
-            # c = rr[0].read()
-            # self.logger.error(repr(Event(type='io', name='read-ready', args=c)))
             send(self.parent, Event(type='io', name='read-ready', args=c))
 
 
 class Curses(Actor):
     def __init__(self, pid: int, parent: int, name='', **kwargs) -> None:
         super().__init__(pid, parent, name, **kwargs)
-        self.stdscr = stdscr
-        # curses.cbreak()
-        # curses.noecho()
-        # curses.curs_set(0)
-        # self.stdscr.keypad(True)
+        self.stdscr = curses.initscr()
+        curses.cbreak()
+        curses.noecho()
+        curses.curs_set(0)
+        self.stdscr.keypad(True)
+
+        self.files_overlay = 1
+        self.playback_overlay = 1
+        self.cmd_overlay = 0
+        # self.stdscr = stdscr
         self.log_lvl = logging.ERROR
 
     def dispatch(self, sender: int, msg: Message) -> None:
@@ -48,8 +50,18 @@ class Curses(Actor):
             return
 
         match msg:
-            case Request(type='render', name='cmd', args=(cmd_dims, cmd_buff)):
-                (width, height, x_ofst, y_ofst) = cmd_dims
+            case Event(type='state-change', name='files', args=files_overlay):
+                self.files_overlay = files_overlay
+
+            case Event(type='state-change', name='playback', args=playback_overlay):
+                self.playback_overlay = playback_overlay
+
+            case Event(type='state-change', name='cmd', args=cmd_overlay):
+                self.cmd_overlay = cmd_overlay
+
+            case Request(type='render', name='cmd', args=cmd_buff):
+                set_dims(self)
+                (width, height, x_ofst, y_ofst) = self.cmd_dims
                 if not height or cmd_buff and cmd_buff[-1] == '\n':
                     return
                 win = curses.newwin(height, width, y_ofst, x_ofst)
@@ -66,12 +78,11 @@ class Curses(Actor):
                 curses.doupdate()
 
             case Event(type='io', name='read-ready', args=args) as msg:
-                # c = self.stdscr.getch()
-                # send('Input', Event(type='io', name='keypress', args=c))
                 send('Input', Event(type='io', name='keypress', args=args))
 
-            case Request(type='render', name='playback', args=(playback_dims , media_meta)):
-                (width, height, x_ofst, y_ofst) = playback_dims
+            case Request(type='render', name='playback', args=media_meta):
+                set_dims(self)
+                (width, height, x_ofst, y_ofst) = self.playback_dims
                 if not height:
                     return
 
@@ -114,8 +125,9 @@ class Curses(Actor):
                 win.noutrefresh()
                 send(self.pid, Event(type='rendered'))
 
-            case Request(type='render', name='files', args=(files_dims , files_buff)):
-                (width, height, x_ofst, y_ofst) = files_dims
+            case Request(type='render', name='files', args=files_buff):
+                set_dims(self)
+                (width, height, x_ofst, y_ofst) = self.files_dims
                 if not height or not files_buff:
                     return
                 height -= 1
@@ -144,10 +156,22 @@ class Curses(Actor):
                 win.noutrefresh()
                 send(self.pid, Event(type='rendered'))
 
+            case Event(type='signal', name='resize'):
+                curses.endwin()  # This could lead to crashes according to below comment
+                self.stdscr.refresh()
+                send(to=self.parent, what=Event(type='io', name='resize'))
 
             case _:
                 raise DispatchError(f'Unprocessable msg={msg}')
 
-
     def init(self) -> None:
         create(InputIO, stdscr=self.stdscr)
+
+    def terminate(self) -> None:
+        send(0, Message(sig=Sig.EXIT))
+        curses.endwin()
+        curses.nocbreak()
+        curses.echo()
+        curses.curs_set(1)
+        self.stdscr.keypad(False)
+        raise SystemExit
