@@ -175,10 +175,10 @@ class MPV(Actor):
 
 
     def terminate(self) -> None:       
-        send(to='ActorSystem', what=Message(sig=Sig.EXIT))
-        send(to=self.child, what=Message(sig=Sig.EXIT))
         self.handle, handle = None, self.handle
-        _mpv.mpv_render_context_free(handle)
+        send(to=self.child, what=Message(sig=Sig.EXIT))
+        _mpv.mpv_render_context_free(self.handle)
+        send(to='ActorSystem', what=Message(sig=Sig.EXIT))
         raise SystemExit
 
     def init(self) -> None:

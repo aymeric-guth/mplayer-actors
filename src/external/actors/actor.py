@@ -39,7 +39,7 @@ class Actor(BaseActor):
                 raise DispatchError
 
             case Message(sig=Sig.CHILD_DEINIT, args=pid):
-                self.child = pid
+                self.child = 0
                 raise DispatchError
 
             case _:
