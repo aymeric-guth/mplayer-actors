@@ -48,6 +48,8 @@ class ActorSystem(BaseActor, metaclass=SingletonMeta):
         self._registry.register(pid, actor)
         self._threads.update({pid: t})
         t.start()
+        if parent:
+            self._send(self, actor.parent, Message(sig=Sig.CHILD_INIT, args=actor.pid))
         return actor.pid
 
     def dispatch(self, sender: int, msg: Message) -> None:
@@ -80,10 +82,13 @@ class ActorSystem(BaseActor, metaclass=SingletonMeta):
                 if t is not None:
                     t.join()
                     del self._threads[pid]
-                self.logger.error(f'Trying to regenerate Actor(pid={pid}, cls={cls}, parent={parent}, name={name}, kwargs={kwargs})')
+                self.logger.error(f'Trying to regenerate Actor(pid={pid}, cls={cls}, parent={parent}, name={name}, kwargs={kwargs})')   
                 self._create_actor(cls, pid=pid, parent=parent, name=name, **kwargs)
 
             case Message(sig=Sig.EXIT):
+                actor = self.get_actor(sender)
+                if actor is not None and actor.parent:
+                    self._send(self, actor.parent, Message(sig=Sig.CHILD_INIT, args=0))
                 self._registry.unregister(sender)
                 try:
                     t = self._threads.pop(sender)

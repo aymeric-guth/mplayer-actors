@@ -22,7 +22,6 @@ class MPV(Actor):
         lc, enc = locale.getlocale(locale.LC_NUMERIC)
         locale.setlocale(locale.LC_NUMERIC, 'C')
         self.handle = _mpv.mpv_create()
-        self.child: int
 
         _mpv.mpv_set_option_string(self.handle, b'audio-display', b'no')
         _mpv.mpv_set_option_string(self.handle, b'input-default-bindings', b'yes')
@@ -184,7 +183,7 @@ class MPV(Actor):
         raise SystemExit('SIGQUIT')
 
     def init(self) -> None:
-        self.child = create(MPVEvent, handle=self.handle)
+        create(MPVEvent, handle=self.handle)
         self.observe_property('volume')
         self.observe_property('percent-pos')
         self.observe_property('time-pos')

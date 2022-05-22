@@ -70,3 +70,10 @@ class Request(Base):
 @dataclass(frozen=True)
 class Response(Request):
     ...
+
+
+# 'type': 'event'
+# 'type': 'error'
+# 'type': 'cmd'
+# 'type': 'request'
+# 'type': 'response'

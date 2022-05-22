@@ -32,6 +32,12 @@ class Actor(BaseActor):
                 self.poison()
                 raise DispatchError
 
+            case Message(sig=Sig.CHILD_INIT, args=pid):
+                self.child = pid
+                if self.child:
+                    send(self.child, Message(sig=Sig.INIT))
+                raise DispatchError
+
             case _:
                 ...
 

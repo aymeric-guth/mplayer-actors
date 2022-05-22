@@ -5,7 +5,7 @@ import logging
 
 from ...utils import SingletonMeta
 
-from ...external.actors import Actor, Message, Sig, send, DispatchError
+from ...external.actors import Actor, Message, Sig, send, DispatchError, Event, Request, Response
 from ...settings import extensions_all
 from . import helpers
 from ._types import CWD
@@ -137,7 +137,8 @@ class Files(Actor):
                 self.files.insert(0, ('', ''))
                 self.len_dir = len(self.dirs)
                 self.len_files = len(self.files)
-                send('Display', Message(sig=Sig.CWD_GET, args=helpers.get_kwargs(self)))
+                send(to='Display', what=Event(type='files', name='cwd-change', args=helpers.get_kwargs(self)))
+                # send('Display', Message(sig=Sig.CWD_GET, args=helpers.get_kwargs(self)))
 
             case _:
                 self.logger.warning(f'Unprocessable msg={msg}')

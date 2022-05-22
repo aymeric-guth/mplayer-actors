@@ -41,6 +41,8 @@ class BaseActor:
         self._pid = pid
         self._parent = parent
         self._name = name if name else self.__class__.__name__
+        self._lock = threading.Lock()
+        self._child = 0
 
         self._mq: Queue = Queue()
         self.subscribers: list[BaseActor] = []
@@ -48,7 +50,6 @@ class BaseActor:
         ### Subsystems ###
         self._logger = Logging(self._name, self.__str__())
         self._cache = None
-
 
     def run(self) -> None:
         while 1:
@@ -127,6 +128,17 @@ class BaseActor:
     @parent.setter
     def parent(self, value: Any) -> None:
         raise TypeError('Property is immutable')
+
+    @property
+    def child(self) -> int:
+        with self._lock:
+            return self._child
+
+    @child.setter
+    def child(self, value: int) -> None:
+        with self._lock:
+            self._child = value
+        # self.logger.error(f"@child.setter child={self._child}")
 
     def __repr__(self) -> str:
         return f'{self.__class__.__name__}(pid={self.pid})'

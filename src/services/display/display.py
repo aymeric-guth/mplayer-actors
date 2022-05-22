@@ -39,7 +39,6 @@ class Display(Actor):
         self.draw_cmd = lambda: helpers.draw_cmd(self)
         self.draw_files = lambda: helpers.draw_files(self)
         self.draw_playback = lambda: helpers.draw_playback(self)
-        self.child: int
         self.log_lvl = logging.ERROR
 
     def dispatch(self, sender: int, msg: Message) -> None:
@@ -49,12 +48,6 @@ class Display(Actor):
             return
 
         match msg:
-            case Message(sig=Sig.CWD_GET, args=args):
-                dir_list, files_list = args.get('dir_list'), args.get('files_list')
-                self.files_buff = [dir_list, files_list]
-                # send(self.pid, Request(type='render', name='draw'))
-                send(self.pid, Message(sig=Sig.DRAW_SCREEN))
-
             case Event(type='io', name='prompt', args=args) if isinstance(args, bool):
                 # initialisation de la fenetre du prompt
                 self.cmd_overlay = args
@@ -71,24 +64,19 @@ class Display(Actor):
                     self.set_dims()
                     send(self.child, Request(type='render', name='cmd', args=(self.cmd_dims, self.cmd_buff)))
 
-                # self.cmd_buff = args
-                # if self.cmd_overlay:
-                #     self.set_dims()
-                #     self.draw_cmd()
-                #     curses.doupdate()
-
-            case Message(sig=Sig.MEDIA_META, args=args):
+            case Event(type='player', name='property-change', args=args):
                 k, v = [i for i in args.items()][0]
                 self.media_meta.update({k: v})
-                send(self.pid, {'event': 'property-change', 'name': 'draw-playback'})
-
-            case {'event': 'property-change', 'name': 'draw-playback'}:
                 if self.playback_overlay:
-                    # helpers.set_dims(self)
-                    # helpers.draw_playback(self)
                     self.set_dims()
-                    self.draw_playback()
-                    curses.doupdate()
+                    send(self.child, Request(type='render', name='playback', args=(self.playback_dims , self.media_meta)))
+
+            case Event(type='files', name='cwd-change', args=args):
+                dir_list, files_list = args.get('dir_list'), args.get('files_list')
+                self.files_buff = [dir_list, files_list]
+                if self.files_overlay:
+                    self.set_dims()
+                    send(self.child, Request(type='render', name='files', args=(self.files_dims , [dir_list, files_list])))
 
             case Message(sig=Sig.DRAW_SCREEN):
                 self.set_dims()
@@ -97,7 +85,7 @@ class Display(Actor):
                 self.draw_cmd()               
                 curses.doupdate()
 
-            case Message(sig=Sig.PLAYBACK_OVERLAY, args=args):
+            case Event(type='keypress', name='playback-toggle'):
                 self.playback_overlay = not self.playback_overlay
                 send(self.pid, Message(sig=Sig.DRAW_SCREEN))
 
@@ -134,5 +122,4 @@ class Display(Actor):
         self._cur = value
 
     def init(self) -> None:
-        self.child = create(Curses)
-        send(self.child, Message(sig=Sig.INIT))
+        create(Curses)

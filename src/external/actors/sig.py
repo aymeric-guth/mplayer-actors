@@ -71,9 +71,4 @@ class Sig(Enum):
     PATH_CONTENT = auto()
     TERMINATE = auto()
     EXIT = auto()
-
-# 'type': 'event'
-# 'type': 'error'
-# 'type': 'cmd'
-# 'type': 'request'
-# 'type': 'response'
+    CHILD_INIT = auto()

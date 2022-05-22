@@ -61,7 +61,6 @@ class Prompt(Actor):
         send('Display', Event(type='io', name='prompt', args=True))
 
     def terminate(self) -> None:
-        send(self.parent, Event(type='status', name='child-exit'))
         send('ActorSystem', Message(sig=Sig.EXIT))
         raise SystemExit
 
@@ -70,7 +69,6 @@ class Input(Actor):
     def __init__(self, pid: int, parent: int, name='', **kwargs) -> None:
         super().__init__(pid, parent, name, **kwargs)
         self.log_lvl = logging.WARNING
-        self.child: Optional[int] = None
 
     def dispatch(self, sender: int, msg: Message) -> None:
         try:
@@ -80,14 +78,10 @@ class Input(Actor):
 
         arg: Any
         match msg:
-            case Event(type='status', name='child-exit'):
-                # hanling in super().dispatch
-                self.child = None
-
             case Event(type='io', name='prompt', args=args):
                 send(*eval_cmd(args))
 
-            case Event(type='io', name='keypress', args=args) as msg if self.child is not None:
+            case Event(type='io', name='keypress', args=args) as msg if self.child:
                 send(self.child, msg)
 
             case Event(type='io', name='keypress', args=args):
@@ -96,8 +90,7 @@ class Input(Actor):
                         ...
 
                     case Key.COLON:
-                        self.child = create(Prompt)
-                        send(to=self.child, what=Message(sig=Sig.INIT))
+                        create(Prompt)
 
                     case Key.q | Key.Q:
                         send(to='ActorSystem', what=Message(sig=Sig.SIGQUIT))
@@ -135,7 +128,8 @@ class Input(Actor):
                         send('MediaDispatcher', Message(sig=Sig.VOLUME, args=arg))
 
                     case (Key.d | Key.D):
-                        send('Display', Message(sig=Sig.PLAYBACK_OVERLAY))
+                        send(to='Display', what=Event(type='keypress', name='playback-toggle'))
+                        # send('Display', Message(sig=Sig.PLAYBACK_OVERLAY))
 
                     case (curses.KEY_LEFT | Key.h | curses.KEY_RIGHT | Key.l | curses.KEY_UP | Key.k | curses.KEY_DOWN | Key.j) as p:
                         match p:
@@ -161,7 +155,7 @@ class Input(Actor):
 
 
     def terminate(self) -> None:
-        if self.child is not None:
+        if self.child:
             send(self.child, Message(Sig.EXIT))
         send('ActorSystem', Message(sig=Sig.EXIT))
         raise SystemExit
