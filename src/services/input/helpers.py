@@ -1,4 +1,4 @@
-from ...external.actors import Message, Sig
+from ...external.actors import Message, Sig, Event
 
 from ...utils import SingletonMeta, clamp
 
@@ -34,6 +34,9 @@ def eval_cmd(cmd: str) -> tuple[str, Message]:
             return 'MediaDispatcher', Message(sig=Sig.PLAYBACK_MODE, args=int(param))
 
         case ['quit' | 'q']:
+            return 'ActorSystem', Message(sig=Sig.SIGQUIT)
+
+        case ['current']:
             return 'ActorSystem', Message(sig=Sig.SIGQUIT)
 
         case [param] if param.isdigit():

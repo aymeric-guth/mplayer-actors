@@ -6,7 +6,7 @@ import threading
 from .base_actor import BaseActor, ActorGeneric
 from .message import Message, MsgCtx
 from .sig import Sig
-from .actor_system import actor_system, send, create
+from .actor_system import actor_system, send, create, ActorSystem
 from .errors import DispatchError, ActorException
 
 
@@ -22,6 +22,7 @@ class Actor(BaseActor):
     def dispatch(self, sender: int, msg: Message) -> None:
         match msg:
             case Message(sig=Sig.INIT):
+                # self.logger.error(f'{self} received INIT Signal')
                 self.init()
                 raise DispatchError
 
@@ -35,7 +36,8 @@ class Actor(BaseActor):
 
             case Message(sig=Sig.CHILD_INIT, args=pid):
                 self.child = pid
-                send(self.child, Message(sig=Sig.INIT))                  
+                # self.logger.error(f'Initilizing child={ActorSystem().resolve_parent(pid)} {self.child=} {pid=}')
+                send(to=self.child, what=Message(sig=Sig.INIT))
                 raise DispatchError
 
             case Message(sig=Sig.CHILD_DEINIT, args=pid):

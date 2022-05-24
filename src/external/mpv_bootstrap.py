@@ -1,4 +1,4 @@
-from ctypes import c_uint64, c_char_p, c_int
+from ctypes import c_uint64, c_char_p, c_int, POINTER, c_double
 
 from .mpv.mpv import (
     _mpv_set_option_string as mpv_set_option_string, 
@@ -7,8 +7,8 @@ from .mpv.mpv import (
     _mpv_create_client as mpv_create_client,
     _mpv_command_async as mpv_command_async,
     _mpv_command as mpv_command,
-    _mpv_wait_event as mpv_wait_event,
-    # MpvEvent,
+    # _mpv_wait_event as mpv_wait_event,
+    MpvEvent,
     MpvEventID,
     _mpv_set_property as mpv_set_property,
     _mpv_set_property_string as mpv_set_property_string,
@@ -38,3 +38,7 @@ MpvEventID.__repr__ = patched_repr
 mpv_observe_property = getattr(backend, 'mpv_observe_property')
 mpv_observe_property.argtypes = [MpvHandle, c_uint64, c_char_p, MpvFormat]
 mpv_observe_property.restype = c_int
+
+mpv_wait_event = getattr(backend, 'mpv_wait_event')
+mpv_wait_event.argtypes = [MpvHandle, c_double]
+mpv_wait_event.restype = POINTER(MpvEvent)

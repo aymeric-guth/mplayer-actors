@@ -2,6 +2,7 @@ from typing import Any, Optional, Union
 from threading import Thread, Lock
 import logging
 import time
+from functools import singledispatch
 
 from .utils import SingletonMeta
 from .message import Message, MsgCtx
@@ -62,8 +63,6 @@ class ActorSystem(BaseActor, metaclass=SingletonMeta):
         **kwargs
     ) -> int:
         actor = cls(pid=pid, name=name, parent=parent, **kwargs)
-        if actor.parent == self.pid:
-            self._childs.append(actor.pid)
         _t = Thread(target=actor.run, daemon=True)
         self._registry.register(pid, actor)
         self._threads.update({pid: _t})
@@ -79,14 +78,16 @@ class ActorSystem(BaseActor, metaclass=SingletonMeta):
                 ...
             
             case Message(sig=Sig.CHILD_INIT, args=args):
+                # self.logger.error(f'Initilizing child={self.resolve_parent(args)}')
                 self._childs.append(args)
+                send(to=args, what=Message(sig=Sig.INIT))
 
             case Message(sig=Sig.CHILD_DEINIT, args=args):
                 self._childs.remove(args)
 
             case Message(sig=Sig.SIGKILL):
                 while len(self._registry) > 1:
-                    self.logger.error(str(self._registry) + f'{len(self._registry)=}')
+                    # self.logger.error(str(self._registry) + f'{len(self._registry)=}')
                     time.sleep(0.1)
 
                 actor = self._registry.get(self.pid)
@@ -204,14 +205,25 @@ def _get_caller(frame_idx: int=2) -> BaseActor:
 
 
 def send(to: Union[int, str, type], what: Any) -> None:
+    caller = __get_caller()
+    # ActorSystem().logger.error(f'from={caller} to={ActorSystem()._registry.lookup(to)} what={what}')
     return (
         ActorSystem()
         ._send(
-            sender=__get_caller(), 
+            sender=caller, 
             receiver=to, 
             msg=what
         )
     )
+
+    # return (
+    #     ActorSystem()
+    #     ._send(
+    #         sender=__get_caller(), 
+    #         receiver=to, 
+    #         msg=what
+    #     )
+    # )
 
 
 def forward(sender: int, receiver: int, msg: Any) -> None:

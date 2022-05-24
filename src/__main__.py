@@ -22,12 +22,12 @@ def main():
     # Send().to('External').what(Message(sig=Sig.INIT))
     # Send().to('MediaDispatcher').what(Message(sig=Sig.INIT))
     
-    send(to='API', what=Message(sig=Sig.INIT))
-    send(to='Display', what=Message(sig=Sig.INIT))
-    send(to='Files', what=Message(sig=Sig.INIT))
-    send(to='Input', what=Message(sig=Sig.INIT))
-    send(to='External', what=Message(sig=Sig.INIT))
-    send(to='MediaDispatcher', what=Message(sig=Sig.INIT))
+    # send(to='API', what=Message(sig=Sig.INIT))
+    # send(to='Display', what=Message(sig=Sig.INIT))
+    # send(to='Files', what=Message(sig=Sig.INIT))
+    # send(to='Input', what=Message(sig=Sig.INIT))
+    # send(to='External', what=Message(sig=Sig.INIT))
+    # send(to='MediaDispatcher', what=Message(sig=Sig.INIT))
 
     try:
         ActorSystem().run()

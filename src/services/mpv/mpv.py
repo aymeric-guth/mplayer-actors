@@ -24,8 +24,8 @@ class MPV(Actor):
         self.handle = _mpv.mpv_create()
 
         _mpv.mpv_set_option_string(self.handle, b'audio-display', b'no')
-        _mpv.mpv_set_option_string(self.handle, b'input-default-bindings', b'yes')
-        _mpv.mpv_set_option_string(self.handle, b'input-vo-keyboard', b'yes')
+        _mpv.mpv_set_option_string(self.handle, b'input-default-bindings', b'no')
+        _mpv.mpv_set_option_string(self.handle, b'input-vo-keyboard', b'no')
         # mpv_load_config_file(self.handle, str(path).encode('utf-8'))
         _mpv.mpv_initialize(self.handle)
         self.log_lvl = logging.ERROR
@@ -78,6 +78,7 @@ class MPV(Actor):
             return -1
 
     def set_property(self, name: str, value: list|dict|set|str):
+        self.logger.error(f'set_property({name=}, {value=})')
         ename = name.encode('utf-8')
         if isinstance(value, (list, set, dict)):
             _1, _2, _3, pointer = _mpv.make_node_str_list(value)
@@ -97,6 +98,7 @@ class MPV(Actor):
 
         match msg:
             case Message(sig=Sig.MPV_EVENT, args=args):
+                # self.logger.error(f'New MPVEvent={msg}')
                 match args:
                     case MpvEvent(event=event, id=0, name=None, data=None):
                         self.logger.info(f'Processing base event: {args}')
@@ -183,11 +185,12 @@ class MPV(Actor):
 
     def init(self) -> None:
         create(MPVEvent, handle=self.handle)
+        # send(self.child, Message(sig=Sig.INIT))
         self.observe_property('volume')
-        self.observe_property('percent-pos')
+        # self.observe_property('percent-pos')
         self.observe_property('time-pos')
-        self.observe_property('playback-time')
-        self.observe_property('playtime-remaining')
+        # self.observe_property('playback-time')
+        # self.observe_property('playtime-remaining')
         self.observe_property('duration')
         self.observe_property('metadata')
         send(self.pid, Message(sig=Sig.VOLUME, args=str(VOLUME_DEFAULT)))

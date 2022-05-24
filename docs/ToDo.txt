@@ -2,6 +2,8 @@
 * refactor: préparation class Files en vue de l'implémentation de la recherche récursive
 * bugfix: montage démontage acteur Files au démarrage de l'app
 * refactor: routing des requests API en particulier /get_files
+* bugfix: race condition dans la logique d'exit
+* bugfix: playback overlay qui ne s'update pas et keybind qui ne répondent plus (sur le player)
 
 
 ### Features ###

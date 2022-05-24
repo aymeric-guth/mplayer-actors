@@ -58,7 +58,7 @@ class Display(Actor):
                 k, v = [i for i in args.items()][0]
                 self.media_meta.update({k: v})
                 if self.playback_overlay:
-                    send(self.child, Request(type='render', name='playback', args=self.media_meta))
+                    send(self.child, Request(type='render', name='playback', args=self.media_meta.copy()))
 
             case Event(type='files', name='cwd-change', args=args):
                 dir_list, files_list = args.get('dir_list'), args.get('files_list')
@@ -71,7 +71,7 @@ class Display(Actor):
                 if self.files_overlay:
                     send(self.child, Request(type='render', name='files', args=[dir_list, files_list]))
                 if self.playback_overlay:
-                    send(self.child, Request(type='render', name='playback', args=self.media_meta))
+                    send(self.child, Request(type='render', name='playback', args=self.media_meta.copy()))
                 if self.cmd_overlay:
                     send(self.child, Request(type='render', name='cmd', args=self.cmd_buff))
 
@@ -82,8 +82,9 @@ class Display(Actor):
                 self.playback_overlay = not self.playback_overlay
                 send(to=self.pid, what=Event(type='io', name='resize'))
 
-            # case Message(sig=Sig.POPUP, args=args):
-            #     draw_popup(args)
+            case Message(sig=Sig.POPUP, args=args):
+                ...
+                # draw_popup(args)
 
             case _:
                 raise DispatchError

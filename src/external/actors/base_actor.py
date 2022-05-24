@@ -67,7 +67,8 @@ class BaseActor:
                 # signal to actor system for delivery to child?
                 # direct forwrding to child? (implying parent has routing rights)
                 # logging
-                # self.logger.warning(str(err))
+                self.logger.warning(f'actor={self} DispatchError routing msg={msg}')
+                raise
                 self.dispatch_handler(sender, msg)
             except SystemExit as err:
                 # gracefull exit

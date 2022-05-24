@@ -15,7 +15,7 @@ class MediaDispatcher(Actor):
         super().__init__(pid, parent, name, **kwargs)
         self.wid = b'\x00\x00\x00\x00'
         self.pl: Playlist = None
-        self.playback = PlaybackMode.NORMAL
+        self._playback = PlaybackMode.NORMAL
         self.log_lvl = logging.ERROR
 
     def dispatch(self, sender: int, msg: Message) -> None:
@@ -44,10 +44,10 @@ class MediaDispatcher(Actor):
                     self.playback = args
 
             case Message(sig=Sig.VOLUME, args=args) as msg:
-                send('MPV', msg)
+                send(to='MPV', what=msg)
 
             case Message(sig=Sig.PLAY_PAUSE, args=args) as msg:
-                send('MPV', msg)
+                send(to='MPV', what=msg)
 
             case {'event': 'command', 'name': 'next', 'args': None}:
                 item = self.pl.next()
@@ -80,13 +80,18 @@ class MediaDispatcher(Actor):
 
             case Message(sig=Sig.DONE, args=None):
                 if self.pl is not None:
-                    send(self.pid, Message(sig=Sig.NEXT))
+                    send(to=self.pid, what=Message(sig=Sig.NEXT))
 
             case Message(sig=Sig.SEEK, args=args) as msg:
-                send('MPV', msg)
+                send(to='MPV', what=msg)
 
             case Message(sig=Sig.WATCHER, args=args):
                 send(to='Display', what=Event(type='player', name='property-change', args=args))
+            
+            # case Request(type='', name='', args=args):
+            #     if self.pl is not None:
+            #         Message(sig=Sig.PATH_SET, args=self.pl.current())
+            #         send(to='Files', what=Response(type='', name='', args=self.pl.current()))
 
             case _:
                 self.logger.warning(f'Unprocessable msg={msg}')
@@ -106,10 +111,12 @@ class MediaDispatcher(Actor):
                 self._playback = PlaybackMode.LOOP_ALL
             case _:
                 self._playback = PlaybackMode.NORMAL
+        send(to=self.pid, what=Message(sig=Sig.WATCHER, args={'playback-mode': self.playback}))
         # send(to='Display', what=Event(type='player', name='property-change', args={'playback-mode': self.playback}))
 
     def init(self) -> None:
         create(MPV, wid=self.wid)
+        # send(self.child, Message(sig=Sig.INIT))
 
     def terminate(self) -> None:
         send(to=self.child, what=Message(sig=Sig.EXIT))
