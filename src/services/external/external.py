@@ -124,7 +124,3 @@ class External(Actor):
         send(self.pid, Message(sig=Sig.HOOK, args=('vdo', VIDEO_PATH[:])))
         send(self.pid, Message(sig=Sig.HOOK, args=('td', MUSIC_TODO[:])))
         send(self.pid, Message(sig=Sig.HOOK, args=('todo', MUSIC_TODO[:])))
-
-    def terminate(self) -> None:
-        send(to='ActorSystem', what=Message(sig=Sig.EXIT))
-        raise SystemExit

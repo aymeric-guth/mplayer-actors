@@ -95,7 +95,7 @@ class ActorSystem(BaseActor, metaclass=SingletonMeta):
                     self._registry.unregister(actor.pid)
                 _t = self._threads.get(self.pid)
                 if _t is not None:
-                    del self._threads[0]
+                    del self._threads[self.pid]
                 raise SystemExit
 
             case Message(sig=Sig.SIGQUIT):
@@ -135,7 +135,8 @@ class ActorSystem(BaseActor, metaclass=SingletonMeta):
                     _t.join()
 
             case Message(sig=Sig.DISPATCH_ERROR, args=ctx):
-                self.logger.error(f'Unprocessable {ctx=}')
+                ...
+                # self.logger.error(f'Unprocessable {ctx=}')
 
             case _:
                 # self._logger._log(sender=self.resolve_parent(sender), receiver=self.__repr__(), msg=f'Unprocessable Message: msg={msg}')
@@ -157,21 +158,10 @@ class ActorSystem(BaseActor, metaclass=SingletonMeta):
     def terminate(self) -> None:
         for pid in self._childs:
             self._send(self, pid, Message(sig=Sig.EXIT))
-
-        # for pid, t in self._threads.items():
-        #     if pid == self.pid: continue
-        #     actor = self._registry.get(pid)
-        #     if actor is not None:
-        #         actor._post(self.pid, Message(sig=Sig.EXIT))
-
-        # actor = self._registry.get(self.pid)
-        # if actor is not None:
-        #     self._registry.unregister(actor.pid)
-        # _t = self._threads.get(self.pid)
-        # if _t is not None:
-        #     del self._threads[0]
         self._post(self.pid, Message(sig=Sig.SIGKILL))
-       
+
+    def sysexit_handler(self) -> None:
+        raise SystemExit       
 
 def __get_caller(frame_idx: int=2) -> BaseActor:
     frame = sys._getframe(frame_idx)

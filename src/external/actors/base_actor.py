@@ -74,7 +74,8 @@ class BaseActor:
                 # gracefull exit
                 # dealocating ressources, signaling childs to terminate
                 # self.terminate()
-                raise
+                self.sysexit_handler()
+                # raise
             except Exception as err:
                 # unhandled exception
                 # logging + termination, signaling childs to terminate
@@ -101,6 +102,9 @@ class BaseActor:
         raise NotImplementedError
 
     def dispatch_handler(self, sender: int, message: Message|dict[str, Any]) -> None:
+        raise NotImplementedError
+
+    def sysexit_handler(self) -> None:
         raise NotImplementedError
 
     def _post(self, sender: int, msg: Any) -> None:

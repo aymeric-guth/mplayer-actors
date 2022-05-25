@@ -93,4 +93,3 @@ class ActorRegistry(metaclass=SingletonMeta):
 
     def items(self) -> dict[int, BaseActor]:
         return self._container.items()
-

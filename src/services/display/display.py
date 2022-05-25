@@ -2,6 +2,7 @@ import curses
 from typing import Any
 from signal import signal, SIGWINCH
 import logging
+import time
 
 from ...utils import SingletonMeta, clamp
 from ...external.actors import Actor, Message, Sig, send, DispatchError, create, MsgCtx, forward, Event, Request, Response
@@ -138,6 +139,7 @@ class Display(Actor):
         create(Curses)
 
     def terminate(self) -> None:
-        send(to='ActorSystem', what=Message(sig=Sig.EXIT))
         send(to=self.child, what=Message(sig=Sig.EXIT))
+        # while self.child:
+        #     time.sleep(0.1)        
         raise SystemExit

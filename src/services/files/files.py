@@ -142,8 +142,3 @@ class Files(Actor):
 
             case _:
                 self.logger.warning(f'Unprocessable msg={msg}')
-
-
-    def terminate(self) -> None:
-        send(to='ActorSystem', what=Message(sig=Sig.EXIT))
-        raise SystemExit

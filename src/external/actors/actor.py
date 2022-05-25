@@ -51,15 +51,19 @@ class Actor(BaseActor):
         ...
 
     def terminate(self) -> None:
-        send(to=0, what=Message(sig=Sig.EXIT))
-        raise SystemExit('SIGQUIT')
+        # send(to=0, what=Message(sig=Sig.EXIT))
+        raise SystemExit
 
     def poison(self) -> None:
         raise ActorException('Sig.POISON')
 
     def handler(self, err: str) -> None:
         self.logger.error(f'Actor={self!r} encountered a failure: {err}')
-        send(0, Message(sig=Sig.SIGINT))
+        send(to=0, what=Message(sig=Sig.SIGINT))
+
+    def sysexit_handler(self) -> None:
+        send(to=0, what=Message(sig=Sig.EXIT))
+        raise SystemExit
 
     def dispatch_handler(self, sender: int, message: Message|dict[str, Any]) -> None:
         ctx = MsgCtx(

@@ -1,5 +1,6 @@
 import logging
 from typing import Optional
+import time
 
 from ...external.actors import Actor, Message, Sig, send, create, DispatchError, Event, Request, Response
 
@@ -119,6 +120,7 @@ class MediaDispatcher(Actor):
         # send(self.child, Message(sig=Sig.INIT))
 
     def terminate(self) -> None:
-        send(to=self.child, what=Message(sig=Sig.EXIT))
-        send(to='ActorSystem', what=Message(sig=Sig.EXIT))
+        send(to=self.child, what=Message(Sig.EXIT))           
+        # while self.child:
+        #     time.sleep(0.1)
         raise SystemExit

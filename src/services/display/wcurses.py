@@ -7,8 +7,9 @@ from typing import Optional
 from pathlib import Path
 from math import ceil
 import threading
+import time
 
-from ...utils import SingletonMeta, clamp
+from ...utils import SingletonMeta, clamp, try_not
 from ...external.actors import Actor, Message, Sig, send, DispatchError, Event, Request, Response, ActorIO, create
 from .helpers import string_format, set_dims
 from .constants import PROMPT
@@ -21,7 +22,7 @@ class InputIO(ActorIO):
         if stdscr is None:
             raise SystemExit
         self.stdscr = stdscr
-        self.log_lvl = logging.ERROR
+        self.log_lvl = logging.INFO
         self._t = threading.Thread(target=self._run, daemon=True)
         self._t.start()
 
@@ -37,9 +38,7 @@ class InputIO(ActorIO):
             return
             
     def terminate(self) -> None:
-        send(to='ActorSystem', what=Message(sig=Sig.EXIT))
-        if self._t:
-            self._t.join()
+        try_not(self._t.join, Exception) if self._t else None
         raise SystemExit
 
 
@@ -188,8 +187,9 @@ class Curses(Actor):
         create(InputIO, stdscr=self.stdscr)
 
     def terminate(self) -> None:
-        send(to='ActorSystem', what=Message(sig=Sig.EXIT))
         send(to=self.child, what=Message(sig=Sig.EXIT))
+        # while self.child:
+        #     time.sleep(0.1)
         self.stdscr.keypad(False)
         curses.nocbreak()
         curses.echo()

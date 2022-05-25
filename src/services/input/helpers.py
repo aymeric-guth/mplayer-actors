@@ -80,6 +80,9 @@ def eval_cmd(cmd: str) -> tuple[str, Message]:
 
         case ['send', actor, *msg] if actor and msg:            
             return actor, Message(sig=Sig.PLAY_PAUSE)
+        
+        case ['login']:
+            return 'API', Message(sig=Sig.LOGIN)
 
         case _:
             return 'Display', Message(sig=Sig.POPUP, args=f'Invalid command: {cmd}')

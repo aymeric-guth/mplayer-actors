@@ -3,6 +3,7 @@ import logging
 from typing import Optional, Any
 import select
 import sys
+import time
 
 from ...external.actors import Actor, Message, Sig, ActorIO, create, send, DispatchError, Event, Request, Response
 # from ...wcurses import stdscr
@@ -158,5 +159,6 @@ class Input(Actor):
     def terminate(self) -> None:
         if self.child:
             send(to=self.child, what=Message(Sig.EXIT))
-        send(to='ActorSystem', what=Message(sig=Sig.EXIT))
+        # while self.child:
+        #     time.sleep(0.1)
         raise SystemExit
