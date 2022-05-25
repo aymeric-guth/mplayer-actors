@@ -110,7 +110,7 @@ class Curses(Actor):
                 current, total = media_meta.get('pos', (0, 0))
                 volume = media_meta.get('volume', 0)
                 # percent_pos = self.media_meta.get('percent-pos', 0.)
-                playback_time = media_meta.get('playback-time', 0)
+                playback_time = media_meta.get('time-pos', 0)
                 playback_time = 0 if playback_time is None else int(playback_time)
                 playtime_remaining = media_meta.get('playtime-remaining', 0)
                 playtime_remaining = 0 if playtime_remaining is None else int(playtime_remaining)

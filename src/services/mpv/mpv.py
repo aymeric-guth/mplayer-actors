@@ -1,7 +1,7 @@
 import locale
 from ctypes import c_char_p, c_uint64, c_int, pointer, POINTER, c_void_p, sizeof, cast, create_string_buffer
 from dataclasses import dataclass
-from typing import Any, Optional
+from typing import Any, Optional, Callable
 import logging
 import time
 
@@ -10,7 +10,32 @@ from ...external import _mpv
 
 from ...utils import clamp
 from ...external.actors import Actor, Message, Sig, send, create, DispatchError, Event
+# from ...external.actors.utils import observer
 from .event_loop import MpvEvent, MPVEvent
+from .observable_properties import ObservableProperties
+
+
+
+from typing import Callable, Any
+from functools import wraps
+
+# from .actor_system import send
+# from .message import Event, Message, Sig
+
+
+def observer(actor: str):
+    def inner(func: Callable):
+        @wraps(func)
+        def _(*args, **kwargs):
+            (self, value) = args
+            if value is not None:
+                name = func.__name__
+                func(self, value)
+                res = getattr(self, f'_{name}')
+                send(to=actor, what=Message(sig=Sig.WATCHER, args={name: res}))
+            # send(to=actor, what=Event(type='property-change', name=name, args=res))
+        return _
+    return inner
 
 
 class MPV(Actor):
@@ -18,61 +43,24 @@ class MPV(Actor):
         super().__init__(pid, parent, name, **kwargs)
         self._state = 0
         self._volume: int|float
-        self._pos: float = 0.
-        self._duration: float = 0.
         lc, enc = locale.getlocale(locale.LC_NUMERIC)
         locale.setlocale(locale.LC_NUMERIC, 'C')
-        self.handle = _mpv.mpv_create()
 
+        self.handle = _mpv.mpv_create()
         _mpv.mpv_set_option_string(self.handle, b'audio-display', b'no')
         _mpv.mpv_set_option_string(self.handle, b'input-default-bindings', b'no')
         _mpv.mpv_set_option_string(self.handle, b'input-vo-keyboard', b'no')
         # mpv_load_config_file(self.handle, str(path).encode('utf-8'))
         _mpv.mpv_initialize(self.handle)
+        self.props = ObservableProperties(self.pid)
         self.log_lvl = logging.ERROR
-
-    @property
-    def pos(self) -> float:
-        return self._pos
-
-    @pos.setter
-    def pos(self, value: float|None) -> None:
-        if value is not None:
-            self._pos = clamp(0., self.duration)(value)
-
-    @property
-    def duration(self) -> float:
-        return self._duration
-
-    @duration.setter
-    def duration(self, value: float|None) -> None:
-        if value is not None:
-            self._duration = value
-
-    @property
-    def volume(self) -> int|float:
-        return self._volume
-
-    @volume.setter
-    def volume(self, value: int|float) -> None:
-        if value is not None:
-            self._volume = clamp(0, 100)(value)
-
-    @property
-    def state(self) -> int:
-        return self._state
-
-    @state.setter
-    def state(self, value: int) -> None:
-        self._state = int(clamp(0, 4)(value))
-        send(self.parent, Message(sig=Sig.WATCHER, args={'player-state': self._state}))
 
     async def command_async(self, *args) -> int:
         args = [c_uint64(0xffff), (c_char_p*len(args))(*args)]
         return _mpv.mpv_command_async(self.handle, *args)
 
     def command(self, *args) -> int:
-        self.logger.error(f'command({args})')
+        # self.logger.error(f'command({args})')
         try:        
             args = (c_char_p*len(args))(*args)
             return _mpv.mpv_command(self.handle, args)
@@ -88,11 +76,6 @@ class MPV(Actor):
         else:            
             _mpv.mpv_set_property_string(self.handle, ename, _mpv.mpv_coax_proptype(value))
 
-    def observe_property(self, name: str) -> None:      
-        property_id = hash(name) & 0xffffffffffffffff
-        _mpv.mpv_observe_property(self.event_handle, property_id, name.encode('utf-8'), _mpv.MpvFormat.NODE)
-        # _mpv.mpv_observe_property(self.handle, property_id, name.encode('utf-8'), _mpv.MpvFormat.NODE)
-
     def dispatch(self, sender: int, msg: Message) -> None:
         try:
             super().dispatch(sender, msg)
@@ -100,53 +83,8 @@ class MPV(Actor):
             return
 
         match msg:
-            # case Message(sig=Sig.MPV_EVENT, args=args):
-            #     # self.logger.error(f'New MPVEvent={msg}')
-            #     match args:
-            #         case MpvEvent(event=event, id=0, name=None, data=None):
-            #             self.logger.info(f'Processing base event: {args}')
-            #             match event:
-            #                 case 'playback-restart' | 'start-file' | 'unpause':
-            #                     send(self.pid, Message(sig=Sig.STATE_CHANGE, args=1))
-            #                 case 'idle':
-            #                     send(self.pid, Message(sig=Sig.STATE_CHANGE, args=4))
-            #                 case 'pause':
-            #                     send(self.pid, Message(sig=Sig.STATE_CHANGE, args=2))
-            #                 case 'seek':
-            #                     send(self.pid, Message(sig=Sig.STATE_CHANGE, args=3))
-
-            #         case MpvEvent(event=event, id=_id, name=name, data=data):
-            #             match event:
-            #                 case 'property-change':
-            #                     match name:
-            #                         case 'time-pos':
-            #                             self.pos = data
-            #                             send(self.parent, Message(sig=Sig.WATCHER, args={name: data}))
-            #                         case 'duration':
-            #                             self.duration = data
-            #                             send(self.parent, Message(sig=Sig.WATCHER, args={name: data}))
-            #                         case 'volume' | 'playback-time' | 'playtime-remaining' | 'metadata':
-            #                             send(self.parent, Message(sig=Sig.WATCHER, args={name: data}))
-            #                         case 'percent-pos':
-            #                             ...
-            #                         case _:
-            #                             ...
-
-            #         case event:
-            #             ...
-            case Event(type='property-change', name='time-pos', args=data):
-                self.pos = data
-
-            case Event(type='property-change', name='duration', args=data):
-                self.duration = data
-
-            case Message(sig=Sig.WATCHER, args=args) as msg:
-                send(to=self.parent, what=msg)
-
-            case Message(sig=Sig.STATE_CHANGE, args=state):
-                self.state = state
-                if self.state == 4:
-                    send(self.pid, Message(sig=Sig.DONE))
+            case Event(type='property-change', name=name, args=data) if name in self.props:
+                self.props.set(name, data)
 
             case Message(sig=Sig.PLAY, args=path):
                 args = [b'loadfile', path.encode('utf-8'), b'replace', b'', None]
@@ -154,19 +92,16 @@ class MPV(Actor):
                 self.command(*args)
 
             case Message(sig=Sig.PLAY_PAUSE, args=None):
-                if self.state == 1:
+                if self.props.get('player-state') == 1:
                     self.set_property('pause', 'yes')
-                    send(self.pid, Message(sig=Sig.STATE_CHANGE, args=2))
-                elif self.state == 2:
+                    self.props.set('player-state', 2)
+                elif self.props.get('player-state') == 2:
                     self.set_property('pause', 'no')
-                    send(self.pid, Message(sig=Sig.STATE_CHANGE, args=1))
+                    self.props.set('player-state', 1)
 
             case Message(sig=Sig.VOLUME, args=args):
-                if args.startswith('+') or args.startswith('-'):
-                    self.volume += int(args)
-                else:
-                    self.volume = int(args)
-                self.set_property('volume', self.volume)
+                self.props.set('volume', args)
+                self.set_property('volume', self.props.get('volume'))
             
             case Message(sig=Sig.STOP, args=None):
                 args = [b'stop', b'', None]
@@ -174,34 +109,49 @@ class MPV(Actor):
 
             case Message(sig=Sig.SEEK, args=args):
                 if args < 0.:
-                    req = clamp(-self.pos, 0.)(args)                       
+                    req = clamp(-self.props.get('time-pos', 0.), 0.)(args)
                 else:
-                    req = clamp(0., self.duration-self.pos)(args)
+                    req = clamp(0., self.props.get('duration', 0.)-self.props.get('time-pos', 0.))(args)
                 args = [b'seek', str(req).encode('utf-8'), b'relative', b'default-precise', None]
                 self.command(*args)
 
-            case Message(sig=Sig.DONE, args=args) as msg:
-                send(self.parent, msg)
-
             case _:
-                raise DispatchError(f'Unprocessable msg={msg}')
+                ...
+                # raise DispatchError(f'Unprocessable msg={msg}')
 
 
     def terminate(self) -> None:       
         self.handle, handle = None, self.handle
         send(to=self.child, what=Message(sig=Sig.EXIT))
-        # while self.child:
-        #     time.sleep(0.1)
         _mpv.mpv_render_context_free(self.handle)
         raise SystemExit
 
     def init(self) -> None:
+        self.props.register_setter('time-pos', lambda x: 0. if x is None else x)
+        self.props.register_setter('duration', lambda x: 0. if x is None else x)
+        self.props.register_setter('volume', self.volume_setter)
+        self.props.register_setter('player-state', lambda x: int(clamp(0, 4)(x)))
+        # self.props.register_setter('playtime-remaining', lambda x: 0. if x is None else x)
+        # self.props.register_setter('metadata', lambda x: 0. if x is None else x)
+
+        self.props.register('time-pos', self.parent)
+        self.props.register('duration', self.parent)
+        self.props.register('volume', self.parent)
+        self.props.register('player-state', self.parent)
+
+        self.logger.error(repr(self.props))
+        self.props.set('volume', str(VOLUME_DEFAULT))
+        # self.props.register('playtime-remaining', self.parent)
+        # self.props.register('metadata', self.parent)
+
         create(MPVEvent, handle=self.handle)
-        # self.observe_property('volume')
-        # self.observe_property('percent-pos')
-        # self.observe_property('time-pos')
-        # self.observe_property('playback-time')
-        # self.observe_property('playtime-remaining')
-        # self.observe_property('duration')
-        # self.observe_property('metadata')
-        send(self.pid, Message(sig=Sig.VOLUME, args=str(VOLUME_DEFAULT)))
+        # send(self.pid, Message(sig=Sig.VOLUME, args=str(VOLUME_DEFAULT)))
+
+
+    def volume_setter(self, value: str) -> int:
+        volume = self.props.get('volume', str(VOLUME_DEFAULT))
+        func = lambda x: clamp(0, 100)(x) if x is not None else 0.
+        if value.startswith('+') or value.startswith('-'):
+            return func(volume + int(value))
+        else:
+            return func(int(value))

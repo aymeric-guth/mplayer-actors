@@ -4,7 +4,7 @@ import logging
 import time
 from functools import singledispatch
 
-from .utils import SingletonMeta
+from ...utils import SingletonMeta
 from .message import Message, MsgCtx
 from .sig import Sig
 from .base_actor import BaseActor, ActorGeneric

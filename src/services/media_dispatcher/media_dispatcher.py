@@ -17,7 +17,7 @@ class MediaDispatcher(Actor):
         self.wid = b'\x00\x00\x00\x00'
         self.pl: Playlist = None
         self._playback = PlaybackMode.NORMAL
-        self.log_lvl = logging.ERROR
+        self.log_lvl = logging.INFO
 
     def dispatch(self, sender: int, msg: Message) -> None:
         try:
@@ -86,13 +86,12 @@ class MediaDispatcher(Actor):
             case Message(sig=Sig.SEEK, args=args) as msg:
                 send(to='MPV', what=msg)
 
-            case Message(sig=Sig.WATCHER, args=args):
-                send(to='Display', what=Event(type='player', name='property-change', args=args))
-            
-            # case Request(type='', name='', args=args):
-            #     if self.pl is not None:
-            #         Message(sig=Sig.PATH_SET, args=self.pl.current())
-            #         send(to='Files', what=Response(type='', name='', args=self.pl.current()))
+            case Event(type='property-change', name=name, args=args):
+                match name:
+                    case 'player-state':
+                        if args == 4:
+                            send(to=self.pid, what=Message(sig=Sig.DONE, args=None))
+                send(to='Display', what=Event(type='player', name='property-change', args={name: args}))
 
             case _:
                 self.logger.warning(f'Unprocessable msg={msg}')

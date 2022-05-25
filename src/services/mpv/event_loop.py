@@ -55,7 +55,6 @@ class MPVEvent(ActorIO):
         while 1:
             # écoute des event, adaptation vers Event(), envoi sur la mailbox publique
             mpv_event = _mpv.mpv_wait_event(self.handle, -1).contents
-            # self.logger.error(f'{mpv_event=}')
             out = cast(create_string_buffer(sizeof(_mpv.MpvNode)), POINTER(_mpv.MpvNode))
             _mpv.mpv_event_to_node(out, pointer(mpv_event))
             try:
@@ -66,17 +65,15 @@ class MPVEvent(ActorIO):
                     name=rv.get('name'),
                     data=rv.get('data')
                 )
-                send(to=self.pid, what=copy.deepcopy(event))
-                # send(to=self.pid, what=Message(sig=Sig.MPV_EVENT, args=event.to_event()))
+                # send(to=self.pid, what=copy.deepcopy(event))
+                send(to=self.pid, what=event.to_event())
                 _mpv.mpv_free_node_contents(out)
             except Exception as err:
-                self.logger.error(str(err))
-                self.logger.error(bytes(out))
+                self.logger.error(f'{err=} out={bytes(out)}')
 
     def observe_property(self, name: str) -> None:      
         property_id = hash(name) & 0xffffffffffffffff
         _mpv.mpv_observe_property(self.handle, property_id, name.encode('utf-8'), _mpv.MpvFormat.NODE)
-        # _mpv.mpv_observe_property(self.handle, property_id, name.encode('utf-8'), _mpv.MpvFormat.NODE)
 
     def dispatch(self, sender: int, msg: Any) -> None:
         try:
@@ -85,37 +82,22 @@ class MPVEvent(ActorIO):
             return
 
         match msg:
-            case MpvEvent(event=event, id=0, name=None, data=None):
-                self.logger.info(f'Processing base event: {msg}')
-                match event:
-                    case 'playback-restart' | 'start-file' | 'unpause':
-                        send(self.parent, Message(sig=Sig.STATE_CHANGE, args=1))
-                    case 'idle':
-                        send(self.parent, Message(sig=Sig.STATE_CHANGE, args=4))
-                    case 'pause':
-                        send(self.parent, Message(sig=Sig.STATE_CHANGE, args=2))
-                    case 'seek':
-                        send(self.parent, Message(sig=Sig.STATE_CHANGE, args=3))
+            case Event(type='playback-restart' | 'start-file' | 'unpause'):
+                event = Event(type='property-change', name='player-state', args=1)
 
-            case MpvEvent(event=event, id=_id, name=name, data=data):
-                match event:
-                    case 'property-change':
-                        match name:
-                            case 'time-pos':
-                                send(to=self.parent, what=Event(type='property-change', name='time-pos', args=data))
-                                send(to=self.parent, what=Message(sig=Sig.WATCHER, args={name: data}))
-                            case 'duration':
-                                send(to=self.parent, what=Event(type='property-change', name='duration', args=data))
-                                send(to=self.parent, what=Message(sig=Sig.WATCHER, args={name: data}))
-                            case 'volume' | 'playback-time' | 'playtime-remaining' | 'metadata':
-                                send(self.parent, Message(sig=Sig.WATCHER, args={name: data}))
-                            case 'percent-pos':
-                                ...
-                            case _:
-                                ...
+            case Event(type='idle'):
+                event = Event(type='property-change', name='player-state', args=4)
 
-                    case event:
-                        ...
+            case Event(type='pause'):
+                event = Event(type='property-change', name='player-state', args=2)
+
+            case Event(type='seek'):
+                event = Event(type='property-change', name='player-state', args=3)                
+
+            case _:
+                event = msg
+
+        send(to=self.parent, what=event)
 
     def terminate(self) -> None:
         _mpv.mpv_destroy(self.handle)
@@ -125,7 +107,7 @@ class MPVEvent(ActorIO):
 
     def init(self) -> None:
         self.observe_property('volume')
-        self.observe_property('percent-pos')
+        # self.observe_property('percent-pos')
         self.observe_property('time-pos')
         self.observe_property('playback-time')
         self.observe_property('playtime-remaining')
