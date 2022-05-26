@@ -22,7 +22,7 @@ class InputIO(ActorIO):
         if stdscr is None:
             raise SystemExit
         self.stdscr = stdscr
-        self.log_lvl = logging.ERROR
+        self.log_lvl = logging.INFO
         self._t = threading.Thread(target=self._run, daemon=True)
         self._t.start()
 
@@ -54,6 +54,13 @@ class Curses(Actor):
         self.files_overlay = 1
         self.playback_overlay = 1
         self.cmd_overlay = 0
+        self.subs = [
+            ('Display', 'files-overlay'),
+            ('Display', 'cmd-overlay'),
+            ('Display', 'playback-overlay'),
+            ('Display', 'files-buff'),
+            ('Display', 'cmd-buff'),
+        ]
         self.log_lvl = logging.ERROR
 
     def dispatch(self, sender: int, msg: Message) -> None:
@@ -125,7 +132,7 @@ class Curses(Actor):
                 pos = f'Position: {current}/{total} | '
                 win.addstr(2, 2, pos)
 
-                pb_mode = media_meta.get('playback-mode', 'Normal')
+                pb_mode = media_meta.get('playback-mode', 'None')
                 pb_mode = f'Playback: {pb_mode}'
                 win.addstr(2, 2+len(pos), pb_mode)
 
@@ -186,16 +193,13 @@ class Curses(Actor):
 
     def init(self) -> None:
         create(InputIO, stdscr=self.stdscr)
-        send(to=self.parent, what=Message(sig=Sig.SUBSCRIBE, args='files-overlay'))
-        send(to=self.parent, what=Message(sig=Sig.SUBSCRIBE, args='cmd-overlay'))
-        send(to=self.parent, what=Message(sig=Sig.SUBSCRIBE, args='playback-overlay'))
-        send(to=self.parent, what=Message(sig=Sig.SUBSCRIBE, args='files-buff'))
-        send(to=self.parent, what=Message(sig=Sig.SUBSCRIBE, args='cmd-buff'))
+        for actor, event in self.subs:
+            send(to=actor, what=Message(sig=Sig.SUBSCRIBE, args=event))
 
     def terminate(self) -> None:
+        for actor, event in self.subs:
+            send(to=actor, what=Message(sig=Sig.UNSUBSCRIBE, args=event))
         send(to=self.child, what=Message(sig=Sig.EXIT))
-        # while self.child:
-        #     time.sleep(0.1)
         self.stdscr.keypad(False)
         curses.nocbreak()
         curses.echo()

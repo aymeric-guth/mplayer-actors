@@ -3,8 +3,6 @@ import os
 import re
 import logging
 
-from ...utils import SingletonMeta
-
 from ...external.actors import Actor, Message, Sig, send, DispatchError, Event, Request, Response
 from ...settings import extensions_all
 from . import helpers
@@ -19,7 +17,7 @@ class Files(Actor):
         super().__init__(pid, parent, name, **kwargs)
         self.files_tree: dict[tuple[str, ...], list[tuple[str, str]]] = defaultdict(list)
         self.dir_tree: dict[tuple[str, ...], set[str]] = defaultdict(set)
-        self.log_lvl = logging.INFO
+        self.log_lvl = logging.ERROR
 
     def dispatch(self, sender: int, msg: Message) -> None:
         try:
@@ -36,11 +34,10 @@ class Files(Actor):
                 self.dir_tree.clear()
 
                 for r in args:
+                    ext: str = r.get('extension')
+                    if ext not in extensions_all: continue
                     path: str = r.get('path')
                     filename: str = r.get('filename')
-                    ext: str = r.get('extension')
-                    if ext not in extensions_all:
-                        continue
 
                     formated_path = tuple( path.split('/')[1:-1] )
                     self.files_tree[formated_path].append((filename, ext))

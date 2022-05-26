@@ -29,7 +29,6 @@ class Display(Actor):
         super().__init__(pid, parent, name, **kwargs)
         self.files_overlay = 1
         self.files_dims: tuple[int, int, int, int]
-        # self.files_buff: list[Any] = [[], []]
         self.files_buff = [[], []]
         self.playback_overlay = 1
         self.playback_dims: tuple[int, int, int, int]
@@ -37,10 +36,14 @@ class Display(Actor):
         self.cmd_overlay = 0
         self.cmd_dims: tuple[int, int, int, int]
         self.cmd_buff = ('', 0)
-        # self.cmd_buff: tuple[str, int] = ('', 0)
-        # self.log_lvl = logging.ERROR
-        self.log_lvl = logging.INFO
+        self.log_lvl = logging.ERROR
+        # self.log_lvl = logging.INFO
         self.events = {'property-change',}
+        self.subs = [
+            ('MediaDispatcher', 'current-item'),
+            ('MediaDispatcher', 'playlist-pos'),
+            ('MediaDispatcher', 'playback-mode'),
+        ]
 
     def dispatch(self, sender: int, msg: Message) -> None:
         try:
@@ -51,8 +54,6 @@ class Display(Actor):
         #   -> render global
         # data-change (new cwd, typing in prompt, media-playback update)
         #   -> render de l'élément modifié
-
-        self.logger.log(sender=repr(ActorSystem().get_actor(sender)), receiver=repr(self), msg=repr(msg))
 
         # if isinstance(msg, Event) and msg.type in self.events:
         #     self.logger.log(sender=repr(ActorSystem().get_actor(sender)), receiver=repr(self), msg=repr(msg))
@@ -122,9 +123,11 @@ class Display(Actor):
 
     def init(self) -> None:
         create(Curses)
-        send(to='MediaDispatcher', what=Message(sig=Sig.SUBSCRIBE, args='current-item'))
-        send(to='MediaDispatcher', what=Message(sig=Sig.SUBSCRIBE, args='playlist-pos'))
+        for actor, event in self.subs:
+            send(to=actor, what=Message(sig=Sig.SUBSCRIBE, args=event))
 
     def terminate(self) -> None:
+        for actor, event in self.subs:
+            send(to=actor, what=Message(sig=Sig.UNSUBSCRIBE, args=event))
         send(to=self.child, what=Message(sig=Sig.EXIT))
         raise SystemExit

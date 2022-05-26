@@ -1,9 +1,11 @@
 ### Bugfix ###
+* bugfix: defer() qui peut deadlock dans le cas ou un acteur (enregistré) a SystemExit pour SUBSCRIBE et UNSUBSCRIBE
 * refactor: préparation class Files en vue de l'implémentation de la recherche récursive
 * bugfix: montage démontage acteur Files au démarrage de l'app
 * refactor: routing des requests API en particulier /get_files
 * bugfix: race condition dans la logique d'exit
 * bugfix: playback overlay qui ne s'update pas et keybind qui ne répondent plus (sur le player)
+* bugfix: la référence à self.child n'est pas safe (0 = ActorSystem) elle peut entrainer à des bugs pendant l'initialisation et la déinitialisation
 
 
 ### Features ###

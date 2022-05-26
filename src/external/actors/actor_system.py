@@ -25,7 +25,7 @@ def thread_handler(func):
             ActorSystem().logger.error(f'{func.__name__} {err=}')
         finally:
             ...
-            ActorSystem().logger.error(f'{func.__name__} terminated')
+            # ActorSystem().logger.error(f'{func.__name__} terminated')
     return inner
 
 
@@ -49,7 +49,7 @@ class ActorSystem(BaseActor, metaclass=SingletonMeta):
         self._threads: dict[int, Thread] = {}
         self._childs: list[int] = []
         self.log_lvl = logging.ERROR
-        self.log_lvl = logging.INFO
+        # self.log_lvl = logging.INFO
 
         self._registry.register(self.pid, self)
         _t = Thread(target=self.run, daemon=True)
@@ -63,12 +63,13 @@ class ActorSystem(BaseActor, metaclass=SingletonMeta):
         msg: Message|dict[str, Any]
     ) -> None:
         recipient: Optional[BaseActor] = self._registry.lookup(receiver)
+        # self.logger.error(f'from={sender} to={recipient} what={msg}')
         if recipient is None:
             return self._post(
                 sender=self.pid, 
                 msg=Event(
                     type='system', 
-                    name='failed-to-deliver', 
+                    name='recipient-unknown', 
                     args=MsgCtx(
                         original_sender=sender.pid,
                         original_recipient=receiver,
@@ -169,20 +170,20 @@ class ActorSystem(BaseActor, metaclass=SingletonMeta):
             case Message(sig=Sig.CHILD_INIT_DONE):
                 ...
 
-            case Event(type='system', name='failed-to-deliver', args=msg):
-                actor = self.get_actor(sender)
+            case Event(type='system', name='recipient-unknown', args=msg):
+                actor = self.get_actor(msg.original_sender)
                 if actor is None:
                     return
 
                 match msg:
                     case MsgCtx(original_sender=sender, original_recipient=recipient, message=args) if isinstance(recipient, int):
-                        actor._post(self.pid, Message(sig=Sig.DISPATCH_ERROR))                           
+                        self._send(sender=self, receiver=actor.pid, msg=Message(sig=Sig.DISPATCH_ERROR))
                     case MsgCtx(original_sender=sender, original_recipient=recipient, message=args) if isinstance(recipient, str) or isinstance(recipient, type):
-                        self.logger.error(f'{msg=}')
+                        # self.logger.error(f'{msg=} {actor=}, {recipient=}, {args=}')
                         self.defer(lambda: self._send(sender=actor, receiver=recipient, msg=args))
 
             case _:
-                # self._logger._log(sender=self.resolve_parent(sender), receiver=self.__repr__(), msg=f'Unprocessable Message: msg={msg}')
+                # self.logger.error(f'Unprocessable Message={msg} from={self.get_actor(sender)}')
                 send(self.pid, Message(sig=Sig.SIGQUIT))
 
     def get_pid(self) -> int:

@@ -11,7 +11,7 @@ class Message:
         self._args = args
 
     def __repr__(self) -> str:
-        return f'Message(sig={self.sig}, args={repr(type(self.args))})'
+        return f'Message(sig={self.sig}, args={repr(self.args)})'
 
     @property
     def sig(self) -> Sig:

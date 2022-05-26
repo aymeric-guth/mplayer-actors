@@ -54,7 +54,10 @@ class BaseActor:
     def run(self) -> None:
         while 1:
             (sender, msg) = self._mq.get()
-            # self.logger.log(sender=sender, receiver=repr(self), msg=msg)
+            try:
+                self.logmsg(sender=sender, receiver=repr(self), msg=msg)
+            except NotImplementedError:
+                self.logger.log(sender=sender, receiver=repr(self), msg=msg)
             # self.log_mq(sender, msg)
             try:
                 self.dispatch(sender, msg)
@@ -89,6 +92,9 @@ class BaseActor:
                 self.terminate()
             finally:
                 self._mq.task_done()
+
+    def logmsg(self, sender: Any, receiver: Any, msg: Any) -> None:
+        raise NotImplementedError
 
     def dispatch(self, sender: int, msg: Message) -> None:
         raise NotImplementedError

@@ -20,11 +20,11 @@ from .event_loop import MpvEvent, MPVEvent
 
 def volume_setter() -> Callable[[str], float]:
     _volume = 0.
+    func = lambda x: clamp(0., 100.)(x) if x is not None else 0.
 
     def inner(volume: str):
         nonlocal _volume
 
-        func = lambda x: clamp(0., 100.)(x) if x is not None else 0.
         if isinstance(volume, str) and (volume.startswith('+') or volume.startswith('-')):
             _volume = func(_volume + float(volume))
         else:
@@ -58,8 +58,8 @@ class MPV(Actor):
         _mpv.mpv_set_option_string(self.handle, b'input-vo-keyboard', b'no')
         # mpv_load_config_file(self.handle, str(path).encode('utf-8'))
         _mpv.mpv_initialize(self.handle)
-        self.log_lvl = logging.INFO
-        # self.log_lvl = logging.ERROR
+        # self.log_lvl = logging.INFO
+        self.log_lvl = logging.ERROR
 
     async def command_async(self, *args) -> int:
         args = [c_uint64(0xffff), (c_char_p*len(args))(*args)]
@@ -93,7 +93,6 @@ class MPV(Actor):
                 self.publish(name=name, value=data)
 
             case Request(type='player', name='play-item', args=item):
-            # case Message(sig=Sig.PLAY, args=path):
                 args = [b'loadfile', item.encode('utf-8'), b'replace', b'', None]
                 self.set_property('pause', 'no')
                 self.command(*args)
@@ -133,5 +132,5 @@ class MPV(Actor):
 
     def init(self) -> None:
         create(MPVEvent, handle=self.handle)
-        send(to=self.parent, what=Message(sig=Sig.CHILD_INIT_DONE))
-        send(self.pid, Message(sig=Sig.VOLUME, args=str(VOLUME_DEFAULT)))
+        # send(to=self.parent, what=Message(sig=Sig.CHILD_INIT_DONE))
+        # send(self.pid, Message(sig=Sig.VOLUME, args=str(VOLUME_DEFAULT)))

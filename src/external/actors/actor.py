@@ -33,8 +33,8 @@ class Actor(BaseActor):
             case Message(sig=Sig.CHILD_INIT, args=pid):
                 self.child = pid
                 send(to=self.child, what=Message(sig=Sig.INIT))
-            case Message(sig=Sig.CHILD_INIT_DONE):
-                self.on_child_init()
+            # case Message(sig=Sig.CHILD_INIT_DONE):
+            #     self.on_child_init()
             case Message(sig=Sig.CHILD_DEINIT, args=pid):
                 self.child = 0
             case Message(sig=Sig.SUBSCRIBE, args=name):
@@ -57,15 +57,17 @@ class Actor(BaseActor):
     def register(self, who: int, what: str) -> None:
         try:
             prop = self.__class__.__dict__[what]
-        except Exception as err:
+        except KeyError as err:
             return
         if isinstance(prop, Observable):
             self.obs.register(what, who)
+            value = prop.__get__(self, self.__class__)
+            self.obs.notify_one(receiver=who, name=what, value=value, frame_id=4)
 
     def unregister(self, who: int, what: str) -> None:
         try:
-            prop = getattr(self, what)
-        except Exception as err:
+            prop = self.__class__.__dict__[what]
+        except KeyError as err:
             return
         if isinstance(prop, Observable):
             self.obs.unregister(what, who)
@@ -110,6 +112,8 @@ class Actor(BaseActor):
     def __str__(self) -> str:
         return f'{self.__class__.__name__}(pid={self.pid}, parent={actor_system.resolve_parent(self.parent)})'
 
+    def logmsg(self, sender: Any, receiver: Any, msg: Any) -> None:
+        self.logger.log(sender=repr(ActorSystem().get_actor(sender)), receiver=repr(self), msg=repr(msg))
 
 class ActorIO(Actor):
     def __init__(self, pid: int, parent: int, name:str='', **kwargs) -> None:
