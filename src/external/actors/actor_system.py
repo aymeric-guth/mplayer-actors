@@ -138,6 +138,9 @@ class ActorSystem(BaseActor, metaclass=SingletonMeta):
                 ...
                 # self.logger.error(f'Unprocessable {ctx=}')
 
+            case Message(sig=Sig.CHILD_INIT_DONE):
+                ...
+
             case _:
                 # self._logger._log(sender=self.resolve_parent(sender), receiver=self.__repr__(), msg=f'Unprocessable Message: msg={msg}')
                 send(self.pid, Message(sig=Sig.SIGQUIT))

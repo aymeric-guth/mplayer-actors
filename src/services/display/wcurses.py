@@ -22,7 +22,7 @@ class InputIO(ActorIO):
         if stdscr is None:
             raise SystemExit
         self.stdscr = stdscr
-        self.log_lvl = logging.INFO
+        self.log_lvl = logging.ERROR
         self._t = threading.Thread(target=self._run, daemon=True)
         self._t.start()
 

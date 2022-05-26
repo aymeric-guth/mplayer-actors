@@ -75,3 +75,4 @@ class Sig(Enum):
     CHILD_DEINIT = auto()
     SUBSCRIBE = auto()
     UNSUBSCRIBE = auto()
+    CHILD_INIT_DONE = auto()

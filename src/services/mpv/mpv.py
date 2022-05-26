@@ -4,62 +4,55 @@ from dataclasses import dataclass
 from typing import Any, Optional, Callable
 import logging
 import time
+from typing import Callable, Any
+from functools import wraps
 
 from ...settings import VOLUME_DEFAULT
 from ...external import _mpv
 
 from ...utils import clamp
-from ...external.actors import Actor, Message, Sig, send, create, DispatchError, Event, Request
-# from ...external.actors.utils import observer
+from ...external.actors import Actor, Message, Sig, send, create, DispatchError, Event, Request, ActorSystem
+from ...external.actors.utils import Observable
+
 from .event_loop import MpvEvent, MPVEvent
-from .observable_properties import ObservableProperties
-from ...external.actors.subsystems.observable_properties import Observable
 
 
 
-from typing import Callable, Any
-from functools import wraps
-
-# from .actor_system import send
-# from .message import Event, Message, Sig
-
-
-def observer(actor: str):
-    def inner(func: Callable):
-        @wraps(func)
-        def _(*args, **kwargs):
-            (self, value) = args
-            if value is not None:
-                name = func.__name__
-                func(self, value)
-                res = getattr(self, f'_{name}')
-                send(to=actor, what=Message(sig=Sig.WATCHER, args={name: res}))
-            # send(to=actor, what=Event(type='property-change', name=name, args=res))
-        return _
-    return inner
-
-def volume_setter(default: float) -> Callable[[str], float]:
-    _volume = default
+def volume_setter() -> Callable[[str], float]:
+    _volume = 0.
 
     def inner(volume: str):
         nonlocal _volume
+        ActorSystem().logger.info(f'{volume=} {_volume=}')
 
         func = lambda x: clamp(0., 100.)(x) if x is not None else 0.
-        if volume.startswith('+') or volume.startswith('-'):
+        if isinstance(volume, str) and (volume.startswith('+') or volume.startswith('-')):
             _volume = func(_volume + float(volume))
+        # if volume.startswith('+') or volume.startswith('-'):
+        #     _volume = func(_volume + float(volume))
         else:
             _volume = func(float(volume))
+        ActorSystem().logger.info(f'{volume=} {_volume=}')
         return _volume
     return inner
 
 
 class MPV(Actor):
-    volume = Observable(default=str(VOLUME_DEFAULT), setter=volume_setter(VOLUME_DEFAULT))
+    volume = Observable(setter=volume_setter())
+    time_pos = Observable()
+    duration = Observable()
+    player_state = Observable(setter=lambda x: int(clamp(0, 4)(x)))
+    playtime_remaining = Observable()
+    metadata = Observable()
 
     def __init__(self, pid: int, parent: int, name='', **kwargs) -> None:
         super().__init__(pid, parent, name, **kwargs)
-        self._state = 0
-        self._volume: int|float
+        self.volume = str(VOLUME_DEFAULT)
+        self.time_pos = 0.
+        self.duration = 0.
+        self.player_state = 0
+        self.playtime_remaining = 0.
+        self.metadata = None
         lc, enc = locale.getlocale(locale.LC_NUMERIC)
         locale.setlocale(locale.LC_NUMERIC, 'C')
 
@@ -69,8 +62,8 @@ class MPV(Actor):
         _mpv.mpv_set_option_string(self.handle, b'input-vo-keyboard', b'no')
         # mpv_load_config_file(self.handle, str(path).encode('utf-8'))
         _mpv.mpv_initialize(self.handle)
-        self.props = ObservableProperties(self.pid)
-        self.log_lvl = logging.ERROR
+        self.log_lvl = logging.INFO
+        # self.log_lvl = logging.ERROR
 
     async def command_async(self, *args) -> int:
         args = [c_uint64(0xffff), (c_char_p*len(args))(*args)]
@@ -100,8 +93,8 @@ class MPV(Actor):
             return
 
         match msg:
-            case Event(type='property-change', name=name, args=data) if name in self.props:
-                self.props.set(name, data)
+            case Event(type='property-change', name=name, args=data):
+                self.publish(name=name, value=data)
 
             case Message(sig=Sig.PLAY, args=path):
                 args = [b'loadfile', path.encode('utf-8'), b'replace', b'', None]
@@ -109,17 +102,16 @@ class MPV(Actor):
                 self.command(*args)
 
             case Message(sig=Sig.PLAY_PAUSE, args=None):
-                if self.props.get('player-state') == 1:
+                if self.player_state == 1:
                     self.set_property('pause', 'yes')
-                    self.props.set('player-state', 2)
-                elif self.props.get('player-state') == 2:
+                    self.player_state = 2
+                elif self.player_state == 2:
                     self.set_property('pause', 'no')
-                    self.props.set('player-state', 1)
+                    self.player_state = 1
 
             case Message(sig=Sig.VOLUME, args=args):
                 self.volume = args
-                # self.props.set('volume', args)
-                self.set_property('volume', self.props.get('volume'))
+                self.set_property('volume', self.volume)
             
             case Message(sig=Sig.STOP, args=None):
                 args = [b'stop', b'', None]
@@ -127,23 +119,14 @@ class MPV(Actor):
 
             case Message(sig=Sig.SEEK, args=args):
                 if args < 0.:
-                    req = clamp(-self.props.get('time-pos', 0.), 0.)(args)
-                else:
-                    req = clamp(0., self.props.get('duration', 0.)-self.props.get('time-pos', 0.))(args)
+                    req = clamp(-self.time_pos, 0.)(args)
+                else:                    
+                    req = clamp(0., self.duration-self.time_pos)(args)
                 args = [b'seek', str(req).encode('utf-8'), b'relative', b'default-precise', None]
                 self.command(*args)
 
-            # case Request(type='subscribe', name=name):
-            #     if name in self.props:
-            #         self.props.register(name, sender)
-
-            # case Request(type='unsubscribe', name=name):
-            #     self.props.unregister(name, sender)
-
             case _:
                 ...
-                # raise DispatchError(f'Unprocessable msg={msg}')
-
 
     def terminate(self) -> None:       
         self.handle, handle = None, self.handle
@@ -152,38 +135,6 @@ class MPV(Actor):
         raise SystemExit
 
     def init(self) -> None:
-        self.props.register_setter('time-pos', lambda x: 0. if x is None else x)
-        self.props.register_setter('duration', lambda x: 0. if x is None else x)
-        # self.props.register_setter('volume', self.volume_setter)
-        self.props.register_setter('player-state', lambda x: int(clamp(0, 4)(x)))
-        # self.props.register_setter('playtime-remaining', lambda x: 0. if x is None else x)
-        # self.props.register_setter('metadata', lambda x: 0. if x is None else x)
-
-        # self.props.register('time-pos', self.parent)
-        # self.props.register('duration', self.parent)
-        # self.props.register('volume', self.parent)
-        # self.props.register('player-state', self.parent)
-
-        self.logger.error(repr(self.props))
-        # self.props.set('volume', str(VOLUME_DEFAULT))
-        # self.props.register('playtime-remaining', self.parent)
-        # self.props.register('metadata', self.parent)
-
         create(MPVEvent, handle=self.handle)
-        # send(self.pid, Message(sig=Sig.VOLUME, args=str(VOLUME_DEFAULT)))
-
-
-    # def volume_setter(self, value: str) -> int:
-    #     volume = self.props.get('volume', str(VOLUME_DEFAULT))
-    #     func = lambda x: clamp(0, 100)(x) if x is not None else 0.
-    #     if value.startswith('+') or value.startswith('-'):
-    #         return func(volume + int(value))
-    #     else:
-    #         return func(int(value))
-
-    def subscribe_handler(self, sender: int, name: str) -> None:
-        if name in self.props:
-            self.props.register(name, sender)
-
-    def unsubscribe_handler(self, sender: int, name: str) -> None:
-        self.props.unregister(name, sender)
+        send(to=self.parent, what=Message(sig=Sig.CHILD_INIT_DONE))
+        send(self.pid, Message(sig=Sig.VOLUME, args=str(VOLUME_DEFAULT)))

@@ -8,12 +8,12 @@ from .message import Message, MsgCtx
 from .sig import Sig
 from .actor_system import actor_system, send, create, ActorSystem
 from .errors import DispatchError, ActorException
-from .subsystems.observable_properties import ObservableProperties, Observable
+from .subsystems.observable_properties import ObservableProperties
 from ...utils import try_not, to_kebab_case, to_snake_case
+from .utils import Observable
 
 
 T = TypeVar('T', bound='Actor')
-
 
 
 class Actor(BaseActor):
@@ -33,12 +33,14 @@ class Actor(BaseActor):
             case Message(sig=Sig.CHILD_INIT, args=pid):
                 self.child = pid
                 send(to=self.child, what=Message(sig=Sig.INIT))
+            case Message(sig=Sig.CHILD_INIT_DONE):
+                self.on_child_init()
             case Message(sig=Sig.CHILD_DEINIT, args=pid):
                 self.child = 0
             case Message(sig=Sig.SUBSCRIBE, args=name):
-                self.register(sender, name)
+                self.register(who=sender, what=to_snake_case(name))
             case Message(sig=Sig.UNSUBSCRIBE, args=name):
-                self.unregister(sender, name)
+                self.unregister(who=sender, what=to_snake_case(name))
             case _:
                 return
         raise DispatchError
@@ -46,25 +48,35 @@ class Actor(BaseActor):
     def init(self) -> None:
         ...
 
+    def on_child_init(self) -> None:
+        ...
+
     def terminate(self) -> None:
-        # send(to=0, what=Message(sig=Sig.EXIT))
         raise SystemExit
 
-    def register(self, sender: int, name: str) -> None:
+    def register(self, who: int, what: str) -> None:
         try:
-            prop = getattr(self, to_snake_case(name))
-        except Exception:
+            prop = self.__class__.__dict__[what]
+        except Exception as err:
             return
         if isinstance(prop, Observable):
-            self.obs.register(to_snake_case(name), sender)
+            self.obs.register(what, who)
 
-    def unregister(self, sender: int, name: str) -> None:
+    def unregister(self, who: int, what: str) -> None:
         try:
-            prop = getattr(self, to_snake_case(name))
-        except Exception:
+            prop = getattr(self, what)
+        except Exception as err:
             return
         if isinstance(prop, Observable):
-            self.obs.unregister(to_snake_case(name), sender)
+            self.obs.unregister(what, who)
+
+    def publish(self, name: str, value: Any) -> None:
+        try:
+            prop = self.__class__.__dict__[to_snake_case(name)]
+        except KeyError:
+            ...
+        else:
+            prop.__set__(self, value)
 
     def poison(self) -> None:
         raise ActorException('Sig.POISON')

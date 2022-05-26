@@ -3,6 +3,7 @@ from typing import Optional
 import time
 
 from ...external.actors import Actor, Message, Sig, send, create, DispatchError, Event, Request, Response
+from ...external.actors.utils import Observable
 
 from ..mpv import MPV
 from .playlist import Playlist
@@ -11,13 +12,28 @@ from ...settings import PlaybackMode
 from ...utils import SingletonMeta
 
 
+def playback_setter(value: PlaybackMode) -> PlaybackMode:
+    match value:
+        case PlaybackMode.NORMAL._value_:
+            return PlaybackMode.NORMAL
+        case PlaybackMode.LOOP_ONE._value_:
+            return PlaybackMode.LOOP_ONE
+        case PlaybackMode.LOOP_ALL._value_:
+            return PlaybackMode.LOOP_ALL
+        case _:
+            return PlaybackMode.NORMAL
+
 class MediaDispatcher(Actor):
+    # playback = Observable(setter=playback_setter)
+
     def __init__(self, pid: int, parent: int, name='', **kwargs) -> None:
         super().__init__(pid, parent, name, **kwargs)
         self.wid = b'\x00\x00\x00\x00'
         self.pl: Playlist = None
-        self._playback = PlaybackMode.NORMAL
-        self.log_lvl = logging.INFO
+        self.playback = 0
+        # self._playback = PlaybackMode.NORMAL
+        # self.log_lvl = logging.INFO
+        self.log_lvl = logging.ERROR
 
     def dispatch(self, sender: int, msg: Message) -> None:
         try:
@@ -39,7 +55,6 @@ class MediaDispatcher(Actor):
                     send(to=self.child, what=Message(sig=Sig.PLAY, args=args))
                     send(to=self.child, what=Message(sig=Sig.SUBSCRIBE, args='time-pos'))
                     send(to=self.child, what=Message(sig=Sig.SUBSCRIBE, args='duration'))
-                    send(to=self.child, what=Message(sig=Sig.SUBSCRIBE, args='volume'))
                     send(to=self.child, what=Message(sig=Sig.SUBSCRIBE, args='player-state'))
                     send(to='Display', what=Event(type='player', name='property-change', args={'file': args}))
                     send(to='Display', what=Event(type='player', name='property-change', args={'pos': self.pl.pos()}))
@@ -84,7 +99,6 @@ class MediaDispatcher(Actor):
                 send(to=self.child, what=msg)
                 send(to=self.child, what=Message(sig=Sig.UNSUBSCRIBE, args='time-pos'))
                 send(to=self.child, what=Message(sig=Sig.UNSUBSCRIBE, args='duration'))
-                send(to=self.child, what=Message(sig=Sig.UNSUBSCRIBE, args='volume'))
                 send(to=self.child, what=Message(sig=Sig.UNSUBSCRIBE, args='player-state'))
 
             case Message(sig=Sig.DONE, args=None):
@@ -95,35 +109,37 @@ class MediaDispatcher(Actor):
                 send(to=self.child, what=msg)
 
             case Event(type='property-change', name=name, args=args):
-                match name:
-                    case 'player-state':
-                        if args == 4:
-                            send(to=self.pid, what=Message(sig=Sig.DONE, args=None))
+                if name == 'player-state' and args == 4:
+                    send(to=self.pid, what=Message(sig=Sig.DONE, args=None))
                 send(to='Display', what=Event(type='player', name='property-change', args={name: args}))
 
             case _:
                 self.logger.warning(f'Unprocessable msg={msg}')
 
-    @property
-    def playback(self) -> PlaybackMode:
-        return self._playback
+    # @property
+    # def playback(self) -> PlaybackMode:
+    #     return self._playback
 
-    @playback.setter
-    def playback(self, value: PlaybackMode) -> None:
-        match value:
-            case PlaybackMode.NORMAL._value_:
-                self._playback = PlaybackMode.NORMAL
-            case PlaybackMode.LOOP_ONE._value_:
-                self._playback = PlaybackMode.LOOP_ONE
-            case PlaybackMode.LOOP_ALL._value_:
-                self._playback = PlaybackMode.LOOP_ALL
-            case _:
-                self._playback = PlaybackMode.NORMAL                
-        send(to=self.pid, what=Event(type='property-change', name='playback-mode', args=self.playback))
+    # @playback.setter
+    # def playback(self, value: PlaybackMode) -> None:
+    #     match value:
+    #         case PlaybackMode.NORMAL._value_:
+    #             self._playback = PlaybackMode.NORMAL
+    #         case PlaybackMode.LOOP_ONE._value_:
+    #             self._playback = PlaybackMode.LOOP_ONE
+    #         case PlaybackMode.LOOP_ALL._value_:
+    #             self._playback = PlaybackMode.LOOP_ALL
+    #         case _:
+    #             self._playback = PlaybackMode.NORMAL                
+    #     send(to=self.pid, what=Event(type='property-change', name='playback-mode', args=self.playback))
 
     def init(self) -> None:
         create(MPV, wid=self.wid)
+        send(to=self.parent, what=Message(sig=Sig.CHILD_INIT_DONE))
 
     def terminate(self) -> None:
         send(to=self.child, what=Message(Sig.EXIT))
         raise SystemExit
+
+    def on_child_init(self) -> None:
+        send(to=self.child, what=Message(sig=Sig.SUBSCRIBE, args='volume'))

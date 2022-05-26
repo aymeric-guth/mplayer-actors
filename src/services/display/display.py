@@ -88,7 +88,8 @@ class Display(Actor):
                 # draw_popup(args)
 
             case _:
-                raise DispatchError
+                ...
+                # raise DispatchError
 
     def dispatch_handler(self, sender: int, message: Message|dict[str, Any]) -> None:
         self.logger.error(f'Reached dispatch_handler msg={message!r}')
