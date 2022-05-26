@@ -23,16 +23,12 @@ def volume_setter() -> Callable[[str], float]:
 
     def inner(volume: str):
         nonlocal _volume
-        ActorSystem().logger.info(f'{volume=} {_volume=}')
 
         func = lambda x: clamp(0., 100.)(x) if x is not None else 0.
         if isinstance(volume, str) and (volume.startswith('+') or volume.startswith('-')):
             _volume = func(_volume + float(volume))
-        # if volume.startswith('+') or volume.startswith('-'):
-        #     _volume = func(_volume + float(volume))
         else:
             _volume = func(float(volume))
-        ActorSystem().logger.info(f'{volume=} {_volume=}')
         return _volume
     return inner
 
@@ -96,8 +92,9 @@ class MPV(Actor):
             case Event(type='property-change', name=name, args=data):
                 self.publish(name=name, value=data)
 
-            case Message(sig=Sig.PLAY, args=path):
-                args = [b'loadfile', path.encode('utf-8'), b'replace', b'', None]
+            case Request(type='player', name='play-item', args=item):
+            # case Message(sig=Sig.PLAY, args=path):
+                args = [b'loadfile', item.encode('utf-8'), b'replace', b'', None]
                 self.set_property('pause', 'no')
                 self.command(*args)
 

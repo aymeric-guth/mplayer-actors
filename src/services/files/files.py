@@ -19,7 +19,7 @@ class Files(Actor):
         super().__init__(pid, parent, name, **kwargs)
         self.files_tree: dict[tuple[str, ...], list[tuple[str, str]]] = defaultdict(list)
         self.dir_tree: dict[tuple[str, ...], set[str]] = defaultdict(set)
-        self.log_lvl = logging.ERROR
+        self.log_lvl = logging.INFO
 
     def dispatch(self, sender: int, msg: Message) -> None:
         try:
@@ -69,7 +69,8 @@ class Files(Actor):
                         # selection en range de la liste de fichiers affichés
                         # selection d'UN fichier
                         f, e = self.files[p1]
-                        send('MediaDispatcher', Message(sig=Sig.FILES_GET, args=[f'{CWD().realpath}{f}{e}',]))
+                        args = [f'{CWD().realpath}{f}{e}',]
+                        send(to='MediaDispatcher', what=Response(type='files', name='content', args=args))
 
                     case [p1] if p1 > 0 and p1 < len(self.files):
                         args = [ f'{CWD().realpath}{f}{e}' for f, e in self.files[p1:] ]
@@ -140,5 +141,37 @@ class Files(Actor):
                 send(to='Display', what=Event(type='files', name='cwd-change', args=helpers.get_kwargs(self)))
                 # send('Display', Message(sig=Sig.CWD_GET, args=helpers.get_kwargs(self)))
 
+            case Request(type='files', name='content', args=args):
+                match args:
+                    case [p1, None] if isinstance(p1, int) and p1 > 0 and p1 < len(self.files):
+                        # selection valide 1+
+                        # selection en range de la liste de fichiers affichés
+                        # selection d'UN fichier
+                        f, e = self.files[p1]
+                        args = [f'{CWD().realpath}{f}{e}',]
+                        send(to='MediaDispatcher', what=Response(type='files', name='content', args=args))
+
+                    case [p1] if p1 > 0 and p1 < len(self.files):
+                        args = [ f'{CWD().realpath}{f}{e}' for f, e in self.files[p1:] ]
+                        send(to=sender, what=Response(type='files', name='content', args=args))
+
+                    case [p1, p2] if (p1 > 0 and p1 < len(self.files)) and (p2 > 0 and p2 < len(self.files)):
+                        if p1 < p2:
+                            args = [ f'{CWD().realpath}{f}{e}' for f, e in self.files[p1:p2+1] ]
+                            send(to=sender, what=Response(type='files', name='content', args=args))
+                        elif p1 > p2:
+                            args = [ f'{CWD().realpath}{f}{e}' for f, e in self.files[p1:p2-1:-1] ]
+                            send(to=sender, what=Response(type='files', name='content', args=args))
+                        else:
+                            send(to=self.pid, what=Request(type='files', name='content', args=[p1, None]))
+
+                    case None:
+                        args = [ f'{CWD().realpath}{f}{e}' for f, e in self.files[1:] ]
+                        send(to=sender, what=Response(type='files', name='content', args=args))
+
+                    case _:
+                        # selection invalide
+                        # envoi d'un message d'erreur
+                        send('Display', Message(sig=Sig.ERROR, args=f'Invalid selection: {args}'))
             case _:
                 self.logger.warning(f'Unprocessable msg={msg}')

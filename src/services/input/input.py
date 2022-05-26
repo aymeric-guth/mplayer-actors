@@ -102,10 +102,12 @@ class Input(Actor):
                         send(to=actor, what=message)
 
                     case Key.ALT_H:
-                        send('MediaDispatcher', {'event': 'command', 'name': 'previous', 'args': None})
+                        send('MediaDispatcher', Request(type='player', name='play-previous'))
+                        # send('MediaDispatcher', {'event': 'command', 'name': 'previous', 'args': None})
 
                     case Key.ALT_L:
-                        send('MediaDispatcher', {'event': 'command', 'name': 'next', 'args': None})
+                        send('MediaDispatcher', Request(type='player', name='play-next'))
+                        # send('MediaDispatcher', {'event': 'command', 'name': 'next', 'args': None})
 
                     case Key.SPACE:
                         send('MediaDispatcher', Message(sig=Sig.PLAY_PAUSE))

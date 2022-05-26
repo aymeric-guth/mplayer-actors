@@ -1,11 +1,13 @@
 from typing import Any, Optional, Union
 from threading import Thread, Lock
+import threading
 import logging
 import time
-from functools import singledispatch
+from functools import singledispatch, wraps
 
 from ...utils import SingletonMeta
-from .message import Message, MsgCtx
+from .message import Message, MsgCtx, Event, Request, Response
+from .errors import ActorNotFound
 from .sig import Sig
 from .base_actor import BaseActor, ActorGeneric
 from .registry import ActorRegistry
@@ -14,14 +16,26 @@ from .subsystems import Logging
 
 
 def thread_handler(func):
+    @wraps(func)
     def inner(*args, **kwargs):
         try:
             return func(*args, **kwargs)
-        except SystemExit:
-            ...
+        # except SystemExit as err:
+        except Exception as err:
+            ActorSystem().logger.error(f'{func.__name__} {err=}')
         finally:
             ...
-            # ActorSystem().logger.error(f'{func.__name__} terminated')
+            ActorSystem().logger.error(f'{func.__name__} terminated')
+    return inner
+
+
+def sleepy(delay: float=1.):
+    def inner(func, *args):
+        time.sleep(delay)
+        try:
+            return func(*args)
+        except Exception as err:
+            ActorSystem().logger.error(f'{err=}')
     return inner
 
 
@@ -35,6 +49,7 @@ class ActorSystem(BaseActor, metaclass=SingletonMeta):
         self._threads: dict[int, Thread] = {}
         self._childs: list[int] = []
         self.log_lvl = logging.ERROR
+        self.log_lvl = logging.INFO
 
         self._registry.register(self.pid, self)
         _t = Thread(target=self.run, daemon=True)
@@ -49,9 +64,21 @@ class ActorSystem(BaseActor, metaclass=SingletonMeta):
     ) -> None:
         recipient: Optional[BaseActor] = self._registry.lookup(receiver)
         if recipient is None:
-            return sender._post(self.pid, Message(sig=Sig.DISPATCH_ERROR))
+            return self._post(
+                sender=self.pid, 
+                msg=Event(
+                    type='system', 
+                    name='failed-to-deliver', 
+                    args=MsgCtx(
+                        original_sender=sender.pid,
+                        original_recipient=receiver,
+                        message=msg
+                    )
+                )
+            )
+            # return sender._post(self.pid, Message(sig=Sig.DISPATCH_ERROR))
         else:
-            return recipient._post(sender.pid, msg)
+            return recipient._post(sender=sender.pid, msg=msg)
 
     def _create_actor(
         self, 
@@ -73,6 +100,7 @@ class ActorSystem(BaseActor, metaclass=SingletonMeta):
     def dispatch(self, sender: int, msg: Message) -> None:
         actor: Optional[ActorGeneric]
 
+        self.logger.log(sender=repr(ActorSystem().get_actor(sender)), receiver=repr(self), msg=repr(msg))
         match msg:
             case Message(sig=Sig.INIT):
                 ...
@@ -141,6 +169,18 @@ class ActorSystem(BaseActor, metaclass=SingletonMeta):
             case Message(sig=Sig.CHILD_INIT_DONE):
                 ...
 
+            case Event(type='system', name='failed-to-deliver', args=msg):
+                actor = self.get_actor(sender)
+                if actor is None:
+                    return
+
+                match msg:
+                    case MsgCtx(original_sender=sender, original_recipient=recipient, message=args) if isinstance(recipient, int):
+                        actor._post(self.pid, Message(sig=Sig.DISPATCH_ERROR))                           
+                    case MsgCtx(original_sender=sender, original_recipient=recipient, message=args) if isinstance(recipient, str) or isinstance(recipient, type):
+                        self.logger.error(f'{msg=}')
+                        self.defer(lambda: self._send(sender=actor, receiver=recipient, msg=args))
+
             case _:
                 # self._logger._log(sender=self.resolve_parent(sender), receiver=self.__repr__(), msg=f'Unprocessable Message: msg={msg}')
                 send(self.pid, Message(sig=Sig.SIGQUIT))
@@ -164,7 +204,15 @@ class ActorSystem(BaseActor, metaclass=SingletonMeta):
         self._post(self.pid, Message(sig=Sig.SIGKILL))
 
     def sysexit_handler(self) -> None:
-        raise SystemExit       
+        raise SystemExit
+
+    def defer(self, callback) -> None:
+        threading.Thread(
+            target=thread_handler(sleepy()), 
+            args=[callback],
+            daemon=True, 
+        ).start()
+
 
 def __get_caller(frame_idx: int=2) -> BaseActor:
     frame = sys._getframe(frame_idx)
@@ -200,6 +248,7 @@ def _get_caller(frame_idx: int=2) -> BaseActor:
 def send(to: Union[int, str, type], what: Any) -> None:
     caller = __get_caller()
     # ActorSystem().logger.error(f'from={caller} to={ActorSystem()._registry.lookup(to)} what={what}')
+    # ActorNotFound
     return (
         ActorSystem()
         ._send(
@@ -208,15 +257,6 @@ def send(to: Union[int, str, type], what: Any) -> None:
             msg=what
         )
     )
-
-    # return (
-    #     ActorSystem()
-    #     ._send(
-    #         sender=__get_caller(), 
-    #         receiver=to, 
-    #         msg=what
-    #     )
-    # )
 
 
 def forward(sender: int, receiver: int, msg: Any) -> None:

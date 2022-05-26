@@ -1,9 +1,9 @@
-from ...external.actors import Message, Sig, Event
+from ...external.actors import Message, Sig, Event, Request, Response
 
 from ...utils import SingletonMeta, clamp
 
 
-def eval_cmd(cmd: str) -> tuple[str, Message]:
+def eval_cmd(cmd: str) -> tuple[str, Message|Response|Request]:
     match cmd.lstrip().rstrip().split(' '):
         case ['..']:
             # goes back 1 node
@@ -50,13 +50,13 @@ def eval_cmd(cmd: str) -> tuple[str, Message]:
             # play parameter
             match params:
                 case []:
-                    return 'MediaDispatcher', Message(sig=Sig.PLAY_ALL)
+                    return 'MediaDispatcher', Request(type='play', name='selection')
 
                 case [param] if param.isdigit():
-                    return 'MediaDispatcher', Message(sig=Sig.PLAY_ALL, args=[int(param)])
+                    return 'MediaDispatcher', Request(type='play', name='selection', args=[int(param)])
 
                 case [param1, param2] if param1.isdigit() and param2.isdigit():
-                    return 'MediaDispatcher', Message(sig=Sig.PLAY_ALL, args=[int(param1), int(param2)])
+                    return 'MediaDispatcher', Request(type='play', name='selection', args=[int(param1), int(param2)])
 
                 case _:
                     ...

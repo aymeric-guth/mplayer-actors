@@ -5,8 +5,9 @@ import logging
 import time
 
 from ...utils import SingletonMeta, clamp
-from ...external.actors import Actor, Message, Sig, send, DispatchError, create, MsgCtx, forward, Event, Request, Response
+from ...external.actors import Actor, Message, Sig, send, DispatchError, create, MsgCtx, forward, Event, Request, Response, ActorSystem
 from .wcurses import Curses
+from ...external.actors.utils import Observable
 
 
 def resize_handler(signum, frame):
@@ -18,19 +19,28 @@ signal(SIGWINCH, resize_handler)
 
 
 class Display(Actor):
+    files_overlay = Observable(setter=lambda x: 1 if x else 0)
+    cmd_overlay = Observable(setter=lambda x: 1 if x else 0)
+    playback_overlay = Observable(setter=lambda x: 1 if x else 0)
+    files_buff = Observable()
+    cmd_buff = Observable()
+
     def __init__(self, pid: int, parent: int, name='', **kwargs) -> None:
         super().__init__(pid, parent, name, **kwargs)
-        self._files_overlay = 1
+        self.files_overlay = 1
         self.files_dims: tuple[int, int, int, int]
-        self.files_buff: list[Any] = [[], []]
-        self._playback_overlay = 1
+        # self.files_buff: list[Any] = [[], []]
+        self.files_buff = [[], []]
+        self.playback_overlay = 1
         self.playback_dims: tuple[int, int, int, int]
         self.media_meta: dict[str, Any] = {}
-        self._cmd_overlay = 0
+        self.cmd_overlay = 0
         self.cmd_dims: tuple[int, int, int, int]
-        self.cmd_buff: tuple[str, int] = ('', 0)
-
-        self.log_lvl = logging.ERROR
+        self.cmd_buff = ('', 0)
+        # self.cmd_buff: tuple[str, int] = ('', 0)
+        # self.log_lvl = logging.ERROR
+        self.log_lvl = logging.INFO
+        self.events = {'property-change',}
 
     def dispatch(self, sender: int, msg: Message) -> None:
         try:
@@ -42,6 +52,11 @@ class Display(Actor):
         # data-change (new cwd, typing in prompt, media-playback update)
         #   -> render de l'élément modifié
 
+        self.logger.log(sender=repr(ActorSystem().get_actor(sender)), receiver=repr(self), msg=repr(msg))
+
+        # if isinstance(msg, Event) and msg.type in self.events:
+        #     self.logger.log(sender=repr(ActorSystem().get_actor(sender)), receiver=repr(self), msg=repr(msg))
+
         match msg:
             case Event(type='io', name='prompt', args=args) if isinstance(args, bool):
                 # initialisation de la fenetre du prompt
@@ -52,20 +67,15 @@ class Display(Actor):
 
             case Event(type='io', name='prompt', args=args) if isinstance(args, tuple):
                 self.cmd_buff = args
-                if self.cmd_overlay:
-                    send(self.child, Request(type='render', name='cmd', args=self.cmd_buff))
 
-            case Event(type='player', name='property-change', args=args):
-                k, v = [i for i in args.items()][0]
-                self.media_meta.update({k: v})
+            case Event(type='property-change', name=name, args=args):
+                self.media_meta.update({name: args})
                 if self.playback_overlay:
                     send(self.child, Request(type='render', name='playback', args=self.media_meta.copy()))
 
             case Event(type='files', name='cwd-change', args=args):
                 dir_list, files_list = args.get('dir_list'), args.get('files_list')
                 self.files_buff = [dir_list, files_list]
-                if self.files_overlay:
-                    send(self.child, Request(type='render', name='files', args=[dir_list, files_list]))
 
             case Event(type='io', name='resize'):
                 (dir_list, files_list) = self.files_buff
@@ -109,38 +119,12 @@ class Display(Actor):
             }
         }.copy()
 
-    @property
-    def files_overlay(self) -> int:
-        return self._files_overlay
-
-    @files_overlay.setter
-    def files_overlay(self, value: int) -> None:
-        self._files_overlay = value
-        send(to=self.child, what=Event(type='state-change', name='files', args=self._files_overlay))
-
-    @property
-    def playback_overlay(self) -> int:
-        return self._playback_overlay
-
-    @playback_overlay.setter
-    def playback_overlay(self, value: int) -> None:
-        self._playback_overlay = value
-        send(to=self.child, what=Event(type='state-change', name='playback', args=self._playback_overlay))
-
-    @property
-    def cmd_overlay(self) -> int:
-        return self._cmd_overlay
-
-    @cmd_overlay.setter
-    def cmd_overlay(self, value: int) -> None:
-        self._cmd_overlay = value
-        send(to=self.child, what=Event(type='state-change', name='cmd', args=self._cmd_overlay))
 
     def init(self) -> None:
         create(Curses)
+        send(to='MediaDispatcher', what=Message(sig=Sig.SUBSCRIBE, args='current-item'))
+        send(to='MediaDispatcher', what=Message(sig=Sig.SUBSCRIBE, args='playlist-pos'))
 
     def terminate(self) -> None:
         send(to=self.child, what=Message(sig=Sig.EXIT))
-        # while self.child:
-        #     time.sleep(0.1)        
         raise SystemExit

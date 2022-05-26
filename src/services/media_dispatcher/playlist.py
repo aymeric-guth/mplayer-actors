@@ -1,8 +1,15 @@
 from collections import deque
+from ...utils import SingletonMeta
 
 
-class Playlist:
-    def __init__(self, items: list[str]) -> None:
+class Playlist(metaclass=SingletonMeta):
+    # def __init__(self, items: list[str]) -> None:
+    #     if items is None:
+    #         raise Exception
+    #     self.container = items[:]
+    #     self.p = -1
+
+    def init(self, items: list[str]) -> None:
         if items is None:
             raise Exception
         self.container = items[:]

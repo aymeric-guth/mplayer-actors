@@ -46,7 +46,7 @@ class Msg:
 @dataclass(frozen=True)
 class MsgCtx:
     original_sender: int
-    original_recipient: int
+    original_recipient: int|str|type
     message: Message|dict[str, Any]
 
 

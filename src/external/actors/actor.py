@@ -124,3 +124,10 @@ class ActorIO(Actor):
 
     def __repr__(self) -> str:
         return f'{self.__class__.__name__}(pid={self.pid}, parent={actor_system.resolve_parent(self.parent)})'
+
+
+
+# tunnel: actor1 -> actor2 -> actor2 -> actor1
+# permet de présever le pid du sender original
+# forward: actor1 -> actor2 -> child -> actor1
+# permet de déléguer un message à un enfant en préservant le pid du sender original

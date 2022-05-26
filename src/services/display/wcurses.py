@@ -63,19 +63,20 @@ class Curses(Actor):
             return
 
         match msg:
-            case Event(type='state-change', name='files', args=files_overlay):
-                # candidat pour pub/sub
-                self.files_overlay = files_overlay
-
-            case Event(type='state-change', name='playback', args=playback_overlay):
-                # candidat pour pub/sub
-                self.playback_overlay = playback_overlay
-
-            case Event(type='state-change', name='cmd', args=cmd_overlay):
-                # candidat pour pub/sub
-                self.cmd_overlay = cmd_overlay
-                if not self.cmd_overlay:
-                    curses.curs_set(0)
+            case Event(type='property-change', name=name, args=args):
+                match name:
+                    case 'files-overlay':
+                        self.files_overlay = args
+                    case 'cmd-overlay':
+                        self.cmd_overlay = args
+                        if not self.cmd_overlay:
+                            curses.curs_set(0)
+                    case 'playback-overlay':
+                        self.playback_overlay = args
+                    case 'files-buff':
+                        send(self.pid, Request(type='render', name='files', args=args))
+                    case 'cmd-buff':
+                        send(self.pid, Request(type='render', name='cmd', args=args))
 
             case Request(type='render', name='cmd', args=cmd_buff):
                 set_dims(self)
@@ -105,9 +106,9 @@ class Curses(Actor):
                     return
 
                 player_state = media_meta.get('player-state', 0)
-                file = media_meta.get('file', '')
+                file = media_meta.get('current-item', '')
                 file = Path(file).name if file else file
-                current, total = media_meta.get('pos', (0, 0))
+                current, total = media_meta.get('playlist-pos', (0, 0))
                 volume = media_meta.get('volume', 0)
                 # percent_pos = self.media_meta.get('percent-pos', 0.)
                 playback_time = media_meta.get('time-pos', 0)
@@ -185,6 +186,11 @@ class Curses(Actor):
 
     def init(self) -> None:
         create(InputIO, stdscr=self.stdscr)
+        send(to=self.parent, what=Message(sig=Sig.SUBSCRIBE, args='files-overlay'))
+        send(to=self.parent, what=Message(sig=Sig.SUBSCRIBE, args='cmd-overlay'))
+        send(to=self.parent, what=Message(sig=Sig.SUBSCRIBE, args='playback-overlay'))
+        send(to=self.parent, what=Message(sig=Sig.SUBSCRIBE, args='files-buff'))
+        send(to=self.parent, what=Message(sig=Sig.SUBSCRIBE, args='cmd-buff'))
 
     def terminate(self) -> None:
         send(to=self.child, what=Message(sig=Sig.EXIT))

@@ -54,7 +54,7 @@ class BaseActor:
     def run(self) -> None:
         while 1:
             (sender, msg) = self._mq.get()
-            self.logger.log(sender=sender, receiver=repr(self), msg=msg)
+            # self.logger.log(sender=sender, receiver=repr(self), msg=msg)
             # self.log_mq(sender, msg)
             try:
                 self.dispatch(sender, msg)
@@ -74,6 +74,7 @@ class BaseActor:
                 # gracefull exit
                 # dealocating ressources, signaling childs to terminate
                 # self.terminate()
+                self.logger.error(f'{err=}')
                 self.sysexit_handler()
                 # raise
             except Exception as err:

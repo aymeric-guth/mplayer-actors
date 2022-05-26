@@ -24,16 +24,18 @@ def playback_setter(value: PlaybackMode) -> PlaybackMode:
             return PlaybackMode.NORMAL
 
 class MediaDispatcher(Actor):
-    # playback = Observable(setter=playback_setter)
+    playback = Observable(setter=playback_setter)
+    current_item = Observable(setter=lambda x: x)
+    playlist_pos = Observable(setter=lambda x: x)
 
     def __init__(self, pid: int, parent: int, name='', **kwargs) -> None:
         super().__init__(pid, parent, name, **kwargs)
         self.wid = b'\x00\x00\x00\x00'
-        self.pl: Playlist = None
-        self.playback = 0
-        # self._playback = PlaybackMode.NORMAL
-        # self.log_lvl = logging.INFO
-        self.log_lvl = logging.ERROR
+        self.current_item = None
+        self.playlist_pos = 0
+        self.playback = PlaybackMode.NORMAL
+        self.log_lvl = logging.INFO
+        # self.log_lvl = logging.ERROR
 
     def dispatch(self, sender: int, msg: Message) -> None:
         try:
@@ -42,96 +44,89 @@ class MediaDispatcher(Actor):
             return
 
         match msg:
-            case Message(sig=Sig.PLAY_ALL, args=args):
-                send('Files', Message(sig=Sig.FILES_GET, args=args))
+            case Response(type='files', name='content', args=args):
+                Playlist().init(args)
+                item = Playlist().next()
+                send(self.pid, Request(type='player', name='play-item', args=item))
+                # send(self.pid, Message(sig=Sig.PLAY, args=self.current_item))
 
-            case Message(sig=Sig.FILES_GET, args=args):
-                self.pl = Playlist(args)
-                item = self.pl.next()
-                send(self.pid, Message(sig=Sig.PLAY, args=item))
+            # case Request(type='player', name='play-selection', args=args):
+            case Request(type='play', name='selection', args=args):
+                send(to='Files', what=Request(type='files', name='content', args=args))
 
-            case Message(sig=Sig.PLAY, args=args):
-                if args is not None:
-                    send(to=self.child, what=Message(sig=Sig.PLAY, args=args))
+            case Request(type='player', name='play-item', args=item):
+            # case Message(sig=Sig.PLAY, args=item):
+                self.current_item = item
+                if self.current_item is not None:
+                    send(to=self.child, what=Request(type='player', name='play-item', args=self.current_item))
+                    # send(to=self.child, what=Message(sig=Sig.PLAY, args=self.current_item))
                     send(to=self.child, what=Message(sig=Sig.SUBSCRIBE, args='time-pos'))
                     send(to=self.child, what=Message(sig=Sig.SUBSCRIBE, args='duration'))
                     send(to=self.child, what=Message(sig=Sig.SUBSCRIBE, args='player-state'))
-                    send(to='Display', what=Event(type='player', name='property-change', args={'file': args}))
-                    send(to='Display', what=Event(type='player', name='property-change', args={'pos': self.pl.pos()}))
+                    self.playlist_pos = Playlist().pos()
 
             case Message(sig=Sig.PLAYBACK_MODE, args=args):
                 if args >= PlaybackMode.NORMAL._value_ and args <= PlaybackMode.LOOP_ALL._value_:
                     self.playback = args
 
+            # case Request(type='player', name='volume', args=args):
             case Message(sig=Sig.VOLUME, args=args) as msg:
                 send(to=self.child, what=msg)
 
+            # case Request(type='player', name='play-pause', args=args):
             case Message(sig=Sig.PLAY_PAUSE, args=args) as msg:
                 send(to=self.child, what=msg)
 
-            case {'event': 'command', 'name': 'next', 'args': None}:
-                item = self.pl.next()
-                send(to=self.pid, what=Message(sig=Sig.PLAY, args=item))
+            case Request(type='player', name='play-next', args=args):
+                item = Playlist().next()
+                send(to=self.pid, what=Request(type='player', name='play-item', args=item))
+                # send(to=self.pid, what=Message(sig=Sig.PLAY, args=item))
 
-            case {'event': 'command', 'name': 'previous', 'args': None}:
-                item = self.pl.prev()
-                send(to=self.pid, what=Message(sig=Sig.PLAY, args=item))
+            case Request(type='player', name='play-previous', args=args):
+                item = Playlist().prev()
+                send(to=self.pid, what=Request(type='player', name='play-item', args=item))
+                # send(to=self.pid, what=Message(sig=Sig.PLAY, args=item))
 
             case Message(sig=Sig.NEXT, args=None):
                 match self.playback:
                     case PlaybackMode.NORMAL:
-                        item = self.pl.next()
+                        item = Playlist().next()
                     case PlaybackMode.LOOP_ONE:
-                        item = self.pl.current()
+                        item = Playlist().current()
                     case PlaybackMode.LOOP_ALL:
                         item = None
                     case _:
                         item = None
-                send(to=self.pid, what=Message(sig=Sig.PLAY, args=item))
+                send(to=self.pid, what=Request(type='player', name='play-item', args=item))
+                # send(to=self.pid, what=Message(sig=Sig.PLAY, args=item))
 
             case Message(sig=Sig.PREVIOUS, args=None):
-                item = self.pl.prev()
-                send(to=self.pid, what=Message(sig=Sig.PLAY, args=item))
+                item = Playlist().prev()
+                send(to=self.pid, what=Request(type='player', name='play-item', args=item))
+                # send(to=self.pid, what=Message(sig=Sig.PLAY, args=item))
 
             case Message(sig=Sig.STOP, args=None) as msg:
-                if self.pl is not None:
-                    self.pl.clear()
+                Playlist().clear()
                 send(to=self.child, what=msg)
                 send(to=self.child, what=Message(sig=Sig.UNSUBSCRIBE, args='time-pos'))
                 send(to=self.child, what=Message(sig=Sig.UNSUBSCRIBE, args='duration'))
                 send(to=self.child, what=Message(sig=Sig.UNSUBSCRIBE, args='player-state'))
 
             case Message(sig=Sig.DONE, args=None):
-                if self.pl is not None:
+                if Playlist():
                     send(to=self.pid, what=Message(sig=Sig.NEXT))
 
             case Message(sig=Sig.SEEK, args=args) as msg:
                 send(to=self.child, what=msg)
 
-            case Event(type='property-change', name=name, args=args):
+            case Event(type='property-change', name=name, args=args) as event:
                 if name == 'player-state' and args == 4:
                     send(to=self.pid, what=Message(sig=Sig.DONE, args=None))
-                send(to='Display', what=Event(type='player', name='property-change', args={name: args}))
+                send(to='Display', what=event)
 
             case _:
                 self.logger.warning(f'Unprocessable msg={msg}')
 
-    # @property
-    # def playback(self) -> PlaybackMode:
-    #     return self._playback
-
-    # @playback.setter
-    # def playback(self, value: PlaybackMode) -> None:
-    #     match value:
-    #         case PlaybackMode.NORMAL._value_:
-    #             self._playback = PlaybackMode.NORMAL
-    #         case PlaybackMode.LOOP_ONE._value_:
-    #             self._playback = PlaybackMode.LOOP_ONE
-    #         case PlaybackMode.LOOP_ALL._value_:
-    #             self._playback = PlaybackMode.LOOP_ALL
-    #         case _:
-    #             self._playback = PlaybackMode.NORMAL                
-    #     send(to=self.pid, what=Event(type='property-change', name='playback-mode', args=self.playback))
 
     def init(self) -> None:
         create(MPV, wid=self.wid)
