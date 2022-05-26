@@ -9,10 +9,11 @@ from ...settings import VOLUME_DEFAULT
 from ...external import _mpv
 
 from ...utils import clamp
-from ...external.actors import Actor, Message, Sig, send, create, DispatchError, Event
+from ...external.actors import Actor, Message, Sig, send, create, DispatchError, Event, Request
 # from ...external.actors.utils import observer
 from .event_loop import MpvEvent, MPVEvent
 from .observable_properties import ObservableProperties
+from ...external.actors.subsystems.observable_properties import Observable
 
 
 
@@ -37,8 +38,24 @@ def observer(actor: str):
         return _
     return inner
 
+def volume_setter(default: float) -> Callable[[str], float]:
+    _volume = default
+
+    def inner(volume: str):
+        nonlocal _volume
+
+        func = lambda x: clamp(0., 100.)(x) if x is not None else 0.
+        if volume.startswith('+') or volume.startswith('-'):
+            _volume = func(_volume + float(volume))
+        else:
+            _volume = func(float(volume))
+        return _volume
+    return inner
+
 
 class MPV(Actor):
+    volume = Observable(default=str(VOLUME_DEFAULT), setter=volume_setter(VOLUME_DEFAULT))
+
     def __init__(self, pid: int, parent: int, name='', **kwargs) -> None:
         super().__init__(pid, parent, name, **kwargs)
         self._state = 0
@@ -100,7 +117,8 @@ class MPV(Actor):
                     self.props.set('player-state', 1)
 
             case Message(sig=Sig.VOLUME, args=args):
-                self.props.set('volume', args)
+                self.volume = args
+                # self.props.set('volume', args)
                 self.set_property('volume', self.props.get('volume'))
             
             case Message(sig=Sig.STOP, args=None):
@@ -114,6 +132,13 @@ class MPV(Actor):
                     req = clamp(0., self.props.get('duration', 0.)-self.props.get('time-pos', 0.))(args)
                 args = [b'seek', str(req).encode('utf-8'), b'relative', b'default-precise', None]
                 self.command(*args)
+
+            # case Request(type='subscribe', name=name):
+            #     if name in self.props:
+            #         self.props.register(name, sender)
+
+            # case Request(type='unsubscribe', name=name):
+            #     self.props.unregister(name, sender)
 
             case _:
                 ...
@@ -129,18 +154,18 @@ class MPV(Actor):
     def init(self) -> None:
         self.props.register_setter('time-pos', lambda x: 0. if x is None else x)
         self.props.register_setter('duration', lambda x: 0. if x is None else x)
-        self.props.register_setter('volume', self.volume_setter)
+        # self.props.register_setter('volume', self.volume_setter)
         self.props.register_setter('player-state', lambda x: int(clamp(0, 4)(x)))
         # self.props.register_setter('playtime-remaining', lambda x: 0. if x is None else x)
         # self.props.register_setter('metadata', lambda x: 0. if x is None else x)
 
-        self.props.register('time-pos', self.parent)
-        self.props.register('duration', self.parent)
-        self.props.register('volume', self.parent)
-        self.props.register('player-state', self.parent)
+        # self.props.register('time-pos', self.parent)
+        # self.props.register('duration', self.parent)
+        # self.props.register('volume', self.parent)
+        # self.props.register('player-state', self.parent)
 
         self.logger.error(repr(self.props))
-        self.props.set('volume', str(VOLUME_DEFAULT))
+        # self.props.set('volume', str(VOLUME_DEFAULT))
         # self.props.register('playtime-remaining', self.parent)
         # self.props.register('metadata', self.parent)
 
@@ -148,10 +173,17 @@ class MPV(Actor):
         # send(self.pid, Message(sig=Sig.VOLUME, args=str(VOLUME_DEFAULT)))
 
 
-    def volume_setter(self, value: str) -> int:
-        volume = self.props.get('volume', str(VOLUME_DEFAULT))
-        func = lambda x: clamp(0, 100)(x) if x is not None else 0.
-        if value.startswith('+') or value.startswith('-'):
-            return func(volume + int(value))
-        else:
-            return func(int(value))
+    # def volume_setter(self, value: str) -> int:
+    #     volume = self.props.get('volume', str(VOLUME_DEFAULT))
+    #     func = lambda x: clamp(0, 100)(x) if x is not None else 0.
+    #     if value.startswith('+') or value.startswith('-'):
+    #         return func(volume + int(value))
+    #     else:
+    #         return func(int(value))
+
+    def subscribe_handler(self, sender: int, name: str) -> None:
+        if name in self.props:
+            self.props.register(name, sender)
+
+    def unsubscribe_handler(self, sender: int, name: str) -> None:
+        self.props.unregister(name, sender)

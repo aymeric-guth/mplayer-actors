@@ -8,6 +8,8 @@ from .message import Message, MsgCtx
 from .sig import Sig
 from .actor_system import actor_system, send, create, ActorSystem
 from .errors import DispatchError, ActorException
+from .subsystems.observable_properties import ObservableProperties, Observable
+from ...utils import try_not, to_kebab_case, to_snake_case
 
 
 T = TypeVar('T', bound='Actor')
@@ -18,34 +20,28 @@ class Actor(BaseActor):
     def __init__(self, pid: int, parent: int, name:str='', **kwargs) -> None:
         super().__init__(pid, parent=parent, name=name)
         self.kwargs = kwargs.copy()
+        self.obs = ObservableProperties()
 
     def dispatch(self, sender: int, msg: Message) -> None:
         match msg:
             case Message(sig=Sig.INIT):
-                # self.logger.error(f'{self} received INIT Signal')
                 self.init()
-                raise DispatchError
-
             case Message(sig=Sig.EXIT):
                 self.terminate()
-                raise DispatchError
-
             case Message(sig=Sig.POISON):
                 self.poison()
-                raise DispatchError
-
             case Message(sig=Sig.CHILD_INIT, args=pid):
                 self.child = pid
-                # self.logger.error(f'Initilizing child={ActorSystem().resolve_parent(pid)} {self.child=} {pid=}')
                 send(to=self.child, what=Message(sig=Sig.INIT))
-                raise DispatchError
-
             case Message(sig=Sig.CHILD_DEINIT, args=pid):
                 self.child = 0
-                raise DispatchError
-
+            case Message(sig=Sig.SUBSCRIBE, args=name):
+                self.register(sender, name)
+            case Message(sig=Sig.UNSUBSCRIBE, args=name):
+                self.unregister(sender, name)
             case _:
-                ...
+                return
+        raise DispatchError
 
     def init(self) -> None:
         ...
@@ -53,6 +49,22 @@ class Actor(BaseActor):
     def terminate(self) -> None:
         # send(to=0, what=Message(sig=Sig.EXIT))
         raise SystemExit
+
+    def register(self, sender: int, name: str) -> None:
+        try:
+            prop = getattr(self, to_snake_case(name))
+        except Exception:
+            return
+        if isinstance(prop, Observable):
+            self.obs.register(to_snake_case(name), sender)
+
+    def unregister(self, sender: int, name: str) -> None:
+        try:
+            prop = getattr(self, to_snake_case(name))
+        except Exception:
+            return
+        if isinstance(prop, Observable):
+            self.obs.unregister(to_snake_case(name), sender)
 
     def poison(self) -> None:
         raise ActorException('Sig.POISON')

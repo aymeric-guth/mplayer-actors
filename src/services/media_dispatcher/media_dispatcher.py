@@ -36,7 +36,11 @@ class MediaDispatcher(Actor):
 
             case Message(sig=Sig.PLAY, args=args):
                 if args is not None:
-                    send('MPV', Message(sig=Sig.PLAY, args=args))
+                    send(to=self.child, what=Message(sig=Sig.PLAY, args=args))
+                    send(to=self.child, what=Message(sig=Sig.SUBSCRIBE, args='time-pos'))
+                    send(to=self.child, what=Message(sig=Sig.SUBSCRIBE, args='duration'))
+                    send(to=self.child, what=Message(sig=Sig.SUBSCRIBE, args='volume'))
+                    send(to=self.child, what=Message(sig=Sig.SUBSCRIBE, args='player-state'))
                     send(to='Display', what=Event(type='player', name='property-change', args={'file': args}))
                     send(to='Display', what=Event(type='player', name='property-change', args={'pos': self.pl.pos()}))
 
@@ -45,18 +49,18 @@ class MediaDispatcher(Actor):
                     self.playback = args
 
             case Message(sig=Sig.VOLUME, args=args) as msg:
-                send(to='MPV', what=msg)
+                send(to=self.child, what=msg)
 
             case Message(sig=Sig.PLAY_PAUSE, args=args) as msg:
-                send(to='MPV', what=msg)
+                send(to=self.child, what=msg)
 
             case {'event': 'command', 'name': 'next', 'args': None}:
                 item = self.pl.next()
-                send(self.pid, Message(sig=Sig.PLAY, args=item))
+                send(to=self.pid, what=Message(sig=Sig.PLAY, args=item))
 
             case {'event': 'command', 'name': 'previous', 'args': None}:
                 item = self.pl.prev()
-                send(self.pid, Message(sig=Sig.PLAY, args=item))
+                send(to=self.pid, what=Message(sig=Sig.PLAY, args=item))
 
             case Message(sig=Sig.NEXT, args=None):
                 match self.playback:
@@ -68,23 +72,27 @@ class MediaDispatcher(Actor):
                         item = None
                     case _:
                         item = None
-                send(self.pid, Message(sig=Sig.PLAY, args=item))
+                send(to=self.pid, what=Message(sig=Sig.PLAY, args=item))
 
             case Message(sig=Sig.PREVIOUS, args=None):
                 item = self.pl.prev()
-                send(self.pid, Message(sig=Sig.PLAY, args=item))
+                send(to=self.pid, what=Message(sig=Sig.PLAY, args=item))
 
             case Message(sig=Sig.STOP, args=None) as msg:
                 if self.pl is not None:
                     self.pl.clear()
-                send('MPV', msg)
+                send(to=self.child, what=msg)
+                send(to=self.child, what=Message(sig=Sig.UNSUBSCRIBE, args='time-pos'))
+                send(to=self.child, what=Message(sig=Sig.UNSUBSCRIBE, args='duration'))
+                send(to=self.child, what=Message(sig=Sig.UNSUBSCRIBE, args='volume'))
+                send(to=self.child, what=Message(sig=Sig.UNSUBSCRIBE, args='player-state'))
 
             case Message(sig=Sig.DONE, args=None):
                 if self.pl is not None:
                     send(to=self.pid, what=Message(sig=Sig.NEXT))
 
             case Message(sig=Sig.SEEK, args=args) as msg:
-                send(to='MPV', what=msg)
+                send(to=self.child, what=msg)
 
             case Event(type='property-change', name=name, args=args):
                 match name:
@@ -110,16 +118,12 @@ class MediaDispatcher(Actor):
             case PlaybackMode.LOOP_ALL._value_:
                 self._playback = PlaybackMode.LOOP_ALL
             case _:
-                self._playback = PlaybackMode.NORMAL
-        send(to=self.pid, what=Message(sig=Sig.WATCHER, args={'playback-mode': self.playback}))
-        # send(to='Display', what=Event(type='player', name='property-change', args={'playback-mode': self.playback}))
+                self._playback = PlaybackMode.NORMAL                
+        send(to=self.pid, what=Event(type='property-change', name='playback-mode', args=self.playback))
 
     def init(self) -> None:
         create(MPV, wid=self.wid)
-        # send(self.child, Message(sig=Sig.INIT))
 
     def terminate(self) -> None:
-        send(to=self.child, what=Message(Sig.EXIT))           
-        # while self.child:
-        #     time.sleep(0.1)
+        send(to=self.child, what=Message(Sig.EXIT))
         raise SystemExit

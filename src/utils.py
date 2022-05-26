@@ -26,3 +26,11 @@ def try_not(fnc, exc) -> Callable:
         except exc:
             ...
     return inner
+
+
+def to_snake_case(s: str) -> str:
+    return '_'.join(s.split('-'))
+
+
+def to_kebab_case(s: str) -> str:
+    return '-'.join(s.split('_'))

@@ -51,3 +51,28 @@ class ObservableProperties:
         # for k, v in self._observers.items():
         #     s += f'name={k} value={v} '
         return repr(self._observers) + repr(self._container) + repr(self._registred)
+
+
+class Observer:
+    def __init__(self) -> None:
+        pass
+
+    def notify(self, name: str) -> None:
+        value = self._container.get(name)
+        event = Event(type='property-change', name=name, args=value)
+        # msg = Message(sig=Sig.WATCHER, args={name: value})
+        for obs in self._observers[name]:
+            send(to=obs, what=event)
+
+    def register(self, name: str, pid: int|str) -> None:
+        obs = self._observers[name]
+        self._registred.add(name)
+        if pid not in obs:
+            obs.append(pid)
+
+    def unregister(self, name: str, pid: int|str) -> None:
+        obs = self._observers.get(name)
+        if pid in obs: # type: ignore
+            obs.remove(pid) # type: ignore
+
+
