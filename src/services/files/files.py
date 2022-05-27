@@ -3,7 +3,7 @@ import os
 import re
 import logging
 
-from ...external.actors import Actor, Message, Sig, send, DispatchError, Event, Request, Response
+from ...external.actors import Actor, Message, Sig, send, DispatchError, Event, Request, Response, SystemMessage
 from ...settings import extensions_all
 from . import helpers
 from ._types import CWD
@@ -22,7 +22,7 @@ class Files(Actor):
     def dispatch(self, sender: int, msg: Message) -> None:
         try:
             super().dispatch(sender, msg)
-        except DispatchError:
+        except SystemMessage:
             return
 
         match msg:

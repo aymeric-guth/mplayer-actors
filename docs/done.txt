@@ -22,3 +22,34 @@
     utiliser des méthodes pour la gestion des signaux lib
     (init, terminate, ...)
     Sig.POISON, Sig.SIGQUIT, Sig.SIGINT, Sig.INIT, 
+
+26/05/22
+* bugfix: race condition dans la logique d'exit
+* bugfix: playback overlay qui ne s'update pas et keybind qui ne répondent plus (sur le player)
+* bugfix: montage démontage acteur Files au démarrage de l'app
+* refactor: curses -> actor
+* refactor: séparation des messages en messages lib et message application
+    Message() pour lib, {'event': ''} pour code application
+    utiliser du single dispatch pour match les types
+* architecture: 
+    api:
+        async messaging
+        request response
+        pub sub
+* architecture:
+    events externes (non-Message)
+        socket io # network input
+        stdscr.getch() # keyboard input
+        MpvEvent # mpv event loop
+
+        solution temporaire override run() et utiliser un acteur sans mq
+        couplé à un autre acteur qui process les events
+        problème: communication à sens unique (event-loop -> acteur)
+
+        partie polling dans un thread séparé et callback avec un post dans la mq?
+
+* architecture:
+    event
+    request / response
+    pour le moment (et le temps à venir) le modèle request / response est implémenté avec 2 messages différents
+    event: fait, chose qui est arrivé

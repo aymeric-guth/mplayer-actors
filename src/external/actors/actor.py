@@ -7,7 +7,7 @@ from .base_actor import BaseActor, ActorGeneric
 from .message import Message, MsgCtx
 from .sig import Sig
 from .actor_system import actor_system, send, create, ActorSystem
-from .errors import DispatchError, ActorException
+from .errors import DispatchError, ActorException, SystemMessage
 from .subsystems.observable_properties import ObservableProperties
 from ...utils import try_not, to_kebab_case, to_snake_case
 from .utils import Observable
@@ -43,7 +43,7 @@ class Actor(BaseActor):
                 self.unregister(who=sender, what=to_snake_case(name))
             case _:
                 return
-        raise DispatchError
+        raise SystemMessage
 
     def init(self) -> None:
         ...
@@ -58,7 +58,7 @@ class Actor(BaseActor):
         try:
             prop = self.__class__.__dict__[what]
         except KeyError as err:
-            return
+            raise DispatchError
         if isinstance(prop, Observable):
             self.obs.register(what, who)
             value = prop.__get__(self, self.__class__)
@@ -68,7 +68,7 @@ class Actor(BaseActor):
         try:
             prop = self.__class__.__dict__[what]
         except KeyError as err:
-            return
+            raise DispatchError
         if isinstance(prop, Observable):
             self.obs.unregister(what, who)
 

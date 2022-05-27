@@ -1,12 +1,11 @@
 ### Bugfix ###
 * bugfix: defer() qui peut deadlock dans le cas ou un acteur (enregistré) a SystemExit pour SUBSCRIBE et UNSUBSCRIBE
 * refactor: préparation class Files en vue de l'implémentation de la recherche récursive
-* bugfix: montage démontage acteur Files au démarrage de l'app
 * refactor: routing des requests API en particulier /get_files
-* bugfix: race condition dans la logique d'exit
-* bugfix: playback overlay qui ne s'update pas et keybind qui ne répondent plus (sur le player)
 * bugfix: la référence à self.child n'est pas safe (0 = ActorSystem) elle peut entrainer à des bugs pendant l'initialisation et la déinitialisation
-
+* bugfix: cursor qui jump sur playback_overlay pendant la lecture et que la command prompt est active
+* bugfix: procédure de sortie est bloquée quand lancée pendant que le player est actif
+* feature: redispatch / forward to child permet de router un message à un enfant si incapable de le gérer (implémentation coté ActorSystem via DispatchError et implémentation à la discretion de l'acteur via une methode privée dispatch_handler)
 
 ### Features ###
 * implémentation cache en subsystem
@@ -27,10 +26,6 @@ checks:
 ### Refactor ###
 * refactor Message en dict?
 * refactor gestion path -> pathlib?
-* curses -> actor
-* séparation des messages en messages lib et message application
-    Message() pour lib, {'event': ''} pour code application
-    utiliser du single dispatch pour match les types
 
 
 ### Technos ###
@@ -38,21 +33,6 @@ checks:
 
 
 ### Architecture
-api:
-    async messaging
-    request response
-    pub sub
-
-events externes (non-Message)
-    socket io # network input
-    stdscr.getch() # keyboard input
-    MpvEvent # mpv event loop
-
-    solution temporaire override run() et utiliser un acteur sans mq
-    couplé à un autre acteur qui process les events
-    problème: communication à sens unique (event-loop -> acteur)
-
-    partie polling dans un thread séparé et callback avec un post dans la mq?
 
 
 ### Event Loop
@@ -65,10 +45,3 @@ Problem:
   Socket:
     model request -> response
     model 2 canaux
-
-
-
-event
-request / response
-pour le moment (et le temps à venir) le modèle request / response est implémenté avec 2 messages différents
-event: fait, chose qui est arrivé

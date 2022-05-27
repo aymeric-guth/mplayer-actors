@@ -5,17 +5,12 @@ import logging
 import time
 
 from ...utils import SingletonMeta, clamp
-from ...external.actors import Actor, Message, Sig, send, DispatchError, create, MsgCtx, forward, Event, Request, Response, ActorSystem
+from ...external.actors import Actor, Message, Sig, send, DispatchError, create, MsgCtx, forward, Event, Request, Response, ActorSystem, SystemMessage
 from .wcurses import Curses
 from ...external.actors.utils import Observable
 
 
-def resize_handler(signum, frame):
-    send(to='Display', what=Event(type='signal', name='resize'))
-
-
-signal(SIGWINCH, resize_handler)
-
+signal(SIGWINCH, lambda signum, frame: send(to='Display', what=Event(type='signal', name='resize')))
 
 
 class Display(Actor):
@@ -43,12 +38,16 @@ class Display(Actor):
             ('MediaDispatcher', 'current-item'),
             ('MediaDispatcher', 'playlist-pos'),
             ('MediaDispatcher', 'playback-mode'),
-        ]
 
+            ('MediaDispatcher', 'volume'),
+            ('MediaDispatcher', 'time-pos'),
+            ('MediaDispatcher', 'duration'),
+            ('MediaDispatcher', 'player-state'),
+        ]
     def dispatch(self, sender: int, msg: Message) -> None:
         try:
             super().dispatch(sender, msg)
-        except DispatchError:
+        except SystemMessage:
             return
         # state-change (overlay on/off)
         #   -> render global
@@ -94,9 +93,8 @@ class Display(Actor):
                 self.playback_overlay = not self.playback_overlay
                 send(to=self.pid, what=Event(type='io', name='resize'))
 
-            case Message(sig=Sig.POPUP, args=args):
-                ...
-                # draw_popup(args)
+            case Event(type='error', name='bad-cmd', args=args):
+                send(to=self.child, what=Request(type='render', name='popup', args=args))
 
             case _:
                 ...

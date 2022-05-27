@@ -6,7 +6,7 @@ import copy
 import logging
 
 from ...external import _mpv
-from ...external.actors import ActorIO, send, Message, Sig, DispatchError, Actor, Event, Request, Response
+from ...external.actors import ActorIO, send, Message, Sig, DispatchError, Actor, Event, Request, Response, SystemMessage
 from ...external.actors.base_actor import BaseActor
 
 from ...utils import try_not
@@ -78,7 +78,7 @@ class MPVEvent(ActorIO):
     def dispatch(self, sender: int, msg: Any) -> None:
         try:
             super().dispatch(sender, msg)
-        except DispatchError:
+        except SystemMessage:
             return
 
         match msg:

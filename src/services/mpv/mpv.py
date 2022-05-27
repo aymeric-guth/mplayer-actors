@@ -11,7 +11,7 @@ from ...settings import VOLUME_DEFAULT
 from ...external import _mpv
 
 from ...utils import clamp
-from ...external.actors import Actor, Message, Sig, send, create, DispatchError, Event, Request, ActorSystem
+from ...external.actors import Actor, Message, Sig, send, create, DispatchError, Event, Request, ActorSystem, SystemMessage
 from ...external.actors.utils import Observable
 
 from .event_loop import MpvEvent, MPVEvent
@@ -61,6 +61,49 @@ class MPV(Actor):
         # self.log_lvl = logging.INFO
         self.log_lvl = logging.ERROR
 
+    def dispatch(self, sender: int, msg: Message) -> None:
+        try:
+            super().dispatch(sender, msg)
+        except SystemMessage:
+            return
+
+        match msg:
+            case Event(type='property-change', name=name, args=data):
+                self.publish(name=name, value=data)
+
+            case Request(type='player', name='play-item', args=item):
+                args = [b'loadfile', item.encode('utf-8'), b'replace', b'', None]
+                self.set_property('pause', 'no')
+                self.command(*args)
+
+            case Request(type='player', name='play-pause'):
+                if self.player_state == 1:
+                    self.set_property('pause', 'yes')
+                    self.player_state = 2
+                elif self.player_state == 2:
+                    self.set_property('pause', 'no')
+                    self.player_state = 1
+
+            case Request(type='player', name='volume', args=args):
+                self.volume = args
+                self.set_property('volume', self.volume)
+            
+            case Request(type='player', name='play-stop'):
+                args = [b'stop', b'', None]
+                self.command(*args)
+
+            case Request(type='player', name='seek', args=args):
+                if args < 0.:
+                    req = clamp(-self.time_pos, 0.)(args)
+                else:                    
+                    req = clamp(0., self.duration-self.time_pos)(args)
+                args = [b'seek', str(req).encode('utf-8'), b'relative', b'default-precise', None]
+                self.command(*args)
+
+            case _:
+                self.logger.error(f'Unprocessable msg={msg}')
+                # raise DispatchError
+
     async def command_async(self, *args) -> int:
         args = [c_uint64(0xffff), (c_char_p*len(args))(*args)]
         return _mpv.mpv_command_async(self.handle, *args)
@@ -82,48 +125,6 @@ class MPV(Actor):
         else:            
             _mpv.mpv_set_property_string(self.handle, ename, _mpv.mpv_coax_proptype(value))
 
-    def dispatch(self, sender: int, msg: Message) -> None:
-        try:
-            super().dispatch(sender, msg)
-        except DispatchError:
-            return
-
-        match msg:
-            case Event(type='property-change', name=name, args=data):
-                self.publish(name=name, value=data)
-
-            case Request(type='player', name='play-item', args=item):
-                args = [b'loadfile', item.encode('utf-8'), b'replace', b'', None]
-                self.set_property('pause', 'no')
-                self.command(*args)
-
-            case Message(sig=Sig.PLAY_PAUSE, args=None):
-                if self.player_state == 1:
-                    self.set_property('pause', 'yes')
-                    self.player_state = 2
-                elif self.player_state == 2:
-                    self.set_property('pause', 'no')
-                    self.player_state = 1
-
-            case Message(sig=Sig.VOLUME, args=args):
-                self.volume = args
-                self.set_property('volume', self.volume)
-            
-            case Message(sig=Sig.STOP, args=None):
-                args = [b'stop', b'', None]
-                self.command(*args)
-
-            case Message(sig=Sig.SEEK, args=args):
-                if args < 0.:
-                    req = clamp(-self.time_pos, 0.)(args)
-                else:                    
-                    req = clamp(0., self.duration-self.time_pos)(args)
-                args = [b'seek', str(req).encode('utf-8'), b'relative', b'default-precise', None]
-                self.command(*args)
-
-            case _:
-                ...
-
     def terminate(self) -> None:       
         self.handle, handle = None, self.handle
         send(to=self.child, what=Message(sig=Sig.EXIT))
@@ -132,5 +133,3 @@ class MPV(Actor):
 
     def init(self) -> None:
         create(MPVEvent, handle=self.handle)
-        # send(to=self.parent, what=Message(sig=Sig.CHILD_INIT_DONE))
-        # send(self.pid, Message(sig=Sig.VOLUME, args=str(VOLUME_DEFAULT)))

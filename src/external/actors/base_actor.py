@@ -8,7 +8,7 @@ import logging.handlers
 from .message import Message
 from .sig import Sig
 from .subsystems import Logging
-from .errors import DispatchError, ActorException
+from .errors import DispatchError, ActorException, SystemMessage
 
 from ...utils import clamp
 from ...settings import LOG_HOST, LOG_PORT, LOG_FORMAT
@@ -61,6 +61,8 @@ class BaseActor:
             # self.log_mq(sender, msg)
             try:
                 self.dispatch(sender, msg)
+            except SystemMessage:
+                ...
             except ActorException as err:
                 # generic actor error
                 # logging + reschedule
@@ -70,9 +72,9 @@ class BaseActor:
                 # signal to actor system for delivery to child?
                 # direct forwrding to child? (implying parent has routing rights)
                 # logging
-                self.logger.warning(f'actor={self} DispatchError routing msg={msg}')
-                raise
+                # self.logger.warning(f'actor={self} DispatchError routing msg={msg}')
                 self.dispatch_handler(sender, msg)
+                # raise
             except SystemExit as err:
                 # gracefull exit
                 # dealocating ressources, signaling childs to terminate

@@ -1,17 +1,11 @@
 import curses
 import logging
 from typing import Optional, Any
-import select
-import sys
-import time
 
-from ...external.actors import Actor, Message, Sig, ActorIO, create, send, DispatchError, Event, Request, Response
-# from ...wcurses import stdscr
-
+from ...external.actors import Actor, Message, Sig, ActorIO, create, send, DispatchError, Event, Request, Response, SystemMessage
 
 from .constants import num_mapping, Key
 from .helpers import CmdCache, eval_cmd, CmdBuffer
-from ...utils import SingletonMeta
 
 
 class Prompt(Actor):
@@ -22,7 +16,7 @@ class Prompt(Actor):
     def dispatch(self, sender: int, msg: Message) -> None:
         try:
             super().dispatch(sender, msg)
-        except DispatchError:
+        except SystemMessage:
             return
 
         match msg:
@@ -56,6 +50,7 @@ class Prompt(Actor):
 
                     case _:
                         CmdBuffer().insert(chr(args))
+
                 send(to='Display', what=Event(type='io', name='prompt', args=CmdBuffer().serialize()))
 
     def init(self) -> None:
@@ -70,10 +65,10 @@ class Input(Actor):
     def dispatch(self, sender: int, msg: Message) -> None:
         try:
             super().dispatch(sender, msg)
-        except DispatchError:
+        except SystemMessage:
             return
 
-        arg: Any
+        args: Any
         match msg:
             case Event(type='io', name='prompt', args=args):
                 (actor, message) = eval_cmd(args)
@@ -103,14 +98,12 @@ class Input(Actor):
 
                     case Key.ALT_H:
                         send('MediaDispatcher', Request(type='player', name='play-previous'))
-                        # send('MediaDispatcher', {'event': 'command', 'name': 'previous', 'args': None})
 
                     case Key.ALT_L:
                         send('MediaDispatcher', Request(type='player', name='play-next'))
-                        # send('MediaDispatcher', {'event': 'command', 'name': 'next', 'args': None})
 
                     case Key.SPACE:
-                        send('MediaDispatcher', Message(sig=Sig.PLAY_PAUSE))
+                        send('MediaDispatcher', Request(type='player', name='play-pause'))
 
                     case Key.DOT:
                         (actor, message) = eval_cmd('..')
@@ -119,16 +112,16 @@ class Input(Actor):
                     case (Key.H | Key.L | Key.J | Key.K) as p:
                         match p:
                             case Key.H:
-                                arg = '-5'
+                                args = '-5'
                             case Key.L:
-                                arg = '+5'
+                                args = '+5'
                             case Key.J:
-                                arg = '-10'
+                                args = '-10'
                             case Key.K:
-                                arg = '+10'
+                                args = '+10'
                             case _:
-                                arg = '0'
-                        send(to='MediaDispatcher', what=Message(sig=Sig.VOLUME, args=arg))
+                                args = '0'
+                        send(to='MediaDispatcher', what=Request(type='player', name='volume', args=args))
 
                     case (Key.d | Key.D):
                         send(to='Display', what=Event(type='keypress', name='playback-toggle'))
@@ -136,16 +129,16 @@ class Input(Actor):
                     case (curses.KEY_LEFT | Key.h | curses.KEY_RIGHT | Key.l | curses.KEY_UP | Key.k | curses.KEY_DOWN | Key.j) as p:
                         match p:
                             case curses.KEY_LEFT | Key.h:
-                                arg = -5
+                                args = -5
                             case curses.KEY_RIGHT | Key.l:
-                                arg = 5
+                                args = 5
                             case curses.KEY_UP | Key.k:
-                                arg = 60
+                                args = 60
                             case curses.KEY_DOWN | Key.j:
-                                arg = -60
+                                args = -60
                             case _:
-                                arg = None
-                        send(to='MediaDispatcher', what=Message(sig=Sig.SEEK, args=arg))
+                                args = None
+                        send(to='MediaDispatcher', what=Request(type='player', name='seek', args=args))
 
                     case p if p in num_mapping:
                         (actor, message) = eval_cmd(num_mapping[p])
@@ -155,12 +148,11 @@ class Input(Actor):
                         self.logger.warning(f'Unhandled key press: {args}')
 
             case _:
-                raise DispatchError(f'Unprocessable msg={msg}')
+                self.logger.error(f'Unprocessable msg={msg}')
+                raise DispatchError
 
 
     def terminate(self) -> None:
         if self.child:
             send(to=self.child, what=Message(Sig.EXIT))
-        # while self.child:
-        #     time.sleep(0.1)
         raise SystemExit

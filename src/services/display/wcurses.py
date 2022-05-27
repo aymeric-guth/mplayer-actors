@@ -9,7 +9,7 @@ from math import ceil
 import threading
 import time
 
-from ...utils import SingletonMeta, clamp, try_not
+from ...utils import SingletonMeta, clamp, try_not, defer
 from ...external.actors import Actor, Message, Sig, send, DispatchError, Event, Request, Response, ActorIO, create
 from .helpers import string_format, set_dims
 from .constants import PROMPT
@@ -54,6 +54,8 @@ class Curses(Actor):
         self.files_overlay = 1
         self.playback_overlay = 1
         self.cmd_overlay = 0
+        self.cmd_buff = ('', 0)
+        self.cursor_yx = (0, 0)
         self.subs = [
             ('Display', 'files-overlay'),
             ('Display', 'cmd-overlay'),
@@ -61,6 +63,7 @@ class Curses(Actor):
             ('Display', 'files-buff'),
             ('Display', 'cmd-buff'),
         ]
+        self.cmd_win = None
         self.log_lvl = logging.ERROR
 
     def dispatch(self, sender: int, msg: Message) -> None:
@@ -91,6 +94,7 @@ class Curses(Actor):
                 if not height or cmd_buff and cmd_buff[-1] == '\n':
                     return
                 win = curses.newwin(height, width, y_ofst, x_ofst)
+                self.cmd_win = win
                 win.box()
                 curses.curs_set(1)
                 (cmd, cur) = cmd_buff
@@ -99,6 +103,7 @@ class Curses(Actor):
                 win.move(1, cur+len(PROMPT)+1)
                 win.noutrefresh()
                 send(self.pid, Event(type='rendered'))
+                self.cursor_yx = self.cmd_win.getyx()
 
             case Event(type='rendered'):
                 curses.doupdate()
@@ -112,6 +117,8 @@ class Curses(Actor):
                 if not height:
                     return
 
+                # if self.cmd_overlay:
+                #     curses.curs_set(0)
                 player_state = media_meta.get('player-state', 0)
                 file = media_meta.get('current-item', '')
                 file = Path(file).name if file else file
@@ -150,6 +157,9 @@ class Curses(Actor):
                 win.box()
                 win.noutrefresh()
                 send(self.pid, Event(type='rendered'))
+                # if self.cmd_overlay:
+                #     curses.curs_set(1)
+                #     self.cmd_win.move(*self.cursor_yx)
 
             case Request(type='render', name='files', args=files_buff):
                 set_dims(self)
@@ -187,6 +197,19 @@ class Curses(Actor):
                 curses.endwin()  # This could lead to crashes according to below comment
                 self.stdscr.refresh()
                 send(to=self.parent, what=Event(type='io', name='resize'))
+
+            case Request(type='render', name='popup', args=error_message):
+                max_height, max_width = self.stdscr.getmaxyx()
+                height, width = 3, max_width // 4
+                offset_x = (max_width - width) // 2
+                offset_y = (max_height - height) // 2
+                popup = curses.newwin(height, width, offset_y, offset_x)                
+                ofst = int(clamp(1, width)((width - len(error_message)) // 2))
+                popup.box()
+                popup.addstr(1, ofst, error_message[:width-3])
+                popup.refresh()
+                defer(callback=lambda: popup.refresh(), timeout=2., logger=self.logger)
+                # send(self.pid, Event(type='rendered'))
 
             case _:
                 raise DispatchError(f'Unprocessable msg={msg}')

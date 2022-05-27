@@ -8,3 +8,7 @@ class DispatchError(Exception):
 
 class ActorNotFound(ActorException):
     ...
+
+
+class SystemMessage(ActorException):
+    ...

@@ -1,5 +1,8 @@
 from typing import Any, Union, Callable
 from functools import wraps
+import threading
+import time
+
 
 def clamp(
     lo: int|float, 
@@ -34,3 +37,22 @@ def to_snake_case(s: str) -> str:
 
 def to_kebab_case(s: str) -> str:
     return '-'.join(s.split('_'))
+
+
+def defer(callback: Callable, timeout: float=1., logger=None) -> None:
+    def sleepy(timeout: float):
+        def inner(func, *args, **kwargs):
+            time.sleep(timeout)
+            try:
+                return func(*args, **kwargs)
+            except Exception as err:
+                if logger is not None:
+                    logger.error(f'{err=}')
+                raise SystemExit
+        return inner
+
+    threading.Thread(
+        target=sleepy(timeout),
+        args=[callback],
+        daemon=True, 
+    ).start()

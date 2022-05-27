@@ -1,4 +1,4 @@
-from typing import Any, Optional, Union
+from typing import Any, Optional, Union, Callable
 from threading import Thread, Lock
 import threading
 import logging
@@ -13,6 +13,7 @@ from .base_actor import BaseActor, ActorGeneric
 from .registry import ActorRegistry
 import sys
 from .subsystems import Logging
+from ...utils import defer
 
 
 def thread_handler(func):
@@ -26,16 +27,6 @@ def thread_handler(func):
         finally:
             ...
             # ActorSystem().logger.error(f'{func.__name__} terminated')
-    return inner
-
-
-def sleepy(delay: float=1.):
-    def inner(func, *args):
-        time.sleep(delay)
-        try:
-            return func(*args)
-        except Exception as err:
-            ActorSystem().logger.error(f'{err=}')
     return inner
 
 
@@ -163,9 +154,25 @@ class ActorSystem(BaseActor, metaclass=SingletonMeta):
                     del self._threads[sender]
                     _t.join()
 
-            case Message(sig=Sig.DISPATCH_ERROR, args=ctx):
-                ...
-                # self.logger.error(f'Unprocessable {ctx=}')
+            case Message(
+                sig=Sig.DISPATCH_ERROR, 
+                args=MsgCtx(
+                    original_sender=sender, 
+                    original_recipient=recipient, 
+                    message=message
+                )
+            ):
+                s = self.get_actor(sender)
+                if s is None: 
+                    return
+                r = self._registry.lookup(recipient)
+                if r is None: 
+                    # renvoyer le message au sender?
+                    return
+                if not r.child: 
+                    # renvoyer le message au sender?
+                    return
+                self._send(sender=s, receiver=r.child, msg=message)                
 
             case Message(sig=Sig.CHILD_INIT_DONE):
                 ...
@@ -180,11 +187,11 @@ class ActorSystem(BaseActor, metaclass=SingletonMeta):
                         self._send(sender=self, receiver=actor.pid, msg=Message(sig=Sig.DISPATCH_ERROR))
                     case MsgCtx(original_sender=sender, original_recipient=recipient, message=args) if isinstance(recipient, str) or isinstance(recipient, type):
                         # self.logger.error(f'{msg=} {actor=}, {recipient=}, {args=}')
-                        self.defer(lambda: self._send(sender=actor, receiver=recipient, msg=args))
+                        defer(lambda: self._send(sender=actor, receiver=recipient, msg=args), logger=ActorSystem().logger)
 
             case _:
-                # self.logger.error(f'Unprocessable Message={msg} from={self.get_actor(sender)}')
-                send(self.pid, Message(sig=Sig.SIGQUIT))
+                self.logger.error(f'Unprocessable Message={msg} from={self.get_actor(sender)}')
+                # send(self.pid, Message(sig=Sig.SIGQUIT))
 
     def get_pid(self) -> int:
         with ActorSystem.__pid_l:
@@ -206,13 +213,6 @@ class ActorSystem(BaseActor, metaclass=SingletonMeta):
 
     def sysexit_handler(self) -> None:
         raise SystemExit
-
-    def defer(self, callback) -> None:
-        threading.Thread(
-            target=thread_handler(sleepy()), 
-            args=[callback],
-            daemon=True, 
-        ).start()
 
 
 def __get_caller(frame_idx: int=2) -> BaseActor:

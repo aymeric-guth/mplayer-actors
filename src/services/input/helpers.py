@@ -1,9 +1,10 @@
 from ...external.actors import Message, Sig, Event, Request, Response
 
 from ...utils import SingletonMeta, clamp
+from ...strings import ERRORS
 
 
-def eval_cmd(cmd: str) -> tuple[str, Message|Response|Request]:
+def eval_cmd(cmd: str) -> tuple[str, Message|Response|Request|Event]:
     match cmd.lstrip().rstrip().split(' '):
         case ['..']:
             # goes back 1 node
@@ -31,7 +32,8 @@ def eval_cmd(cmd: str) -> tuple[str, Message|Response|Request]:
 
         case ['loop' | 'l', param] if param.isdigit():
             # loop mode on / off
-            return 'MediaDispatcher', Message(sig=Sig.PLAYBACK_MODE, args=int(param))
+            return 'MediaDispatcher', Request(type='player', name='playback-mode', args=int(param))
+            # return 'MediaDispatcher', Message(sig=Sig.PLAYBACK_MODE, args=int(param))
 
         case ['quit' | 'q']:
             return 'ActorSystem', Message(sig=Sig.SIGQUIT)
@@ -44,26 +46,26 @@ def eval_cmd(cmd: str) -> tuple[str, Message|Response|Request]:
             return 'Files', Message(sig=Sig.PATH_SET, args=int(param))
 
         case ['stop']:
-            return 'MediaDispatcher', Message(sig=Sig.STOP)
+            return 'MediaDispatcher', Request(type='player', name='play-stop')
             
         case ['play' | 'p', *params]:
             # play parameter
             match params:
                 case []:
-                    return 'MediaDispatcher', Request(type='play', name='selection')
+                    return 'MediaDispatcher', Request(type='player', name='play-selection')
 
                 case [param] if param.isdigit():
-                    return 'MediaDispatcher', Request(type='play', name='selection', args=[int(param)])
+                    return 'MediaDispatcher', Request(type='player', name='play-selection', args=[int(param)])
 
                 case [param1, param2] if param1.isdigit() and param2.isdigit():
-                    return 'MediaDispatcher', Request(type='play', name='selection', args=[int(param1), int(param2)])
+                    return 'MediaDispatcher', Request(type='player', name='play-selection', args=[int(param1), int(param2)])
 
                 case _:
                     ...
 
         case ['volume' | 'v', value] if value.isdigit():
             # set volume to value
-            return 'MediaDispatcher', Message(sig=Sig.VOLUME, args=value)
+            return 'MediaDispatcher', Request(type='player', name='volume', args=value)
 
         case ['depth' | 'd', value] if value.isdigit() and int(value) > 0:
             # goes value nodes up
@@ -78,14 +80,14 @@ def eval_cmd(cmd: str) -> tuple[str, Message|Response|Request]:
         case ['?*', p] if p:
             return 'Files', Message(sig=Sig.SEARCH_ALL, args=p)
 
-        case ['send', actor, *msg] if actor and msg:            
-            return actor, Message(sig=Sig.PLAY_PAUSE)
+        case ['send', actor, *msg] if actor and msg:
+            return actor, Request(type='player', name='play-pause')
         
         case ['login']:
             return 'API', Message(sig=Sig.LOGIN)
 
         case _:
-            return 'Display', Message(sig=Sig.POPUP, args=f'Invalid command: {cmd}')
+            return 'Display', Event(type='error', name='bad-cmd', args=ERRORS.CMD.format(cmd))
 
     return ('ActorSystem', Message(sig=Sig.ERROR))
 

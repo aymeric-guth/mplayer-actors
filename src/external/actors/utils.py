@@ -18,6 +18,7 @@ def observer(actor: str):
         return _
     return inner
 
+
 class Observable:
     def __init__(
         self, 

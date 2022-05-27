@@ -6,7 +6,7 @@ import pickle
 
 from ...utils import SingletonMeta
 
-from ...external.actors import Actor, Message, Sig, send, DispatchError
+from ...external.actors import Actor, Message, Sig, send, DispatchError, SystemMessage
 from ...settings import ALLOWED_SHARES, MOUNT_POINT, SMB_USER, SMB_PASS, SMB_ADDR, SMB_PORT, ENV_PATH, VIDEO_PATH, MUSIC_PATH, ROOT, MUSIC_TODO
 from ..files._types import CWD
 
@@ -19,7 +19,7 @@ class External(Actor):
     def dispatch(self, sender: int, msg: Message) -> None:
         try:
             super().dispatch(sender, msg)
-        except DispatchError:
+        except SystemMessage:
             return
 
         jump_table: dict[str, list|tuple]
