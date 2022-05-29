@@ -107,7 +107,7 @@ class ActorSystem(BaseActor, metaclass=SingletonMeta):
 
             case Message(sig=Sig.SIGKILL):
                 while len(self._registry) > 1:
-                    # self.logger.error(str(self._registry) + f'{len(self._registry)=}')
+                    self.logger.error(str(self._registry) + f'{len(self._registry)=}')
                     time.sleep(0.1)
 
                 actor = self._registry.get(self.pid)
@@ -152,7 +152,9 @@ class ActorSystem(BaseActor, metaclass=SingletonMeta):
                 _t = self._threads.get(sender)
                 if _t is not None:
                     del self._threads[sender]
+                    self.logger.error(f'Joining {actor=} {_t=}')
                     _t.join()
+                self.logger.error(f'{actor=} successfully terminated')
 
             case Message(
                 sig=Sig.DISPATCH_ERROR, 
@@ -190,7 +192,8 @@ class ActorSystem(BaseActor, metaclass=SingletonMeta):
                         defer(lambda: self._send(sender=actor, receiver=recipient, msg=args), logger=ActorSystem().logger)
 
             case _:
-                self.logger.error(f'Unprocessable Message={msg} from={self.get_actor(sender)}')
+                ...
+                # self.logger.error(f'Unprocessable Message={msg} from={self.get_actor(sender)}')
                 # send(self.pid, Message(sig=Sig.SIGQUIT))
 
     def get_pid(self) -> int:

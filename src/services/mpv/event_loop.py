@@ -46,9 +46,10 @@ class MPVEvent(ActorIO):
             raise SystemExit
         # self.run = handler(self.run)
         self.handle = _mpv.mpv_create_client(handle, b'py_event_handler')
-        self._t = threading.Thread(target=self._run, daemon=True)
+        
+        self._t = threading.Thread(target=handler(self._run), daemon=True)
         self._t.start()
-        self.log_lvl = logging.ERROR
+        self.log_lvl = logging.INFO
         
 
     def _run(self) -> None:

@@ -12,9 +12,11 @@ from ...external import _mpv
 
 from ...utils import clamp
 from ...external.actors import Actor, Message, Sig, send, create, DispatchError, Event, Request, ActorSystem, SystemMessage
-from ...external.actors.utils import Observable
+from ...external.actors.utils import Observable, logger
+
 
 from .event_loop import MpvEvent, MPVEvent
+
 
 
 
@@ -68,10 +70,17 @@ class MPV(Actor):
             return
 
         match msg:
+            # case Event(type='property-change', name='player-state', args=4):
+            #     self.publish(name='player-state', value=4)
+                # send(to=self.child, what=Message(sig=Sig.EXIT))
+
             case Event(type='property-change', name=name, args=data):
                 self.publish(name=name, value=data)
 
             case Request(type='player', name='play-item', args=item):
+                if not self.child:
+                    create(MPVEvent, handle=self.handle)
+                # args = [b'loadfile', b'tcp://127.0.0.1:8082', b'replace', b'', None]
                 args = [b'loadfile', item.encode('utf-8'), b'replace', b'', None]
                 self.set_property('pause', 'no')
                 self.command(*args)
@@ -125,11 +134,17 @@ class MPV(Actor):
         else:            
             _mpv.mpv_set_property_string(self.handle, ename, _mpv.mpv_coax_proptype(value))
 
-    def terminate(self) -> None:       
+    @logger
+    def terminate(self) -> None:
+        if self.player_state != 4:   
+            send(to=self.pid, what=Request(type='player', name='play-stop'))
+        if self.child:
+            send(to=self.child, what=Message(sig=Sig.EXIT))
         self.handle, handle = None, self.handle
-        send(to=self.child, what=Message(sig=Sig.EXIT))
-        _mpv.mpv_render_context_free(self.handle)
+        _mpv.mpv_terminate_destroy(handle)
+        # _mpv.mpv_render_context_free(handle)
         raise SystemExit
 
     def init(self) -> None:
-        create(MPVEvent, handle=self.handle)
+        ...
+        # create(MPVEvent, handle=self.handle)

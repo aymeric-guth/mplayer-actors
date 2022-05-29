@@ -87,7 +87,8 @@ _extensions_audio = {
     '.aac', 
     '.aif', 
     '.aiff',
-    '.ape'
+    '.ape',
+    '.opus'
 }
 _extensions_mod = {
     '.mod', 

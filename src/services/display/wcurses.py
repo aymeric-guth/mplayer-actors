@@ -8,9 +8,11 @@ from pathlib import Path
 from math import ceil
 import threading
 import time
+import queue
+
 
 from ...utils import SingletonMeta, clamp, try_not, defer
-from ...external.actors import Actor, Message, Sig, send, DispatchError, Event, Request, Response, ActorIO, create
+from ...external.actors import Actor, Message, Sig, send, DispatchError, Event, Request, Response, ActorIO, create, SystemMessage
 from .helpers import string_format, set_dims
 from .constants import PROMPT
 
@@ -25,17 +27,34 @@ class InputIO(ActorIO):
         self.log_lvl = logging.INFO
         self._t = threading.Thread(target=self._run, daemon=True)
         self._t.start()
+        self.read_list = [sys.stdin]
+        self.__mq = queue.Queue()
 
     def _run(self) -> None:
         while 1:
-            c = self.stdscr.getch()
-            send(to=self.parent, what=Event(type='io', name='read-ready', args=c))
+            (rr, wr, err) = select.select([sys.stdin], [], [])
+            if rr:
+                send(to=self.parent, what=Event(type='io', name='read-ready'))
+                (sender, msg) = self.__mq.get()
+
+    # def _run(self) -> None:
+    #     while 1:
+    #         c = self.stdscr.getch()
+    #         send(to=self.parent, what=Event(type='io', name='read-ready', args=c))
 
     def dispatch(self, sender: int, msg: Any) -> None:
         try:
             super().dispatch(sender, msg)
-        except DispatchError:
+        except SystemMessage:
             return
+
+        match msg:
+            case Event(type='io', name='read-done'):
+                self.__mq.put((sender, msg))
+
+            case _:
+                ...
+
             
     def terminate(self) -> None:
         try_not(self._t.join, Exception) if self._t else None
@@ -69,7 +88,7 @@ class Curses(Actor):
     def dispatch(self, sender: int, msg: Message) -> None:
         try:
             super().dispatch(sender, msg)
-        except DispatchError:
+        except SystemMessage:
             return
 
         match msg:
@@ -108,8 +127,13 @@ class Curses(Actor):
             case Event(type='rendered'):
                 curses.doupdate()
 
-            case Event(type='io', name='read-ready', args=args) as msg:
-                send('Input', Event(type='io', name='keypress', args=args))
+            case Event(type='io', name='read-ready') as msg:
+                c = self.stdscr.getch()                
+                send(to=self.child, what=Event(type='io', name='read-done'))
+                send(to='Input', what=Event(type='io', name='keypress', args=c))
+
+            # case Event(type='io', name='read-ready', args=args) as msg:
+            #     send('Input', Event(type='io', name='keypress', args=args))
 
             case Request(type='render', name='playback', args=media_meta):
                 set_dims(self)

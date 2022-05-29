@@ -3,6 +3,8 @@ from functools import wraps
 
 from .actor_system import send
 from .message import Event, Message, Sig
+from .base_actor import BaseActor
+# from .actor import Actor
 
 
 def observer(actor: str):
@@ -43,3 +45,16 @@ class Observable:
         except Exception as err:
             raise SystemExit
         obs.notify(self.name, instance.__dict__[self.name])
+
+
+def logger(func: Callable):
+    def inner(*args, **kwargs):
+        (self, *_) = args
+        if not isinstance(self, BaseActor):
+            return func(*args, **kwargs)
+        try:
+            return func(*args, **kwargs)
+        except Exception as err:
+            self.logger.error(f'{err=}')
+            raise
+    return inner

@@ -10,7 +10,7 @@ from .wcurses import Curses
 from ...external.actors.utils import Observable
 
 
-signal(SIGWINCH, lambda signum, frame: send(to='Display', what=Event(type='signal', name='resize')))
+# signal(SIGWINCH, lambda signum, frame: send(to='Display', what=Event(type='signal', name='resize')))
 
 
 class Display(Actor):

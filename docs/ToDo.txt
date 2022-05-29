@@ -4,8 +4,10 @@
 * refactor: routing des requests API en particulier /get_files
 * bugfix: la référence à self.child n'est pas safe (0 = ActorSystem) elle peut entrainer à des bugs pendant l'initialisation et la déinitialisation
 * bugfix: cursor qui jump sur playback_overlay pendant la lecture et que la command prompt est active
-* bugfix: procédure de sortie est bloquée quand lancée pendant que le player est actif
-* feature: redispatch / forward to child permet de router un message à un enfant si incapable de le gérer (implémentation coté ActorSystem via DispatchError et implémentation à la discretion de l'acteur via une methode privée dispatch_handler)
+* bugfix: déallocation propre du core et client de libmpv (stopper le core et quitter)
+* bugfix: deadlock dans la procédure de sortie (???)
+* feature: forwarding policy (forward to child, raise)
+
 
 ### Features ###
 * implémentation cache en subsystem
@@ -45,3 +47,83 @@ Problem:
   Socket:
     model request -> response
     model 2 canaux
+
+
+### Migration 
+
+Golang
++++
+  concurrency model (Communicating Sequential Processes)
+  go channels
+  go routines
+  GC
+---
+  les défauts de C (syntaxe pointers)
+  aspects du langage ont l'air un peu vétuste
+  syntaxe pas dingue
+
+
+Dart
++++
+  isolates (message passing)
+  concurrency model (plus proche de l'Actor model)
+  documentation
+  moderne
+  null safety
+  GC
+  hot-reload
+  compiled
+  syntaxe java / js assez épurée
+---
+  marginal en dehors de flutter?
+  "it’s unclear how much effort Google is willing to continue to put into server side Dart code."
+  manque de librairies apparement
+
+
+Kotlin
++++
+---
+
+
+Rust
++++
+---
+
+
+Elixir / Erlang
++++
+  FP
+  Implémentation de référence de l'Actor model
+  BEAM à l'air ouf
+  https://phoenixframework.org/
+  structural pattern matching
+  hot reload
+---
+  dynamique
+  ressources et documentation ?
+  ruby syntax?
+res:
+  https://www.youtube.com/watch?v=1hl_z9-QO9c
+  https://www.youtube.com/c/omgneering/videos
+  https://www.learnelixir.tv/
+  https://phoenixframework.org/
+  https://elixir-lang.org/
+
+
+AKKA (Java)
++++
+  Possibilité de FP avec Scala
+  Framework de référence Actor model
+  documentation à l'air bonne
+---
+  Java
+
+
+### Google Trends
+Python Java JavaScript (FP)
+go C C++ C#
+Kotlin (FP) Dart (FP) Scala (FP) Swift (FP)
+Closure (FP) Elixir (FP)
+
+https://cs50.harvard.edu/college/2022/fall/
+https://www.youtube.com/watch?v=fyg0FuSL5DY

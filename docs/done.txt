@@ -53,3 +53,7 @@
     request / response
     pour le moment (et le temps à venir) le modèle request / response est implémenté avec 2 messages différents
     event: fait, chose qui est arrivé
+
+
+27/05/22
+* feature: redispatch / forward to child permet de router un message à un enfant si incapable de le gérer (implémentation coté ActorSystem via DispatchError et implémentation à la discretion de l'acteur via une methode privée dispatch_handler)
