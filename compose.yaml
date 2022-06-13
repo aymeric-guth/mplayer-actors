@@ -1,0 +1,22 @@
+services:
+  app:
+    image: mplayer_app_image
+    container_name: flux_app
+    build:
+      context: .
+    volumes:
+      - ${PULSE_CONFIG}:${PULSE_HOME}/.config/pulse:ro
+      - ${MOUNT_POINT}/Audio:${PULSE_HOME}/.av-mp/mount_point/Audio:rw
+      # - ${APP_CONFIG}/.cache:${PULSE_HOME}/.av-mp/.cache:rw
+      # - ${APP_CONFIG}/.config:${PULSE_HOME}/.av-mp/.config:rw
+    network_mode: host
+    environment:
+      API_USER: $API_USER
+      API_PASS: $API_PASS
+      SMB_ADDR: $SMB_ADDR
+      SMB_PORT: $SMB_PORT
+      SMB_USER: $SMB_USER
+      SMB_PASS: $SMB_PASS
+      LOG_HOST: $LOG_HOST
+      LOG_PORT: $LOG_PORT
+      MOUNT_POINT: $_MOUNT_POINT

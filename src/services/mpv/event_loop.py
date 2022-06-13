@@ -2,7 +2,6 @@ from typing import Any
 import dataclasses
 from ctypes import cast, sizeof, POINTER, create_string_buffer, pointer
 import threading
-import copy
 import logging
 
 from ...external import _mpv

@@ -124,11 +124,11 @@ class Files(Actor):
 
             case Message(sig=Sig.PATH_REFRESH):
                 # Guard si un folder a été delete
-                while not(os.access(CWD().realpath, os.F_OK) ) or ( not(self.files_tree[CWD().path]) and not(self.dir_tree[CWD().path]) ):
-                    self.logger.warning(f'Unavailable path: {CWD().path}')
-                    if len(CWD()) < 2: 
-                        raise OSError
-                    CWD().pop()
+                # while not(os.access(CWD().realpath, os.F_OK) ) or ( not(self.files_tree[CWD().path]) and not(self.dir_tree[CWD().path]) ):
+                #     self.logger.warning(f'Unavailable path: {CWD().path}')
+                #     if len(CWD()) < 2: 
+                #         raise OSError
+                #     CWD().pop()
 
                 self.dirs.sort()
                 self.files.sort()

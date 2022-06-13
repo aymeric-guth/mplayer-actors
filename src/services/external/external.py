@@ -36,29 +36,31 @@ class External(Actor):
                 subprocess.run(['open', args.get('path_full')])
 
             case Message(sig=Sig.SMB_PING, args=args):
-                try:
-                    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
-                        sock.settimeout(args)
-                        sock.connect((SMB_ADDR, SMB_PORT))
-                except socket.error as err:
-                    self.logger.error(f'Could not join host: {SMB_ADDR} on port: {SMB_PORT} cause: {err}')
-                    send(self.pid, Message(sig=Sig.SMB_PING, args=args+1))
-                else:
-                    self.logger.info(f'host: {SMB_ADDR} on port: {SMB_PORT} is up, trying to connect')
-                    send(self.pid, Message(sig=Sig.SMB_MOUNT))
+                ...
+                # try:
+                #     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+                #         sock.settimeout(args)
+                #         sock.connect((SMB_ADDR, SMB_PORT))
+                # except socket.error as err:
+                #     self.logger.error(f'Could not join host: {SMB_ADDR} on port: {SMB_PORT} cause: {err}')
+                #     send(self.pid, Message(sig=Sig.SMB_PING, args=args+1))
+                # else:
+                #     self.logger.info(f'host: {SMB_ADDR} on port: {SMB_PORT} is up, trying to connect')
+                #     send(self.pid, Message(sig=Sig.SMB_MOUNT))
 
             case Message(sig=Sig.SMB_MOUNT, args=args):
-                result = subprocess.run(["mount", "-t", "smbfs"], capture_output=True)
-                mounted_shares = result.stdout[:-1].decode("utf8")
-                share_name = 'Audio'
-                if share_name not in mounted_shares:
-                    mount_point = MOUNT_POINT / share_name
-                    subprocess.run(["mkdir", "-p", str(mount_point)])
-                    subprocess.run([
-                        "mount", "-t", "smbfs",
-                        f"//{SMB_USER}:{SMB_PASS}@{SMB_ADDR}/{share_name}",
-                        str(mount_point)
-                    ], capture_output=True)
+                ...
+                # result = subprocess.run(["mount", "-t", "smbfs"], capture_output=True)
+                # mounted_shares = result.stdout[:-1].decode("utf8")
+                # share_name = 'Audio'
+                # if share_name not in mounted_shares:
+                #     mount_point = MOUNT_POINT / share_name
+                #     subprocess.run(["mkdir", "-p", str(mount_point)])
+                #     subprocess.run([
+                #         "mount", "-t", "smbfs",
+                #         f"//{SMB_USER}:{SMB_PASS}@{SMB_ADDR}/{share_name}",
+                #         str(mount_point)
+                #     ], capture_output=True)
 
             case Message(sig=Sig.FILES_NEW, args=data):
                 with open(CACHE_PATH / 'cache.pckl', 'wb') as f:
@@ -90,7 +92,7 @@ class External(Actor):
                 ...
             case Message(sig=Sig.HOOK, args=args):
                 try:
-                    with open(ENV_PATH / 'jump-table.pckl', 'rb') as f:
+                    with open(CACHE_PATH / 'jump-table.pckl', 'rb') as f:
                         jump_table = pickle.load(f)
                 except Exception:
                     jump_table = {}

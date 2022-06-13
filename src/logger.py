@@ -33,7 +33,8 @@ async def handle_client(
 
 
 async def main() -> None:
-    server = await asyncio.start_server(handle_client, "127.0.0.1", 8080)
+    server = await asyncio.start_server(handle_client, "192.168.1.100", 8080)
+#    server = await asyncio.start_server(handle_client, "127.0.0.1", 8080)
     async with server:
         try:
             await server.serve_forever()

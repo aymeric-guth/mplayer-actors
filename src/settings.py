@@ -10,7 +10,7 @@ from dotenv import load_dotenv
 def getenv(key: str, cast: type=str) -> str:
     val = os.getenv(key)
     if val is None:
-        raise SystemExit
+        raise SystemExit(f'Environment variable {key} is not set, aborting')
     return cast(val)
 
 
@@ -24,6 +24,8 @@ ENV_PATH = ENV / '.av-mp'
 CACHE_PATH = ENV_PATH / '.cache'
 CONFIG_PATH = ENV_PATH / '.config'
 subprocess.run(["mkdir", "-p", ENV_PATH])
+subprocess.run(["mkdir", "-p", CACHE_PATH])
+subprocess.run(["mkdir", "-p", CONFIG_PATH])
 ROOT = ( 'shared', 'Audio')
 
 USERNAME = getenv('API_USER')

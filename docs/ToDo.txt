@@ -3,6 +3,7 @@
 * refactor: préparation class Files en vue de l'implémentation de la recherche récursive
 * refactor: routing des requests API en particulier /get_files
 * bugfix: la référence à self.child n'est pas safe (0 = ActorSystem) elle peut entrainer à des bugs pendant l'initialisation et la déinitialisation
+  remplacer par un call à l'actor system?
 * bugfix: cursor qui jump sur playback_overlay pendant la lecture et que la command prompt est active
 * bugfix: déallocation propre du core et client de libmpv (stopper le core et quitter)
 * bugfix: deadlock dans la procédure de sortie (???)
