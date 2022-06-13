@@ -1,7 +1,7 @@
 import subprocess
 import socket
 import logging
-from pathlib import Path
+from pathlib import Path, PurePath
 import pickle
 
 from ...utils import SingletonMeta
@@ -52,7 +52,7 @@ class External(Actor):
                 mounted_shares = result.stdout[:-1].decode("utf8")
                 share_name = 'Audio'
                 if share_name not in mounted_shares:
-                    mount_point = Path(MOUNT_POINT) / share_name
+                    mount_point = MOUNT_POINT / share_name
                     subprocess.run(["mkdir", "-p", str(mount_point)])
                     subprocess.run([
                         "mount", "-t", "smbfs",
@@ -67,7 +67,7 @@ class External(Actor):
 
             case Message(sig=Sig.GET_CACHE, args=args):
                 try:
-                    with open(Path(CACHE_PATH) / 'cache.pckl', 'rb') as f:
+                    with open(CACHE_PATH / 'cache.pckl', 'rb') as f:
                         data = pickle.load(f)
                 except Exception:
                     send('API', Message(sig=Sig.FILES_GET, args=args))
@@ -90,7 +90,7 @@ class External(Actor):
                 ...
             case Message(sig=Sig.HOOK, args=args):
                 try:
-                    with open(Path(ENV_PATH) / 'jump-table.pckl', 'rb') as f:
+                    with open(ENV_PATH / 'jump-table.pckl', 'rb') as f:
                         jump_table = pickle.load(f)
                 except Exception:
                     jump_table = {}

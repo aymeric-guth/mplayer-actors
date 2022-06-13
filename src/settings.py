@@ -1,6 +1,6 @@
 import os
 import subprocess
-from pathlib import Path
+from pathlib import Path, PurePath
 
 from dotenv import load_dotenv
 
@@ -18,17 +18,13 @@ env_file = Path(__file__).parent.parent / ".env"
 load_dotenv(env_file)
 
 
-MOUNT_POINT = getenv('MOUNT_POINT') + '/'
-ENV = Path(getenv('HOME'))
+MOUNT_POINT = PurePath(getenv('MOUNT_POINT'))
+ENV = PurePath(getenv('HOME'))
 ENV_PATH = ENV / '.av-mp'
 CACHE_PATH = ENV_PATH / '.cache'
 CONFIG_PATH = ENV_PATH / '.config'
 subprocess.run(["mkdir", "-p", ENV_PATH])
-
-
-ROOT_PREFIX = 'shared'
-ROOT = ( ROOT_PREFIX, 'Audio')
-
+ROOT = ( 'shared', 'Audio')
 
 USERNAME = getenv('API_USER')
 PASSWORD = getenv('API_PASS')

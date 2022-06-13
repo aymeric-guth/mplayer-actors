@@ -66,31 +66,26 @@ class Files(Actor):
                         # selection en range de la liste de fichiers affichés
                         # selection d'UN fichier
                         f, e = self.files[p1]
-                        args = [f'{CWD().realpath}{f}{e}',]
-                        # args = {
-                        #     'path': '/' + '/'.join(CWD().path) + '/',
-                        #     'filename': f,
-                        #     'extension': e
-                        # }
+                        args = [str(CWD().realpath / f'{f}{e}'),]
                         send(to='MediaDispatcher', what=Response(type='files', name='content', args=args))
                         # send(to='MediaDispatcher', what=Response(type='files', name='content', args=args))
 
                     case [p1] if p1 > 0 and p1 < len(self.files):
-                        args = [ f'{CWD().realpath}{f}{e}' for f, e in self.files[p1:] ]
+                        args = [ str(CWD().realpath / f'{f}{e}') for f, e in self.files[p1:] ]
                         send(sender, Message(sig=Sig.FILES_GET, args=args))
 
                     case [p1, p2] if (p1 > 0 and p1 < len(self.files)) and (p2 > 0 and p2 < len(self.files)):
                         if p1 < p2:
-                            args = [ f'{CWD().realpath}{f}{e}' for f, e in self.files[p1:p2+1] ]
+                            args = [ str(CWD().realpath / f'{f}{e}') for f, e in self.files[p1:p2+1] ]
                             send(sender, Message(sig=Sig.FILES_GET, args=args))
                         elif p1 > p2:
-                            args = [ f'{CWD().realpath}{f}{e}' for f, e in self.files[p1:p2-1:-1] ]
+                            args = [ str(CWD().realpath / f'{f}{e}') for f, e in self.files[p1:p2-1:-1] ]
                             send(sender, Message(sig=Sig.FILES_GET, args=args))
                         else:
                             send(self.pid, Message(sig=Sig.FILES_GET, args=[p1, None]))
 
                     case None:
-                        args = [ f'{CWD().realpath}{f}{e}' for f, e in self.files[1:] ]
+                        args = [ str(CWD().realpath / f'{f}{e}') for f, e in self.files[1:] ]
                         send(sender, Message(sig=Sig.FILES_GET, args=args))
 
                     case _:
@@ -151,25 +146,25 @@ class Files(Actor):
                         # selection en range de la liste de fichiers affichés
                         # selection d'UN fichier
                         f, e = self.files[p1]
-                        args = [f'{CWD().realpath}{f}{e}',]
+                        args = [str(CWD().realpath / f'{f}{e}'),]
                         send(to='MediaDispatcher', what=Response(type='files', name='content', args=args))
 
                     case [p1] if p1 > 0 and p1 < len(self.files):
-                        args = [ f'{CWD().realpath}{f}{e}' for f, e in self.files[p1:] ]
+                        args = [ str(CWD().realpath / f'{f}{e}') for f, e in self.files[p1:] ]
                         send(to=sender, what=Response(type='files', name='content', args=args))
 
                     case [p1, p2] if (p1 > 0 and p1 < len(self.files)) and (p2 > 0 and p2 < len(self.files)):
                         if p1 < p2:
-                            args = [ f'{CWD().realpath}{f}{e}' for f, e in self.files[p1:p2+1] ]
+                            args = [ str(CWD().realpath / f'{f}{e}') for f, e in self.files[p1:p2+1] ]
                             send(to=sender, what=Response(type='files', name='content', args=args))
                         elif p1 > p2:
-                            args = [ f'{CWD().realpath}{f}{e}' for f, e in self.files[p1:p2-1:-1] ]
+                            args = [ str(CWD().realpath / f'{f}{e}') for f, e in self.files[p1:p2-1:-1] ]
                             send(to=sender, what=Response(type='files', name='content', args=args))
                         else:
                             send(to=self.pid, what=Request(type='files', name='content', args=[p1, None]))
 
                     case None:
-                        args = [ f'{CWD().realpath}{f}{e}' for f, e in self.files[1:] ]
+                        args = [ str(CWD().realpath / f'{f}{e}') for f, e in self.files[1:] ]
                         send(to=sender, what=Response(type='files', name='content', args=args))
 
                     case _:

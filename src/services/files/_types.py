@@ -1,6 +1,7 @@
 from typing import Any
 from dataclasses import dataclass
 import copy
+from pathlib import Path, PurePath
 import threading
 
 from ...settings import MOUNT_POINT, ROOT
@@ -34,7 +35,7 @@ class CWD(metaclass=SingletonMeta):
     cwd_l: threading.Lock = threading.Lock()
 
     def __init__(self) -> None:
-        self.mountpoint = MOUNT_POINT[:]
+        self.mountpoint = copy.deepcopy(MOUNT_POINT)
         self._path: list[str] = list(ROOT)
     
     def push(self, value: str) -> None:
@@ -45,8 +46,8 @@ class CWD(metaclass=SingletonMeta):
             self._path.pop()
 
     @property
-    def realpath(self) -> str:
-        return f"{self.mountpoint}{'/'.join(self._path[1:])}/"
+    def realpath(self) -> PurePath:
+        return self.mountpoint / '/'.join(self._path[1:])
 
     @property
     def path(self) -> tuple[str, ...]:
