@@ -23,7 +23,8 @@ def thread_handler(func):
             return func(*args, **kwargs)
         # except SystemExit as err:
         except Exception as err:
-            ActorSystem().logger.error(f'{func.__name__} {err=}')
+            ...
+            # ActorSystem().logger.error(f'{func.__name__} {err=}')
         finally:
             ...
             # ActorSystem().logger.error(f'{func.__name__} terminated')
@@ -152,9 +153,9 @@ class ActorSystem(BaseActor, metaclass=SingletonMeta):
                 _t = self._threads.get(sender)
                 if _t is not None:
                     del self._threads[sender]
-                    self.logger.error(f'Joining {actor=} {_t=}')
+                    # self.logger.error(f'Joining {actor=} {_t=}')
                     _t.join()
-                self.logger.error(f'{actor=} successfully terminated')
+                # self.logger.error(f'{actor=} successfully terminated')
 
             case Message(
                 sig=Sig.DISPATCH_ERROR, 
@@ -178,6 +179,12 @@ class ActorSystem(BaseActor, metaclass=SingletonMeta):
 
             case Message(sig=Sig.CHILD_INIT_DONE):
                 ...
+
+            case Message(sig=Sig.PRINT_ALL):
+                res = []
+                for pid, actor in self._registry.items():
+                    res.append(repr(actor))
+                self.logger.error('\n'.join(res))
 
             case Event(type='system', name='recipient-unknown', args=msg):
                 actor = self.get_actor(msg.original_sender)

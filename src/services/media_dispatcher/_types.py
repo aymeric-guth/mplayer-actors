@@ -24,3 +24,16 @@ class PlaybackState(Enum):
 
     def __ge__(self, value: int) -> bool:
         return self.__gt__(value) or self.__eq__(value)
+
+
+class PlaybackMode(Enum):
+    NORMAL = 0
+    LOOP_ONE = 1
+    LOOP_ALL = 2
+    # SHUFFLE = auto()
+
+    def __repr__(self) -> str:
+        return f'{self.__class__.__name__}.{self._name_}'
+    
+    def __str__(self) -> str:
+        return self._name_

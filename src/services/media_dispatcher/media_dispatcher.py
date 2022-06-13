@@ -8,10 +8,10 @@ from ...external.actors.utils import Observable
 
 from ..mpv import MPV
 from .playlist import Playlist
-from ...settings import PlaybackMode, MOUNT_POINT
 
 from ...utils import SingletonMeta
 from ...strings import ERRORS
+from ._types import PlaybackMode
 
 
 def playback_setter(value: PlaybackMode) -> PlaybackMode:
@@ -44,7 +44,6 @@ class MediaDispatcher(Actor):
             # ('MPV', 'duration'),
             ('MPV', 'player-state'),
         ]
-        self.localpath = Path(MOUNT_POINT)
 
     def dispatch(self, sender: int, msg: Message) -> None:
         try:
@@ -53,45 +52,31 @@ class MediaDispatcher(Actor):
             return
 
         match msg:
-            case Response(type='get', name='file', args=data):
-                path = self.localpath / 'cached'
-                with open(path, 'wb') as f:
-                    f.write(data)
-                send(self.pid, Request(type='player', name='play-item', args=str(path)))
+            # case Response(type='get', name='file', args=data):
+            #     path = self.localpath / 'cached'
+            #     with open(path, 'wb') as f:
+            #         f.write(data)
+            #     send(self.pid, Request(type='player', name='play-item', args=str(path)))
 
             case Request(type='player', name='play-selection', args=args):
                 send(to='Files', what=Request(type='files', name='content', args=args))
 
             case Response(type='files', name='content', args=args):
-                send(to='API', what=Request(type='get', name='file', args=args))
-                # Playlist().init(args)
-                # item = Playlist().next()
-                # send(self.pid, Request(type='player', name='play-item', args=item))
-
-            # case Response(type='files', name='content', args=args):
-            #     Playlist().init(args)
-            #     item = Playlist().next()
-            #     send(self.pid, Request(type='player', name='play-item', args=item))
+                # send(to='API', what=Request(type='get', name='file', args=args))
+                Playlist().init(args)
+                item = Playlist().next()
+                send(self.pid, Request(type='player', name='play-item', args=item))
 
             case Request(type='player', name='play-item', args=item):
                 if item is None:
                     return
                 self.current_item = item
                 send(to=self.child, what=Request(type='player', name='play-item', args=self.current_item))
-                # self.playlist_pos = Playlist().pos()
+                self.playlist_pos = Playlist().pos()
 
             case Request(type='player', name='playback-mode', args=args):
                 if args >= PlaybackMode.NORMAL._value_ and args <= PlaybackMode.LOOP_ALL._value_:
                     self.playback_mode = args
-
-            # case Request(type='player', name='volume') as msg:
-            #     send(to=self.child, what=msg)
-
-            # case Request(type='player', name='play-pause') as msg:
-            #     send(to=self.child, what=msg)
-
-            # case Request(type='player', name='seek') as msg:
-            #     send(to=self.child, what=msg)
 
             case Request(type='player', name='play-previous', args=args):
                 item = Playlist().prev()
@@ -116,7 +101,7 @@ class MediaDispatcher(Actor):
             case Event(type='property-change', name=name, args=args) as event:
                 if name == 'player-state' and args == 4:
                     send(to=self.pid, what=Request(type='player', name='play-next'))
-                # send(to='Display', what=event)
+                send(to='Display', what=event)
 
             case _:
                 self.logger.error(f'Unprocessable msg={msg}')

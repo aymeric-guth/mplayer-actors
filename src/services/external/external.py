@@ -7,7 +7,7 @@ import pickle
 from ...utils import SingletonMeta
 
 from ...external.actors import Actor, Message, Sig, send, DispatchError, SystemMessage
-from ...settings import ALLOWED_SHARES, MOUNT_POINT, SMB_USER, SMB_PASS, SMB_ADDR, SMB_PORT, ENV_PATH, VIDEO_PATH, MUSIC_PATH, ROOT, MUSIC_TODO
+from ...settings import MOUNT_POINT, SMB_USER, SMB_PASS, SMB_ADDR, SMB_PORT, ENV_PATH, CACHE_PATH
 from ..files._types import CWD
 
 
@@ -50,24 +50,24 @@ class External(Actor):
             case Message(sig=Sig.SMB_MOUNT, args=args):
                 result = subprocess.run(["mount", "-t", "smbfs"], capture_output=True)
                 mounted_shares = result.stdout[:-1].decode("utf8")
-                for share_name in ALLOWED_SHARES:
-                    if share_name not in mounted_shares:
-                        mount_point = f"{MOUNT_POINT}{share_name}"
-                        subprocess.run(["mkdir", "-p", mount_point])
-                        subprocess.run([
-                            "mount", "-t", "smbfs",
-                            f"//{SMB_USER}:{SMB_PASS}@{SMB_ADDR}/{share_name}",
-                            mount_point
-                        ], capture_output=True)
+                share_name = 'Audio'
+                if share_name not in mounted_shares:
+                    mount_point = Path(MOUNT_POINT) / share_name
+                    subprocess.run(["mkdir", "-p", str(mount_point)])
+                    subprocess.run([
+                        "mount", "-t", "smbfs",
+                        f"//{SMB_USER}:{SMB_PASS}@{SMB_ADDR}/{share_name}",
+                        str(mount_point)
+                    ], capture_output=True)
 
             case Message(sig=Sig.FILES_NEW, args=data):
-                with open(Path(ENV_PATH) / 'cache.pckl', 'wb') as f:
+                with open(CACHE_PATH / 'cache.pckl', 'wb') as f:
                     pickle.dump(data, f)
                 send('Files', Message(sig=Sig.FILES_NEW, args=data))
 
             case Message(sig=Sig.GET_CACHE, args=args):
                 try:
-                    with open(Path(ENV_PATH) / 'cache.pckl', 'rb') as f:
+                    with open(Path(CACHE_PATH) / 'cache.pckl', 'rb') as f:
                         data = pickle.load(f)
                 except Exception:
                     send('API', Message(sig=Sig.FILES_GET, args=args))
@@ -77,13 +77,13 @@ class External(Actor):
             case Message(sig=Sig.HOOK, args=args) if isinstance(args, list | tuple) and len(args) == 2:
                 k, v = args
                 try:
-                    with open(Path(ENV_PATH) / 'jump-table.pckl', 'rb') as f:
+                    with open(CACHE_PATH / 'jump-table.pckl', 'rb') as f:
                         jump_table = pickle.load(f)
                 except Exception:
                     jump_table = {}
 
                 jump_table.update({k: v})
-                with open(Path(ENV_PATH) / 'jump-table.pckl', 'wb') as f:
+                with open(CACHE_PATH / 'jump-table.pckl', 'wb') as f:
                     pickle.dump(jump_table, f)
 
             case {'event': 'command', 'name': 'hook', 'args': args}:
@@ -96,14 +96,14 @@ class External(Actor):
                     jump_table = {}
 
                 jump_table.update({args: CWD().path})
-                with open(Path(ENV_PATH) / 'jump-table.pckl', 'wb') as f:
+                with open(CACHE_PATH / 'jump-table.pckl', 'wb') as f:
                     pickle.dump(jump_table, f)
 
             case {'event': 'command', 'name': 'jump', 'args': args}:
                 ...
             case Message(sig=Sig.JUMP, args=args):
                 try:
-                    with open(Path(ENV_PATH) / 'jump-table.pckl', 'rb') as f:
+                    with open(CACHE_PATH / 'jump-table.pckl', 'rb') as f:
                         jump_table = pickle.load(f)
                 except Exception:
                     ...
@@ -117,10 +117,3 @@ class External(Actor):
 
     def init(self) -> None:
         send(self.pid, Message(sig=Sig.SMB_PING, args=1))
-        send(self.pid, Message(sig=Sig.HOOK, args=('root', ROOT[:])))
-        send(self.pid, Message(sig=Sig.HOOK, args=('/', ROOT[:])))
-        send(self.pid, Message(sig=Sig.HOOK, args=('music', MUSIC_PATH[:])))
-        send(self.pid, Message(sig=Sig.HOOK, args=('video', VIDEO_PATH[:])))
-        send(self.pid, Message(sig=Sig.HOOK, args=('vdo', VIDEO_PATH[:])))
-        send(self.pid, Message(sig=Sig.HOOK, args=('td', MUSIC_TODO[:])))
-        send(self.pid, Message(sig=Sig.HOOK, args=('todo', MUSIC_TODO[:])))

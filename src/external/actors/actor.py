@@ -4,7 +4,7 @@ from dataclasses import dataclass
 import threading
 
 from .base_actor import BaseActor, ActorGeneric
-from .message import Message, MsgCtx
+from .message import Message, MsgCtx, Event, Request, Response
 from .sig import Sig
 from .actor_system import actor_system, send, create, ActorSystem
 from .errors import DispatchError, ActorException, SystemMessage
@@ -12,9 +12,18 @@ from .subsystems.observable_properties import ObservableProperties
 from ...utils import try_not, to_kebab_case, to_snake_case
 from .utils import Observable
 
+from .dispatcher import dispatch as dispatcher
+
 
 T = TypeVar('T', bound='Actor')
 
+@dispatcher
+def f(a: int, b: int):
+    ...
+
+@dispatcher
+def f(a: list[int], b: list[int]):
+    ...
 
 class Actor(BaseActor):
     def __init__(self, pid: int, parent: int, name:str='', **kwargs) -> None:
@@ -22,7 +31,41 @@ class Actor(BaseActor):
         self.kwargs = kwargs.copy()
         self.obs = ObservableProperties()
 
+    # def _dispatch(self, sender: int, msg: Message) -> None:
+    #     match msg:
+    #         case System:
+    #             ...
+    #         case SubSystem:
+    #             ...
+    #         case Event|Request|Response:
+    #             ...
+    #         case _:
+    #             ...
+    # def _dispatch(self, sender: int, msg: System) -> None:
+    #     # implemented at framework level
+    #     # generic behavior for creating, terminating, child allocation, 
+    #     ...
+    # def _dispatch(self, sender: int, msg: SubSystem) -> None:
+    #     # implemented at ??? level
+    #     # fine-grained control over SubSystem (logging level, cache duration, ...)
+    #     ...
+    # def _dispatch(self, sender: int, msg: Event | Request | Response) -> None:
+    #     # implemented at application level
+    #     # fine-grained control over application specific protocol
+    #     ...
+
+    # @dispatcher
+    # def _dispatch(self, sender: int, msg: Message) -> None:
+    #     ...
+
+    
+    # @dispatcher.of(BaseActor, int, Union[Event, Request, Response])
+    # def _dispatch(self, sender: int, msg: Event | Request | Response) -> None:
+    #     ...
+
+
     def dispatch(self, sender: int, msg: Message) -> None:
+        # self.logger.error(f'BaseActor dispatch({sender=}, {msg=})')
         match msg:
             case Message(sig=Sig.INIT):
                 self.init()
@@ -41,6 +84,8 @@ class Actor(BaseActor):
                 self.register(who=sender, what=to_snake_case(name))
             case Message(sig=Sig.UNSUBSCRIBE, args=name):
                 self.unregister(who=sender, what=to_snake_case(name))
+            case Message(sig=Sig.LOGGING, args=level):
+                self.log_lvl = level
             case _:
                 return
         raise SystemMessage

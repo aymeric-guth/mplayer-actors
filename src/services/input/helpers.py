@@ -1,4 +1,5 @@
 from ...external.actors import Message, Sig, Event, Request, Response
+import logging
 
 from ...utils import SingletonMeta, clamp
 from ...strings import ERRORS
@@ -85,6 +86,16 @@ def eval_cmd(cmd: str) -> tuple[str, Message|Response|Request|Event]:
         
         case ['login']:
             return 'API', Message(sig=Sig.LOGIN)
+        
+        case ['logs', 'actors']:
+            return 'ActorSystem', Message(sig=Sig.PRINT_ALL)
+
+        case ['logs', 'clear']:
+            return 'ActorSystem', Message(sig=Sig.CLEAR_SCREEN)
+
+        case ['log', pid, level] if pid.isdigit() and level.isdigit() and int(pid) >= 0:
+            # CRITICAL 50 # ERROR 40 # WARNING 30 # INFO 20 # DEBUG 10 # NOTSET 0
+            return int(pid), Message(sig=Sig.LOGGING, args=int(level) * 10)
 
         case _:
             return 'Display', Event(type='error', name='bad-cmd', args=ERRORS.CMD.format(cmd))

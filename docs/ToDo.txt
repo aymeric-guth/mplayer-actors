@@ -7,6 +7,7 @@
 * bugfix: déallocation propre du core et client de libmpv (stopper le core et quitter)
 * bugfix: deadlock dans la procédure de sortie (???)
 * feature: forwarding policy (forward to child, raise)
+* feature: rendre Playlist compatible avec streaming
 
 
 ### Features ###
@@ -127,3 +128,16 @@ Closure (FP) Elixir (FP)
 
 https://cs50.harvard.edu/college/2022/fall/
 https://www.youtube.com/watch?v=fyg0FuSL5DY
+
+
+containerisation application
+  smb devient obsolète si montage depuis l'hote / sinon possibilité d'utiliser cifs directement dans le container
+  transmission du flux audio vers l'hote devient problématique
+    option de pulseaudio qui n'est pas compliqué à mettre en place coté hote
+    option de socket tcp/udp mais besoin d'un socket server/client coté hote et donc d'un hote programme éxécuté directement sur l'hote
+  besoin de joindre un build custom de ffmpeg + mpv pour linux
+  perte de l'intégration avec os hote (open), compensé à terme par purge
+  besoin de remanier la gestion configuration user
+  processus d'itération un peu plus lent
+  
+essai avec flux concluant

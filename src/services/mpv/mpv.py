@@ -7,7 +7,6 @@ import time
 from typing import Callable, Any
 from functools import wraps
 
-from ...settings import VOLUME_DEFAULT
 from ...external import _mpv
 
 from ...utils import clamp
@@ -45,7 +44,7 @@ class MPV(Actor):
 
     def __init__(self, pid: int, parent: int, name='', **kwargs) -> None:
         super().__init__(pid, parent, name, **kwargs)
-        self.volume = str(VOLUME_DEFAULT)
+        self.volume = '100'
         self.time_pos = 0.
         self.duration = 0.
         self.player_state = 0

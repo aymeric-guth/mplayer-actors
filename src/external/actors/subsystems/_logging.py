@@ -19,9 +19,9 @@ class Logging:
         fmt = logging.Formatter(fmt=LOG_FORMAT)
         handler = logging.handlers.SocketHandler(LOG_HOST, LOG_PORT)
         handler.setFormatter(fmt)
-        _logger = logging.getLogger(self._name)
-        _logger.addHandler(handler)        
-        self._logger = logging.LoggerAdapter(_logger, {'actor': actor})
+        self.__logger = logging.getLogger(self._name)
+        self.__logger.addHandler(handler)        
+        self._logger = logging.LoggerAdapter(self.__logger, {'actor': actor})
 
     @property
     def log_lvl(self) -> int:
@@ -31,6 +31,7 @@ class Logging:
     def log_lvl(self, value: int) -> None:
         self._log_lvl = int(clamp(0, 50)(value))
         self.logger.setLevel(self._log_lvl)
+        # self._logger.error(f'Setting {self} to level={self._log_lvl}')
 
     @property
     def log_lock(self) -> threading.Lock:

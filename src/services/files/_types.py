@@ -41,7 +41,7 @@ class CWD(metaclass=SingletonMeta):
         self._path.append(value)
 
     def pop(self) -> None:
-        if len(self) > 1:
+        if len(self) > 2:
             self._path.pop()
 
     @property

@@ -76,3 +76,6 @@ class Sig(Enum):
     SUBSCRIBE = auto()
     UNSUBSCRIBE = auto()
     CHILD_INIT_DONE = auto()
+    LOGGING = auto()
+    PRINT_ALL = auto()
+    CLEAR_SCREEN = auto()

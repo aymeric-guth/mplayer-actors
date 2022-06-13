@@ -1,0 +1,60 @@
+pulseaudio --load=module-native-protocol-tcp --exit-idle-time=-1 --daemon
+https://medium.com/@cristianduguet/play-remote-audio-over-an-ssh-connection-with-a-mac-client-9b7135dfe129
+
+
+# Remap Behringer inputs separately
+load-module module-remap-source source_name=umc404hd-xlr-1 source_properties=device.description=UMC404HD-XLR-Input-1 master=alsa_input.usb-BEHRINGER_UMC404HD_192k-00.multichannel-input remix=no channels=1 master_channel_map=front-left channel_map=mono
+load-module module-remap-source source_name=umc404hd-xlr-2 source_properties=device.description=UMC404HD-XLR-Input-2 master=alsa_input.usb-BEHRINGER_UMC404HD_192k-00.multichannel-input remix=no channels=1 master_channel_map=front-right channel_map=mono
+load-module module-remap-source source_name=umc404hd-xlr-3 source_properties=device.description=UMC404HD-XLR-Input-3 master=alsa_input.usb-BEHRINGER_UMC404HD_192k-00.multichannel-input remix=no channels=1 master_channel_map=rear-left channel_map=mono
+load-module module-remap-source source_name=umc404hd-xlr-4 source_properties=device.description=UMC404HD-XLR-Input-4 master=alsa_input.usb-BEHRINGER_UMC404HD_192k-00.multichannel-input remix=no channels=1 master_channel_map=rear-right channel_map=mono
+
+# Remap Behringer outputs separately
+load-module module-remap-sink sink_name=umc404hd-outputs-1-2 sink_properties=device.description=UMC404HD-Outputs-1-2 master=alsa_output.usb-BEHRINGER_UMC404HD_192k-00.analog-surround-40 remix=no channels=2 master_channel_map=front-left,front-right channel_map=left,right
+load-module module-remap-sink sink_name=umc404hd-outputs-3-4 sink_properties=device.description=UMC404HD-Outputs-3-4 master=alsa_output.usb-BEHRINGER_UMC404HD_192k-00.analog-surround-40 remix=no channels=2 master_channel_map=rear-left,rear-right channel_map=left,right
+
+# Make those the default
+set-default-sink umc404hd-outputs-1-2
+set-default-source umc404hd-xlr-4
+
+
+
+
+https://hakin9.org/docker-osx-run-mac-in-a-docker-container/
+
+
+
+pulseaudio --load=module-native-protocol-tcp --exit-idle-time=-1 --daemon
+pulseaudio --kill
+
+docker run --rm -it \
+    -e PULSE_SERVER=docker.for.mac.localhost \
+    -v ~/.config/pulse:/home/pulseaudio/.config/pulse \
+    --entrypoint speaker-test \
+    jess/pulseaudio -c 2 -l 1 -t wav
+
+
+pacmd load-module \
+	module-remap-sink \
+	sink_name=rear_stereo \
+	master=MON_L__MON_R__LINE_3__LINE_4__VIRTUAL_1__VIRTUAL_2__VIRTUAL_3__VIRTUAL_4 \
+	channels=8 \
+	master_channel_map=mono,mono,mono,mono,mono,mono,mono,mono \
+	channel_map=left,right,aux0,aux0,aux0,aux0,aux0,aux0 \
+	remix=no
+
+
+pacmd list-sinks
+pacmd set-default-sink 2
+
+### homebrew
+brew services start pulseaudio
+brew autoremove
+brew cleanup
+brew doctor
+
+### macports
+
+
+
+ssh -R 24713:localhost:4713 server
+export PULSE_SERVER="tcp:localhost:24713"

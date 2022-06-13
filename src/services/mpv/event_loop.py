@@ -49,8 +49,7 @@ class MPVEvent(ActorIO):
         
         self._t = threading.Thread(target=handler(self._run), daemon=True)
         self._t.start()
-        self.log_lvl = logging.INFO
-        
+        self.log_lvl = logging.ERROR
 
     def _run(self) -> None:
         while 1:

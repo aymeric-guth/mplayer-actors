@@ -67,12 +67,12 @@ class Files(Actor):
                         # selection d'UN fichier
                         f, e = self.files[p1]
                         args = [f'{CWD().realpath}{f}{e}',]
-                        data = {
-                            'path': '/' + '/'.join(CWD().path) + '/',
-                            'filename': f,
-                            'extension': e
-                        }
-                        send(to='MediaDispatcher', what=Response(type='files', name='content', args=data))
+                        # args = {
+                        #     'path': '/' + '/'.join(CWD().path) + '/',
+                        #     'filename': f,
+                        #     'extension': e
+                        # }
+                        send(to='MediaDispatcher', what=Response(type='files', name='content', args=args))
                         # send(to='MediaDispatcher', what=Response(type='files', name='content', args=args))
 
                     case [p1] if p1 > 0 and p1 < len(self.files):
