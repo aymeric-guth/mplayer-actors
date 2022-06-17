@@ -1,6 +1,6 @@
 from ctypes import c_uint64, c_char_p, c_int, POINTER, c_double
 
-from .mpv.mpv import (
+from mpv import (
     _mpv_set_option_string as mpv_set_option_string, 
     _mpv_initialize as mpv_initialize, 
     _mpv_create as mpv_create, 
