@@ -7,7 +7,8 @@ from collections import deque
 # from ...external.fix_encoding import Str
 import fxenc
 from ...utils import clamp
-from ...external.fix_ideo import StrIdeo
+from fxideo import FxIdeo
+
 
 from .constants import PROMPT, CMD_HEIGHT, PLAYBACK_HEIGHT
 
@@ -18,7 +19,7 @@ def format_line(
     pad: int, 
     display_width: int
 ) -> str:
-    s: StrIdeo = StrIdeo(fxenc.quickfix(string))
+    s = FxIdeo(fxenc.quickfix(string))
     idx = f"{indice:0{pad}}"
     size_cell_a = len(idx) + 5
     size_cell_b = display_width - size_cell_a

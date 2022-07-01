@@ -2,7 +2,6 @@
 # import logging.handlers
 
 from . import config
-from . import fix_encoding
 from . import mpv_bootstrap as _mpv
 from . import actors
 
