@@ -2,7 +2,7 @@ import curses
 import logging
 from typing import Optional, Any
 
-from ...external.actors import Actor, Message, Sig, ActorIO, create, send, DispatchError, Event, Request, Response, SystemMessage
+from actors import Actor, Message, Sig, ActorIO, create, send, DispatchError, Event, Request, Response, SystemMessage
 
 from .constants import num_mapping, Key
 from .helpers import CmdCache, eval_cmd, CmdBuffer

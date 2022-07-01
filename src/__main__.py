@@ -4,7 +4,7 @@ import time
 # import pdb
 from signal import signal, SIGWINCH
 
-from .external.actors import create, ActorSystem, Sig, Message, send, Send, Event
+from actors import create, ActorSystem, Sig, Message, send, Send, Event
 from .services import API, Display, Files, Input, External, MediaDispatcher, Dummy#, SocketServer
 
 

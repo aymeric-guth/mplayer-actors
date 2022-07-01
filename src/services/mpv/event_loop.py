@@ -5,8 +5,8 @@ import threading
 import logging
 
 from ...external import _mpv
-from ...external.actors import ActorIO, send, Message, Sig, DispatchError, Actor, Event, Request, Response, SystemMessage
-from ...external.actors.base_actor import BaseActor
+from actors import ActorIO, send, Message, Sig, DispatchError, Actor, Event, Request, Response, SystemMessage
+from actors.base_actor import BaseActor
 
 from ...utils import try_not
 

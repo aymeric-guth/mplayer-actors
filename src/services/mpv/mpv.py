@@ -10,13 +10,10 @@ from functools import wraps
 from ...external import _mpv
 
 from ...utils import clamp
-from ...external.actors import Actor, Message, Sig, send, create, DispatchError, Event, Request, ActorSystem, SystemMessage
-from ...external.actors.utils import Observable, logger
-
+from actors import Actor, Message, Sig, send, create, DispatchError, Event, Request, ActorSystem, SystemMessage
+from actors.subsystems.observable_properties import Observable
 
 from .event_loop import MpvEvent, MPVEvent
-
-
 
 
 def volume_setter() -> Callable[[str], float]:
@@ -133,7 +130,7 @@ class MPV(Actor):
         else:            
             _mpv.mpv_set_property_string(self.handle, ename, _mpv.mpv_coax_proptype(value))
 
-    @logger
+    # @logger
     def terminate(self) -> None:
         if self.player_state != 4:   
             send(to=self.pid, what=Request(type='player', name='play-stop'))

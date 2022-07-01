@@ -5,9 +5,9 @@ import logging
 import time
 
 from ...utils import SingletonMeta, clamp
-from ...external.actors import Actor, Message, Sig, send, DispatchError, create, MsgCtx, forward, Event, Request, Response, ActorSystem, SystemMessage
+from actors import Actor, Message, Sig, send, DispatchError, create, MsgCtx, forward, Event, Request, Response, ActorSystem, SystemMessage
 from .wcurses import Curses
-from ...external.actors.utils import Observable
+from actors.subsystems.observable_properties import Observable
 
 
 # signal(SIGWINCH, lambda signum, frame: send(to='Display', what=Event(type='signal', name='resize')))

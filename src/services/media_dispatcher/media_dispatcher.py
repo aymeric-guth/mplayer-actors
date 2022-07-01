@@ -3,8 +3,8 @@ from typing import Optional
 import time
 from pathlib import Path
 
-from ...external.actors import Actor, Message, Sig, send, create, DispatchError, Event, Request, Response, SystemMessage
-from ...external.actors.utils import Observable
+from actors import Actor, Message, Sig, send, create, DispatchError, Event, Request, Response, SystemMessage
+from actors.subsystems.observable_properties import Observable
 
 from ..mpv import MPV
 from .playlist import Playlist

@@ -3,7 +3,7 @@ import os
 import re
 import logging
 
-from ...external.actors import Actor, Message, Sig, send, DispatchError, Event, Request, Response, SystemMessage
+from actors import Actor, Message, Sig, send, DispatchError, Event, Request, Response, SystemMessage
 from ...settings import extensions_all
 from . import helpers
 from ._types import CWD

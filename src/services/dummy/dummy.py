@@ -3,7 +3,7 @@ from functools import singledispatchmethod
 
 from ...utils import SingletonMeta
 
-from ...external.actors import Actor, Message, Sig, send, DispatchError
+from actors import Actor, Message, Sig, send, DispatchError
 
 
 

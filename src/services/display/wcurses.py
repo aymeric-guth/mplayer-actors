@@ -12,7 +12,7 @@ import queue
 
 
 from ...utils import SingletonMeta, clamp, try_not, defer
-from ...external.actors import Actor, Message, Sig, send, DispatchError, Event, Request, Response, ActorIO, create, SystemMessage
+from actors import Actor, Message, Sig, send, DispatchError, Event, Request, Response, ActorIO, create, SystemMessage
 from .helpers import string_format, set_dims
 from .constants import PROMPT
 

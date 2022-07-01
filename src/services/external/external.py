@@ -6,7 +6,7 @@ import pickle
 
 from ...utils import SingletonMeta
 
-from ...external.actors import Actor, Message, Sig, send, DispatchError, SystemMessage
+from actors import Actor, Message, Sig, send, DispatchError, SystemMessage
 from ...settings import MOUNT_POINT, SMB_USER, SMB_PASS, SMB_ADDR, SMB_PORT, ENV_PATH, CACHE_PATH
 from ..files._types import CWD
 

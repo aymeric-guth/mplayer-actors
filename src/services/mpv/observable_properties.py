@@ -1,7 +1,7 @@
 from typing import Any, Callable
 from collections import defaultdict
 
-from ...external.actors import Event, send, Message, Sig
+from actors import Event, send, Message, Sig
 
 
 class ObservableProperties:

@@ -1,4 +1,4 @@
-from ...external.actors import Message, Sig, Event, Request, Response
+from actors import Message, Sig, Event, Request, Response
 import logging
 
 from ...utils import SingletonMeta, clamp

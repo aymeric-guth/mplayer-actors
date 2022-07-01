@@ -2,7 +2,7 @@ import logging
 
 import httpx
 
-from ...external.actors import Actor, Message, Sig, send, DispatchError, ActorException, SystemMessage, Request, Response
+from actors import Actor, Message, Sig, send, DispatchError, ActorException, SystemMessage, Request, Response
 
 from . import helpers
 from ...settings import USERNAME, PASSWORD, extensions_all
