@@ -22,7 +22,7 @@ def eval_cmd(cmd: str) -> tuple[str, Message|Response|Request|Event]:
             return 'External', Message(sig=Sig.JUMP, args=label)
 
         case ['reindex']:
-            return 'API', Message(sig=Sig.FILES_REINDEX)
+            return 'API', Request(type='api', name='reindex')
 
         case ['resume']:
             ...
@@ -34,7 +34,6 @@ def eval_cmd(cmd: str) -> tuple[str, Message|Response|Request|Event]:
         case ['loop' | 'l', param] if param.isdigit():
             # loop mode on / off
             return 'MediaDispatcher', Request(type='player', name='playback-mode', args=int(param))
-            # return 'MediaDispatcher', Message(sig=Sig.PLAYBACK_MODE, args=int(param))
 
         case ['quit' | 'q']:
             return 'ActorSystem', Message(sig=Sig.SIGQUIT)
@@ -73,7 +72,7 @@ def eval_cmd(cmd: str) -> tuple[str, Message|Response|Request|Event]:
             ...
 
         case ['open']:
-            return 'External', Message(sig=Sig.OPEN)
+            return 'External', Request(type='os', name='open')
 
         case ['?', p] if p:
             return 'Files', Message(sig=Sig.SEARCH, args=p)
@@ -85,8 +84,8 @@ def eval_cmd(cmd: str) -> tuple[str, Message|Response|Request|Event]:
             return actor, Request(type='player', name='play-pause')
         
         case ['login']:
-            return 'API', Message(sig=Sig.LOGIN)
-        
+            return 'API', Request(type='api', name='login')
+
         case ['logs', 'actors']:
             return 'ActorSystem', Message(sig=Sig.PRINT_ALL)
 

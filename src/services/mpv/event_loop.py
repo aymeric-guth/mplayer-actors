@@ -5,10 +5,11 @@ import threading
 import logging
 
 from ...external import _mpv
-from actors import ActorIO, send, Message, Sig, DispatchError, Actor, Event, Request, Response, SystemMessage
+from actors import ActorIO, send, Event, Request, Response, SystemMessage
 from actors.base_actor import BaseActor
 
 from ...utils import try_not
+
 
 @dataclasses.dataclass(frozen=True)
 class MpvEvent:

@@ -1,16 +1,13 @@
 import locale
 from ctypes import c_char_p, c_uint64, c_int, pointer, POINTER, c_void_p, sizeof, cast, create_string_buffer
 from dataclasses import dataclass
-from typing import Any, Optional, Callable
+from typing import Callable
 import logging
-import time
-from typing import Callable, Any
-from functools import wraps
 
 from ...external import _mpv
 
 from ...utils import clamp
-from actors import Actor, Message, Sig, send, create, DispatchError, Event, Request, ActorSystem, SystemMessage
+from actors import Actor, Message, send, create, DispatchError, Event, Request, ActorSystem, SystemMessage
 from actors.subsystems.observable_properties import Observable
 
 from .event_loop import MpvEvent, MPVEvent
@@ -66,9 +63,6 @@ class MPV(Actor):
             return
 
         match msg:
-            # case Event(type='property-change', name='player-state', args=4):
-            #     self.publish(name='player-state', value=4)
-                # send(to=self.child, what=Message(sig=Sig.EXIT))
 
             case Event(type='property-change', name=name, args=data):
                 self.publish(name=name, value=data)
@@ -134,8 +128,6 @@ class MPV(Actor):
     def terminate(self) -> None:
         if self.player_state != 4:   
             send(to=self.pid, what=Request(type='player', name='play-stop'))
-        if self.child:
-            send(to=self.child, what=Message(sig=Sig.EXIT))
         self.handle, handle = None, self.handle
         _mpv.mpv_terminate_destroy(handle)
         # _mpv.mpv_render_context_free(handle)

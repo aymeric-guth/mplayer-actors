@@ -2,7 +2,7 @@ import logging
 
 import httpx
 
-from actors import Actor, Message, Sig, send, DispatchError, ActorException, SystemMessage, Request, Response
+from actors import Actor, Message, Sig, send, DispatchError, ActorException, SystemMessage, Request, Response, Event
 
 from . import helpers
 from ...settings import USERNAME, PASSWORD, extensions_all
@@ -27,20 +27,26 @@ class API(Actor):
         
         response: httpx.Response
         match msg:
-            case Message(sig=Sig.LOGIN_SUCCESS, args=token):
+            case Event(type='success', name='login', args=token):
                 self.token = token
-                send(self.pid, Message(Sig.EXT_SET, args=list(self.extensions)))
+                send(to=self.pid, what=Request(type='api', name='ext', args=list(self.extensions)))
 
-            case Message(sig=Sig.LOGIN_FAILURE, args=args):
+            case Event(type='failure', name='login', args=args):
                 raise ActorException(args)
 
-            case Message(sig=Sig.NETWORK_FAILURE, args=args):
+            case Event(type='failure', name='network', args=args):
                 raise ActorException(args)
 
-            case Message(sig=Sig.EXT_SUCCESS, args=args):
-                send('External', Message(sig=Sig.GET_CACHE))
+            case Event(type='success', name='ext'):
+                send(to='External', what=Request(type='files', name='cache'))
 
-            case Message(sig=Sig.LOGIN, args=args):
+            case Event(type='success', name='reindex'):
+                send(to=self.pid, what=Request(type='api', name='files'))
+
+            case Event(type='files', name='cache-empty'):
+                send(to=self.pid, what=Request(type='api', name='files'))
+
+            case Request(type='api', name='login'):
                 try:
                     response = httpx.post(
                         url=AUTH.LOGIN, 
@@ -52,15 +58,15 @@ class API(Actor):
                     )
                 except httpx.NetworkError as err:
                     # network error, introspection for cause, possible recovery
-                    send(self.pid, Message(sig=Sig.NETWORK_FAILURE, args=str(err)))
+                    send(to=self.pid, what=Event(type='failure', name='network', args=str(err)))
                 else:
                     token = response.json().get('token')
                     if token is None:
-                        send(self.pid, Message(sig=Sig.LOGIN_FAILURE, args=response.json()))
+                        send(to=self.pid, what=Event(type='failure', name='login', args=response.json()))
                     else:
-                        send(self.pid, Message(sig=Sig.LOGIN_SUCCESS, args=token))
+                        send(to=self.pid, what=Event(type='success', name='login', args=token))
 
-            case Message(sig=Sig.EXT_SET, args=extensions):
+            case Request(type='api', name='ext', args=extensions):
                 try:
                     response = httpx.patch(
                         url=NAS.EXT,
@@ -69,14 +75,17 @@ class API(Actor):
                         timeout=10.0
                     )
                 except httpx.NetworkError as err:
-                    send(self.pid, Message(sig=Sig.NETWORK_FAILURE, args=str(err)))
+                    send(to=self.pid, what=Event(type='failure', name='network', args=str(err)))
                 else:
                     if response.status_code != 200:
-                        send(self.pid, Message(sig=Sig.NETWORK_FAILURE, args=response.json()))
+                        send(to=self.pid, what=Event(type='failure', name='network', args=response.json()))
                     else:
-                        send(self.pid, Message(sig=Sig.EXT_SUCCESS))
-            
-            case Message(sig=Sig.FILES_GET, args=args):
+                        send(to=self.pid, what=Event(type='success', name='ext'))
+
+            case Response(type='files', name='cache', args=data):
+                send('Files', Message(sig=Sig.FILES_NEW, args=data))
+
+            case Request(type='api', name='files'):
                 try:
                     response = httpx.get(
                         url=NAS.FILES,
@@ -84,14 +93,14 @@ class API(Actor):
                         timeout=20.0
                     )
                 except httpx.NetworkError as err:
-                    send(self.pid, Message(sig=Sig.NETWORK_FAILURE, args=str(err)))
+                    send(to=self.pid, what=Event(type='failure', name='network', args=str(err)))
                 else:
                     if response.status_code != 200:
-                        send(self.pid, Message(sig=Sig.NETWORK_FAILURE, args=response.json()))
+                        send(to=self.pid, what=Event(type='failure', name='network', args=response.json()))
                     else:
-                        send('External', Message(sig=Sig.FILES_NEW, args=response.json()))
+                        send(to='External', what=Event(type='files', name='new', args=response.json()))
 
-            case Message(sig=Sig.FILES_REINDEX, args=args):
+            case Request(type='api', name='reindex'):
                 try:
                     response = httpx.patch(
                         url=NAS.FILES, 
@@ -99,12 +108,12 @@ class API(Actor):
                         timeout=10.0
                     )
                 except httpx.NetworkError as err:
-                    send(self.pid, Message(sig=Sig.NETWORK_FAILURE, args=str(err)))
+                    send(to=self.pid, what=Event(type='failure', name='network', args=str(err)))
                 else:
                     if response.status_code != 200:
-                        send(self.pid, Message(sig=Sig.NETWORK_FAILURE, args=response.json()))
+                        send(to=self.pid, what=Event(type='failure', name='network', args=response.json()))
                     else:
-                        send(self.pid, Message(sig=Sig.FILES_GET))
+                        send(to=self.pid, what=Event(type='success', name='reindex'))
 
             case Request(type='get', name='file', args=args):
                 try:
@@ -115,10 +124,10 @@ class API(Actor):
                         timeout=20.0
                     )
                 except httpx.NetworkError as err:
-                    send(self.pid, Message(sig=Sig.NETWORK_FAILURE, args=str(err)))
+                    send(to=self.pid, what=Event(type='failure', name='network', args=str(err)))
                 else:
                     if response.status_code != 200:
-                        send(self.pid, Message(sig=Sig.NETWORK_FAILURE, args=response.json()))
+                        send(to=self.pid, what=Event(type='failure', name='network', args=response.json()))
                     else:
                         send(to=sender, what=Response(type='get', name='file', args=response.content))
                         # send('External', Message(sig=Sig.FILES_NEW, args=response.json()))
@@ -128,4 +137,4 @@ class API(Actor):
 
 
     def init(self) -> None:
-        send(self.pid, Message(Sig.LOGIN))
+        send(to=self.pid, what=Request(type='api', name='login'))

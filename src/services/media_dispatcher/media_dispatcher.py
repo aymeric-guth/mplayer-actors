@@ -1,15 +1,11 @@
 import logging
-from typing import Optional
-import time
-from pathlib import Path
 
-from actors import Actor, Message, Sig, send, create, DispatchError, Event, Request, Response, SystemMessage
+from actors import Actor, Message, send, create, DispatchError, Event, Request, Response, SystemMessage
 from actors.subsystems.observable_properties import Observable
 
 from ..mpv import MPV
 from .playlist import Playlist
 
-from ...utils import SingletonMeta
 from ...strings import ERRORS
 from ._types import PlaybackMode
 
@@ -111,10 +107,9 @@ class MediaDispatcher(Actor):
     def init(self) -> None:
         create(MPV, wid=self.wid)
         for actor, event in self.subs:
-            send(to=actor, what=Message(sig=Sig.SUBSCRIBE, args=event))
+            self.subscribe(to=actor, what=event)
 
     def terminate(self) -> None:
         for actor, event in self.subs:
-            send(to=actor, what=Message(sig=Sig.UNSUBSCRIBE, args=event))
-        send(to=self.child, what=Message(Sig.EXIT))
+            self.unsubscribe(to=actor, what=event)
         raise SystemExit

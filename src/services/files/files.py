@@ -7,12 +7,15 @@ from actors import Actor, Message, Sig, send, DispatchError, Event, Request, Res
 from ...settings import extensions_all
 from . import helpers
 from ._types import CWD
+from actors.subsystems.observable_properties import Observable
 
 
 # Synthetic CWD, recompose un tree à partir de critères de recherche
 # regroupe tous les noeuds matchs dans une nouvelle racine récursivement
 
 class Files(Actor):
+    cwd = Observable()
+
     def __init__(self, pid: int, parent: int, name='', **kwargs) -> None:
         super().__init__(pid, parent, name, **kwargs)
         self.files_tree: dict[tuple[str, ...], list[tuple[str, str]]] = defaultdict(list)
@@ -28,6 +31,9 @@ class Files(Actor):
         match msg:
             case Message(sig=Sig.CWD_GET, args=args):
                 send(sender, Message(sig=Sig.CWD_GET, args=helpers.get_kwargs(self)))
+
+            case Request(type='files', name='cwd'):
+                send(to=sender, what=Response(type='files', name='cwd', args=helpers.get_kwargs(self)))
 
             case Message(sig=Sig.FILES_NEW, args=args):
                 self.files_tree.clear()

@@ -7,11 +7,9 @@ from typing import Optional
 from pathlib import Path
 from math import ceil
 import threading
-import time
 import queue
 
-
-from ...utils import SingletonMeta, clamp, try_not, defer
+from utils import clamp, try_not
 from actors import Actor, Message, Sig, send, DispatchError, Event, Request, Response, ActorIO, create, SystemMessage
 from .helpers import string_format, set_dims
 from .constants import PROMPT
@@ -232,7 +230,7 @@ class Curses(Actor):
                 popup.box()
                 popup.addstr(1, ofst, error_message[:width-3])
                 popup.refresh()
-                defer(callback=lambda: popup.refresh(), timeout=2., logger=self.logger)
+                # defer(callback=lambda: popup.refresh(), timeout=2., logger=self.logger)
                 # send(self.pid, Event(type='rendered'))
 
             case _:
