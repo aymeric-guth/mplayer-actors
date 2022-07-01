@@ -1,3 +1,15 @@
+### Client
+# send request delete file | folder leaf
+# send /files
+
+### Server
+# verfification exists
+# delete from db
+# delete local file(s) | folder leaf 
+# send response
+
+
+
 ### Bugfix ###
 * bugfix: defer() qui peut deadlock dans le cas ou un acteur (enregistré) a SystemExit pour SUBSCRIBE et UNSUBSCRIBE
 * refactor: préparation class Files en vue de l'implémentation de la recherche récursive
