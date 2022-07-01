@@ -4,3 +4,4 @@ pylint>=2.12.2
 httpx>=0.22.0
 python-dotenv>=0.20.0
 python-mpv>=1.0.1
+git+https://git.ars-virtualis.org/yul/fix_encoding@master

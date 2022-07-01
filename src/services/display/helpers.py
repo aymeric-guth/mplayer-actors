@@ -4,7 +4,8 @@ import curses
 from pathlib import Path
 from collections import deque
 
-from ...external.fix_encoding import Str
+# from ...external.fix_encoding import Str
+import fxenc
 from ...utils import clamp
 from ...external.fix_ideo import StrIdeo
 
@@ -17,7 +18,7 @@ def format_line(
     pad: int, 
     display_width: int
 ) -> str:
-    s: StrIdeo = StrIdeo(str(Str(string)))
+    s: StrIdeo = StrIdeo(fxenc.quickfix(string))
     idx = f"{indice:0{pad}}"
     size_cell_a = len(idx) + 5
     size_cell_b = display_width - size_cell_a
