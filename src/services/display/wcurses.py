@@ -10,7 +10,7 @@ import threading
 import queue
 
 from utils import clamp, try_not
-from actors import Actor, Message, Sig, send, DispatchError, Event, Request, Response, ActorIO, create, SystemMessage
+from actors import Actor, Message, send, DispatchError, Event, Request, Response, ActorIO, create, SystemMessage
 from .helpers import string_format, set_dims
 from .constants import PROMPT
 
