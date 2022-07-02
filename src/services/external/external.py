@@ -11,7 +11,7 @@ from ..files._types import CWD
 class External(Actor):
     def __init__(self, pid: int, parent: int, name='', **kwargs) -> None:
         super().__init__(pid, parent, name, **kwargs)
-        self.log_lvl = logging.ERROR
+        self.log_lvl = logging.INFO
 
     def dispatch(self, sender: int, msg: Message) -> None:
         try:

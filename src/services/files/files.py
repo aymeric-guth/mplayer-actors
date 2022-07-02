@@ -65,41 +65,7 @@ class Files(Actor):
                     i for i in list(self.files_tree.get(CWD().path, []))
                     if pattern.search(i[0])
                 ]
-                send(self.pid, Message(Sig.PATH_REFRESH))
-
-            case Message(sig=Sig.FILES_GET, args=args):
-                match args:
-                    case [p1, None] if isinstance(p1, int) and p1 > 0 and p1 < len(self.files):
-                        # selection valide 1+
-                        # selection en range de la liste de fichiers affichés
-                        # selection d'UN fichier
-                        f, e = self.files[p1]
-                        args = [str(CWD().realpath / f'{f}{e}'),]
-                        send(to='MediaDispatcher', what=Response(type='files', name='content', args=args))
-                        # send(to='MediaDispatcher', what=Response(type='files', name='content', args=args))
-
-                    case [p1] if p1 > 0 and p1 < len(self.files):
-                        args = [ str(CWD().realpath / f'{f}{e}') for f, e in self.files[p1:] ]
-                        send(sender, Message(sig=Sig.FILES_GET, args=args))
-
-                    case [p1, p2] if (p1 > 0 and p1 < len(self.files)) and (p2 > 0 and p2 < len(self.files)):
-                        if p1 < p2:
-                            args = [ str(CWD().realpath / f'{f}{e}') for f, e in self.files[p1:p2+1] ]
-                            send(sender, Message(sig=Sig.FILES_GET, args=args))
-                        elif p1 > p2:
-                            args = [ str(CWD().realpath / f'{f}{e}') for f, e in self.files[p1:p2-1:-1] ]
-                            send(sender, Message(sig=Sig.FILES_GET, args=args))
-                        else:
-                            send(self.pid, Message(sig=Sig.FILES_GET, args=[p1, None]))
-
-                    case None:
-                        args = [ str(CWD().realpath / f'{f}{e}') for f, e in self.files[1:] ]
-                        send(sender, Message(sig=Sig.FILES_GET, args=args))
-
-                    case _:
-                        # selection invalide
-                        # envoi d'un message d'erreur
-                        send('Display', Message(sig=Sig.ERROR, args=f'Invalid selection: {args}'))
+                send(to=self.pid, what=Event(type='files', name='content-reloaded'))
 
             case Request(type='files', name='cwd-change', args=args):
                 send(to=self.pid, what=Message(sig=Sig.PATH_SET, args=args))
@@ -129,11 +95,14 @@ class Files(Actor):
                 send(sender, Message(sig=Sig.ERROR, args=f'Invalid selection: {param}'))
 
             case Message(sig=Sig.PATH_CONTENT):
+                send(to=self.pid, what=Event(type='files', name='content-reload'))
+
+            case Event(type='files', name='content-reload'):
                 self.dirs = list( self.dir_tree.get(CWD().path, []) )
                 self.files = list( self.files_tree.get(CWD().path, []) )
-                send(self.pid, Message(sig=Sig.PATH_REFRESH))
+                send(to=self.pid, what=Event(type='files', name='content-reloaded'))
 
-            case Message(sig=Sig.PATH_REFRESH):
+            case Event(type='files', name='content-reloaded'):
                 # Guard si un folder a été delete
                 # while not(os.access(CWD().realpath, os.F_OK) ) or ( not(self.files_tree[CWD().path]) and not(self.dir_tree[CWD().path]) ):
                 #     self.logger.warning(f'Unavailable path: {CWD().path}')
@@ -179,8 +148,6 @@ class Files(Actor):
                         send(to=sender, what=Response(type='files', name='content', args=args))
 
                     case _:
-                        # selection invalide
-                        # envoi d'un message d'erreur
-                        send('Display', Message(sig=Sig.ERROR, args=f'Invalid selection: {args}'))
+                        send(to='Display', what=Event(type='error', name='bad-cmd', args=f'Invalid selection: {args}'))
             case _:
                 self.logger.warning(f'Unprocessable msg={msg}')
