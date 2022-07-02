@@ -2,7 +2,7 @@ import logging
 
 import httpx
 
-from actors import Actor, Message, Sig, send, DispatchError, ActorException, SystemMessage, Request, Response, Event
+from actors import Actor, Message, send, DispatchError, ActorException, SystemMessage, Request, Response, Event
 
 from . import helpers
 from ...settings import USERNAME, PASSWORD, extensions_all
@@ -83,7 +83,7 @@ class API(Actor):
                         send(to=self.pid, what=Event(type='success', name='ext'))
 
             case Response(type='files', name='cache', args=data):
-                send('Files', Message(sig=Sig.FILES_NEW, args=data))
+                send(to='Files', what=Event(type='files', name='new', args=data))
 
             case Request(type='api', name='files'):
                 try:
@@ -115,26 +115,8 @@ class API(Actor):
                     else:
                         send(to=self.pid, what=Event(type='success', name='reindex'))
 
-            case Request(type='get', name='file', args=args):
-                try:
-                    response = httpx.post(
-                        url=NAS.FILES,
-                        headers=helpers.get_headers(self.token),
-                        json=args,
-                        timeout=20.0
-                    )
-                except httpx.NetworkError as err:
-                    send(to=self.pid, what=Event(type='failure', name='network', args=str(err)))
-                else:
-                    if response.status_code != 200:
-                        send(to=self.pid, what=Event(type='failure', name='network', args=response.json()))
-                    else:
-                        send(to=sender, what=Response(type='get', name='file', args=response.content))
-                        # send('External', Message(sig=Sig.FILES_NEW, args=response.json()))
-
             case _:
                 raise DispatchError(f'Unprocessable msg={msg}')
-
 
     def init(self) -> None:
         send(to=self.pid, what=Request(type='api', name='login'))

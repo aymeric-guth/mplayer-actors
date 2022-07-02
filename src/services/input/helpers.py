@@ -14,12 +14,12 @@ def eval_cmd(cmd: str) -> tuple[str, Message|Response|Request|Event]:
         case ['h' | 'hook', label]:
             # bookmarks
             # hooks cwd and maps it to label
-            return 'External', Message(sig=Sig.HOOK, args=label)
+            return 'External', Request(type='cmd', name='hook', args=label)
 
         case ['j' | 'jump', label]:
             # bookmarks
             # jumps to corresponding directory
-            return 'External', Message(sig=Sig.JUMP, args=label)
+            return 'External', Request(type='cmd', name='jump', args=label)
 
         case ['reindex']:
             return 'API', Request(type='api', name='reindex')

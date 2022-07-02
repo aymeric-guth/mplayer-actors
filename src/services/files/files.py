@@ -35,6 +35,9 @@ class Files(Actor):
             case Request(type='files', name='cwd'):
                 send(to=sender, what=Response(type='files', name='cwd', args=helpers.get_kwargs(self)))
 
+            case Event(type='files', name='new', args=data):
+                send(to=self.pid, what=Message(sig=Sig.FILES_NEW, args=data))
+
             case Message(sig=Sig.FILES_NEW, args=args):
                 self.files_tree.clear()
                 self.dir_tree.clear()
@@ -98,6 +101,9 @@ class Files(Actor):
                         # selection invalide
                         # envoi d'un message d'erreur
                         send('Display', Message(sig=Sig.ERROR, args=f'Invalid selection: {args}'))
+
+            case Request(type='files', name='cwd-change', args=args):
+                send(to=self.pid, what=Message(sig=Sig.PATH_SET, args=args))
 
             case Message(sig=Sig.PATH_SET, args=param) if isinstance(param, int):
                 if not param:

@@ -6,7 +6,7 @@ import pickle
 
 from ...utils import SingletonMeta
 
-from actors import Actor, Message, Sig, send, DispatchError, SystemMessage, Request, Response, Event
+from actors import Actor, Message, send, DispatchError, SystemMessage, Request, Response, Event
 from ...settings import MOUNT_POINT, SMB_USER, SMB_PASS, SMB_ADDR, SMB_PORT, ENV_PATH, CACHE_PATH
 from ..files._types import CWD
 
@@ -58,7 +58,7 @@ class External(Actor):
             case Event(type='files', name='new', args=data):
                 with open(CACHE_PATH / 'cache.pckl', 'wb') as f:
                     pickle.dump(data, f)
-                send('Files', Message(sig=Sig.FILES_NEW, args=data))
+                send(to='Files', what=Event(type='files', name='new', args=data))
 
             case Request(type='files', name='cache'):
                 try:
@@ -69,7 +69,7 @@ class External(Actor):
                 else:
                     send(to='API', what=Response(type='files', name='cache', args=data))
 
-            case Message(sig=Sig.HOOK, args=args) if isinstance(args, list | tuple) and len(args) == 2:
+            case Request(type='cmd', name='hook', args=args) if isinstance(args, list | tuple) and len(args) == 2:
                 k, v = args
                 try:
                     with open(CACHE_PATH / 'jump-table.pckl', 'rb') as f:
@@ -81,7 +81,7 @@ class External(Actor):
                 with open(CACHE_PATH / 'jump-table.pckl', 'wb') as f:
                     pickle.dump(jump_table, f)
 
-            case Message(sig=Sig.HOOK, args=args):
+            case Request(type='cmd', name='hook', args=args):
                 try:
                     with open(CACHE_PATH / 'jump-table.pckl', 'rb') as f:
                         jump_table = pickle.load(f)
@@ -92,7 +92,7 @@ class External(Actor):
                 with open(CACHE_PATH / 'jump-table.pckl', 'wb') as f:
                     pickle.dump(jump_table, f)
 
-            case Message(sig=Sig.JUMP, args=args):
+            case Request(type='cmd', name='jump', args=args):
                 try:
                     with open(CACHE_PATH / 'jump-table.pckl', 'rb') as f:
                         jump_table = pickle.load(f)
@@ -100,7 +100,7 @@ class External(Actor):
                     ...
                 else:
                     cwd = jump_table.get(args)
-                    send('Files', Message(sig=Sig.PATH_SET, args=cwd))                       
+                    send(to='Files', what=Request(type='files', name='cwd-change', args=cwd))            
 
             case _:
                 self.logger.warning(f'Unprocessable msg={msg}')
