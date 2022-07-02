@@ -125,10 +125,14 @@ class MPV(Actor):
 
     # @logger
     def terminate(self) -> None:
-        if self.player_state != 4:   
+        self.logger.error("terminate(self)")
+        if self.player_state != 4:
+            self.logger.error("if self.player_state != 4:")
             send(to=self.pid, what=Request(type='player', name='play-stop'))
+        self.logger.error("send(to=self.pid, what=Request(type='player', name='play-stop'))")
         self.handle, handle = None, self.handle
-        _mpv.mpv_terminate_destroy(handle)
+        self.logger.error("self.handle, handle = None, self.handle")
+        # _mpv.mpv_terminate_destroy(handle)
         # _mpv.mpv_render_context_free(handle)
         raise SystemExit
 

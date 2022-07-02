@@ -10,7 +10,7 @@ import threading
 import queue
 
 from utils import clamp, try_not
-from actors import Actor, Message, send, DispatchError, Event, Request, Response, ActorIO, create, SystemMessage
+from actors import Actor, Message, send, DispatchError, Event, Request, Response, ActorIO, create, SystemMessage, Message, Sig
 from .helpers import string_format, set_dims
 from .constants import PROMPT
 
@@ -90,6 +90,9 @@ class Curses(Actor):
             return
 
         match msg:
+            case Event(type='system', name='dirty-exit'):
+                self.dirty_exit()
+
             case Event(type='property-change', name=name, args=args):
                 match name:
                     case 'files-overlay':
@@ -250,4 +253,14 @@ class Curses(Actor):
         curses.curs_set(1)       
         self.stdscr.clear()
         curses.endwin()
+        raise SystemExit
+
+    def dirty_exit(self) -> None:
+        self.stdscr.keypad(False)
+        curses.nocbreak()
+        curses.echo()
+        curses.curs_set(1)       
+        self.stdscr.clear()
+        curses.endwin()
+        send(to='ActorSystem', what=Message(sig=Sig.SIGQUIT))
         raise SystemExit

@@ -290,3 +290,4 @@ cached.pckl
 essais/
 docs/
 scripts/
+.envrc
