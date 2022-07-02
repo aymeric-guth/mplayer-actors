@@ -4,11 +4,10 @@ from ctypes import cast, sizeof, POINTER, create_string_buffer, pointer
 import threading
 import logging
 
-from ...external import _mpv
 from actors import ActorIO, send, Event, Request, Response, SystemMessage
-from actors.base_actor import BaseActor
+from utils import try_not
 
-from ...utils import try_not
+from ...external import _mpv
 
 
 @dataclasses.dataclass(frozen=True)

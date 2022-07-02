@@ -1,14 +1,7 @@
 from typing import Any, Callable
-from math import ceil
-import curses
-from pathlib import Path
-from collections import deque
 
-# from ...external.fix_encoding import Str
 import fxenc
-from ...utils import clamp
 from fxideo import FxIdeo
-
 
 from .constants import PROMPT, CMD_HEIGHT, PLAYBACK_HEIGHT
 

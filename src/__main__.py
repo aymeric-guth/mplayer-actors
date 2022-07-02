@@ -1,11 +1,10 @@
 import sys
 import traceback
-import time
 # import pdb
 from signal import signal, SIGWINCH
 
 from actors import create, ActorSystem, Sig, Message, send, Send, Event
-from .services import API, Display, Files, Input, External, MediaDispatcher, Dummy#, SocketServer
+from .services import API, Display, Files, Input, External, MediaDispatcher
 
 
 signal(SIGWINCH, lambda signum, frame: send(to=Display, what=Event(type='signal', name='resize')))

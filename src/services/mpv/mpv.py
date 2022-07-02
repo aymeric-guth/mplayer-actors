@@ -1,12 +1,11 @@
 import locale
 from ctypes import c_char_p, c_uint64, c_int, pointer, POINTER, c_void_p, sizeof, cast, create_string_buffer
-from dataclasses import dataclass
 from typing import Callable
 import logging
 
 from ...external import _mpv
 
-from ...utils import clamp
+from utils import clamp
 from actors import Actor, Message, send, create, DispatchError, Event, Request, ActorSystem, SystemMessage
 from actors.subsystems.observable_properties import Observable
 

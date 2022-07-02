@@ -1,11 +1,10 @@
-from typing import Any
 from dataclasses import dataclass
 import copy
-from pathlib import Path, PurePath
+from pathlib import PurePath
 import threading
 
 from ...settings import MOUNT_POINT, ROOT
-from ...utils import SingletonMeta
+from utils import SingletonMeta
 
 
 @dataclass(frozen=True)

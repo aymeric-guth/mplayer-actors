@@ -55,7 +55,7 @@ class Files(Actor):
 
                 send(self.pid, Message(sig=Sig.PATH_SET))
 
-            case Message(sig=Sig.SEARCH, args=args):
+            case Request(type='files', name='search', args=args):
                 pattern = re.compile(args, re.IGNORECASE)
                 self.dirs = [ 
                     i for i in list(self.dir_tree.get(CWD().path, []))

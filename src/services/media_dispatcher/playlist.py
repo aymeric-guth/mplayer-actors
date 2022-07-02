@@ -1,5 +1,4 @@
-from collections import deque
-from ...utils import SingletonMeta
+from utils import SingletonMeta
 
 
 class Playlist(metaclass=SingletonMeta):

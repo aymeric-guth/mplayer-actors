@@ -1,6 +1,6 @@
 from actors import Message, Sig, Event, Request, Response
 
-from ...utils import SingletonMeta, clamp
+from utils import SingletonMeta, clamp
 from ...strings import ERRORS
 
 
@@ -8,7 +8,7 @@ def eval_cmd(cmd: str) -> tuple[str, Message|Response|Request|Event]:
     match cmd.lstrip().rstrip().split(' '):
         case ['..']:
             # goes back 1 node
-            return 'Files', Message(sig=Sig.PATH_SET, args=0)
+            return 'Files', Request(type='files', name='cwd-change', args=0)
 
         case ['h' | 'hook', label]:
             # bookmarks
@@ -28,7 +28,7 @@ def eval_cmd(cmd: str) -> tuple[str, Message|Response|Request|Event]:
 
         case['refresh' | 'r']:
             # refresh display, fallback
-            return 'Files', Message(sig=Sig.PATH_SET)
+            return 'Files', Request(type='files', name='cwd-change')
 
         case ['loop' | 'l', param] if param.isdigit():
             # loop mode on / off
@@ -42,7 +42,7 @@ def eval_cmd(cmd: str) -> tuple[str, Message|Response|Request|Event]:
 
         case [param] if param.isdigit():
             # basic digit selector
-            return 'Files', Message(sig=Sig.PATH_SET, args=int(param))
+            return 'Files', Request(type='files', name='cwd-change', args=int(param))
 
         case ['stop']:
             return 'MediaDispatcher', Request(type='player', name='play-stop')
@@ -74,10 +74,10 @@ def eval_cmd(cmd: str) -> tuple[str, Message|Response|Request|Event]:
             return 'External', Request(type='os', name='open')
 
         case ['?', p] if p:
-            return 'Files', Message(sig=Sig.SEARCH, args=p)
+            return 'Files', Request(type='files', name='search', args=p)
 
         case ['?*', p] if p:
-            return 'Files', Message(sig=Sig.SEARCH_ALL, args=p)
+            return 'Files', Request(type='files', name='search-all', args=p)
 
         case ['send', actor, *msg] if actor and msg:
             return actor, Request(type='player', name='play-pause')

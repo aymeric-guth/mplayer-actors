@@ -1,16 +1,9 @@
-import curses
 from typing import Any
-from signal import signal, SIGWINCH
 import logging
-import time
 
-from ...utils import SingletonMeta, clamp
-from actors import Actor, Message, Sig, send, DispatchError, create, MsgCtx, forward, Event, Request, Response, ActorSystem, SystemMessage
+from actors import Actor, Message, send, DispatchError, create, MsgCtx, forward, Event, Request, Response, ActorSystem, SystemMessage
 from .wcurses import Curses
 from actors.subsystems.observable_properties import Observable
-
-
-# signal(SIGWINCH, lambda signum, frame: send(to='Display', what=Event(type='signal', name='resize')))
 
 
 class Display(Actor):
@@ -44,6 +37,7 @@ class Display(Actor):
             ('MediaDispatcher', 'duration'),
             ('MediaDispatcher', 'player-state'),
         ]
+
     def dispatch(self, sender: int, msg: Message) -> None:
         try:
             super().dispatch(sender, msg)
