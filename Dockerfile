@@ -25,6 +25,7 @@ RUN apt install -y git
 RUN apt install -y netcat-openbsd
 RUN rm -rf /var/lib/apt/lists/*
 
+
 FROM builder as stagging
 ENV HOME /home/pulseaudio
 ENV PULSE_SERVER=host.docker.internal
@@ -40,6 +41,7 @@ COPY ./requirements.txt ./requirements.txt
 RUN chown -R pulseaudio:pulseaudio /home/pulseaudio
 USER pulseaudio
 RUN python3 -m pip install -r requirements.txt
+
 
 FROM stagging AS runtime
 # ENTRYPOINT [ "python3", "-m", "src" ]
