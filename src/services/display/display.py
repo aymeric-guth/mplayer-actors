@@ -122,10 +122,9 @@ class Display(Actor):
     def init(self) -> None:
         create(Curses)
         for actor, event in self.subs:
-            send(to=actor, what=Message(sig=Sig.SUBSCRIBE, args=event))
+            self.subscribe(actor, event)
 
     def terminate(self) -> None:
         for actor, event in self.subs:
-            send(to=actor, what=Message(sig=Sig.UNSUBSCRIBE, args=event))
-        send(to=self.child, what=Message(sig=Sig.EXIT))
+            self.unsubscribe(actor, event)
         raise SystemExit
