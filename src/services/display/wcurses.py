@@ -239,12 +239,11 @@ class Curses(Actor):
     def init(self) -> None:
         create(InputIO, stdscr=self.stdscr)
         for actor, event in self.subs:
-            send(to=actor, what=Message(sig=Sig.SUBSCRIBE, args=event))
+            self.subscribe(actor, event)
 
     def terminate(self) -> None:
         for actor, event in self.subs:
-            send(to=actor, what=Message(sig=Sig.UNSUBSCRIBE, args=event))
-        send(to=self.child, what=Message(sig=Sig.EXIT))
+            self.unsubscribe(actor, event)
         self.stdscr.keypad(False)
         curses.nocbreak()
         curses.echo()

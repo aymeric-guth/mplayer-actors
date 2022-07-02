@@ -1,10 +1,7 @@
 import subprocess
 import socket
 import logging
-from pathlib import Path, PurePath
 import pickle
-
-from ...utils import SingletonMeta
 
 from actors import Actor, Message, send, DispatchError, SystemMessage, Request, Response, Event
 from ...settings import MOUNT_POINT, SMB_USER, SMB_PASS, SMB_ADDR, SMB_PORT, ENV_PATH, CACHE_PATH
