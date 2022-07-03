@@ -11,7 +11,7 @@ from ..files._types import CWD
 class External(Actor):
     def __init__(self, pid: int, parent: int, name='', **kwargs) -> None:
         super().__init__(pid, parent, name, **kwargs)
-        self.log_lvl = logging.INFO
+        self.log_lvl = logging.ERROR
 
     def dispatch(self, sender: int, msg: Message) -> None:
         try:
@@ -22,7 +22,7 @@ class External(Actor):
         jump_table: dict[str, list|tuple]
         match msg:
             case Request(type='os', name='open'):
-                send(to='Files', what=Request(type='files', name='cwd'))
+                send(to='Files', what=Request(type='files', name='cwd-content'))
 
             case Response(type='files', name='cwd', args=args):
                 subprocess.run(['open', args.get('path_full')])
@@ -52,10 +52,10 @@ class External(Actor):
                         str(mount_point)
                     ], capture_output=True)
 
-            case Event(type='files', name='new', args=data):
+            case Event(type='files', name='new-data', args=data):
                 with open(CACHE_PATH / 'cache.pckl', 'wb') as f:
                     pickle.dump(data, f)
-                send(to='Files', what=Event(type='files', name='new', args=data))
+                send(to='Files', what=Event(type='files', name='new-data', args=data))
 
             case Request(type='files', name='cache'):
                 try:

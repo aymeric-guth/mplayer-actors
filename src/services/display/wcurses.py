@@ -90,8 +90,8 @@ class Curses(Actor):
             return
 
         match msg:
-            case Event(type='system', name='dirty-exit'):
-                self.dirty_exit()
+            case Event(type='system', name='dirty-exit', args=args):
+                self.dirty_exit(args)
 
             case Event(type='property-change', name=name, args=args):
                 match name:
@@ -255,7 +255,7 @@ class Curses(Actor):
         curses.endwin()
         raise SystemExit
 
-    def dirty_exit(self) -> None:
+    def dirty_exit(self, args) -> None:
         self.stdscr.keypad(False)
         curses.nocbreak()
         curses.echo()

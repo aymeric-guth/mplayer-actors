@@ -83,7 +83,7 @@ class API(Actor):
                         send(to=self.pid, what=Event(type='success', name='ext'))
 
             case Response(type='files', name='cache', args=data):
-                send(to='Files', what=Event(type='files', name='new', args=data))
+                send(to='Files', what=Event(type='files', name='new-data', args=data))
 
             case Request(type='api', name='files'):
                 try:
@@ -98,7 +98,7 @@ class API(Actor):
                     if response.status_code != 200:
                         send(to=self.pid, what=Event(type='failure', name='network', args=response.json()))
                     else:
-                        send(to='External', what=Event(type='files', name='new', args=response.json()))
+                        send(to='External', what=Event(type='files', name='new-data', args=response.json()))
 
             case Request(type='api', name='reindex'):
                 try:

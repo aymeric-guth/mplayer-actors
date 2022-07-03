@@ -52,7 +52,6 @@ class MPV(Actor):
         _mpv.mpv_set_option_string(self.handle, b'input-vo-keyboard', b'no')
         # mpv_load_config_file(self.handle, str(path).encode('utf-8'))
         _mpv.mpv_initialize(self.handle)
-        # self.log_lvl = logging.INFO
         self.log_lvl = logging.ERROR
 
     def dispatch(self, sender: int, msg: Message) -> None:

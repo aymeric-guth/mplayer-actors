@@ -67,7 +67,7 @@ class Display(Actor):
                 if self.playback_overlay:
                     send(self.child, Request(type='render', name='playback', args=self.media_meta.copy()))
 
-            case Event(type='files', name='cwd-change', args=args):
+            case Event(type='files', name='cwd-changed', args=args):
                 dir_list, files_list = args.get('dir_list'), args.get('files_list')
                 self.files_buff = [dir_list, files_list]
 

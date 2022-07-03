@@ -28,13 +28,10 @@ class Files(Actor):
             return
 
         match msg:
-            case Message(sig=Sig.CWD_GET, args=args):
-                send(sender, Message(sig=Sig.CWD_GET, args=helpers.get_kwargs(self)))
+            case Request(type='files', name='cwd-content'):
+                send(to=sender, what=Response(type='files', name='cwd-content', args=helpers.get_kwargs(self)))
 
-            case Request(type='files', name='cwd'):
-                send(to=sender, what=Response(type='files', name='cwd', args=helpers.get_kwargs(self)))
-
-            case Event(type='files', name='new', args=args):
+            case Event(type='files', name='new-data', args=args):
                 self.files_tree.clear()
                 self.dir_tree.clear()
 
@@ -50,7 +47,9 @@ class Files(Actor):
                         key = formated_path[:i+1]
                         self.dir_tree[key[:-1]].add(key[-1])
 
-                send(self.pid, Message(sig=Sig.PATH_SET))
+                # send(to=self.pid, what=Event(type='files', name='cwd-changed'))
+                # initialisation apres modification globales de la structure de données                
+                send(to=self.pid, what=Event(type='files', name='data-changed', args=args))
 
             case Request(type='files', name='search', args=args):
                 pattern = re.compile(args, re.IGNORECASE)
@@ -64,42 +63,39 @@ class Files(Actor):
                 ]
                 send(to=self.pid, what=Event(type='files', name='content-reloaded'))
 
-            case Request(type='files', name='cwd-change', args=args):
-                send(to=self.pid, what=Message(sig=Sig.PATH_SET, args=args))
-
-            case Message(sig=Sig.PATH_SET, args=param) if isinstance(param, int):
+            case Request(type='files', name='cwd-change', args=param) if isinstance(param, int):
                 if not param:
                     CWD().pop()
-                    send(self.pid, Message(sig=Sig.PATH_CONTENT))
+                    send(to=self.pid, what=Request(type='files', name='content-reload'))
                 elif param < len(self.dirs):
                     # selection valide 1+
                     # selection en range de la liste des dossisers affichés
                     # default vers selection parmi les dossiers
                     CWD().push(f"{self.dirs[param]}")
-                    send(self.pid, Message(sig=Sig.PATH_CONTENT))
+                    send(to=self.pid, what=Request(type='files', name='content-reload'))
                 else:
-                    send(self.pid, Message(sig=Sig.FILES_GET, args=[param, None]))
+                    send(to=self.pid, what=Request(type='files', name='content', args=[param, None]))
 
-            case Message(sig=Sig.PATH_SET, args=param) if isinstance(param, list | tuple):
+            case Request(type='files', name='cwd-change', args=param) if isinstance(param, list | tuple):
                 # bookmark overload de path?
                 CWD().path = param
-                send(self.pid, Message(sig=Sig.PATH_CONTENT))
+                send(to=self.pid, what=Request(type='files', name='content-reload'))
 
-            case Message(sig=Sig.PATH_SET, args=param) if param is None:
-                send(self.pid, Message(sig=Sig.PATH_CONTENT))
+            case Request(type='files', name='cwd-change', args=param) if param is None:
+                send(to=self.pid, what=Request(type='files', name='content-reload'))
 
-            case Message(sig=Sig.PATH_SET, args=param):
-                send(sender, Message(sig=Sig.ERROR, args=f'Invalid selection: {param}'))
+            case Request(type='files', name='cwd-change', args=param):
+                send(to=self.pid, what=Event(type='files', name='cwd-invalid', args=f'Invalid selection: {param}'))
 
-            case Message(sig=Sig.PATH_CONTENT):
-                send(to=self.pid, what=Event(type='files', name='content-reload'))
+            case Event(type='files', name='data-changed', args=args):
+                send(to=self.pid, what=Request(type='files', name='content-reload'))
 
-            case Event(type='files', name='content-reload'):
+            case Request(type='files', name='content-reload'):
                 self.dirs = list( self.dir_tree.get(CWD().path, []) )
                 self.files = list( self.files_tree.get(CWD().path, []) )
-                send(to=self.pid, what=Event(type='files', name='content-reloaded'))
+                send(to=self.pid, what=Event(type='files', name='content-changed'))
 
-            case Event(type='files', name='content-reloaded'):
+            case Event(type='files', name='content-changed'):
                 # Guard si un folder a été delete
                 # while not(os.access(CWD().realpath, os.F_OK) ) or ( not(self.files_tree[CWD().path]) and not(self.dir_tree[CWD().path]) ):
                 #     self.logger.warning(f'Unavailable path: {CWD().path}')
@@ -113,8 +109,7 @@ class Files(Actor):
                 self.files.insert(0, ('', ''))
                 self.len_dir = len(self.dirs)
                 self.len_files = len(self.files)
-                send(to='Display', what=Event(type='files', name='cwd-change', args=helpers.get_kwargs(self)))
-                # send('Display', Message(sig=Sig.CWD_GET, args=helpers.get_kwargs(self)))
+                send(to='Display', what=Event(type='files', name='cwd-changed', args=helpers.get_kwargs(self)))
 
             case Request(type='files', name='content', args=args):
                 match args:
