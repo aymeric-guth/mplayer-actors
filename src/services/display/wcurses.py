@@ -15,7 +15,6 @@ from .helpers import string_format, set_dims
 from .constants import PROMPT
 
 
-
 class InputIO(ActorIO):
     def __init__(self, pid: int, parent: int, name='', stdscr: Optional[curses.window]=None, **kwargs) -> None:
         super().__init__(pid, parent, name, **kwargs)
@@ -90,9 +89,6 @@ class Curses(Actor):
             return
 
         match msg:
-            case Event(type='system', name='dirty-exit', args=args):
-                self.dirty_exit(args)
-
             case Event(type='property-change', name=name, args=args):
                 match name:
                     case 'files-overlay':
@@ -253,14 +249,4 @@ class Curses(Actor):
         curses.curs_set(1)       
         self.stdscr.clear()
         curses.endwin()
-        raise SystemExit
-
-    def dirty_exit(self, args) -> None:
-        self.stdscr.keypad(False)
-        curses.nocbreak()
-        curses.echo()
-        curses.curs_set(1)       
-        self.stdscr.clear()
-        curses.endwin()
-        send(to='ActorSystem', what=Message(sig=Sig.SIGQUIT))
         raise SystemExit

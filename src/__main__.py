@@ -1,13 +1,12 @@
 import sys
 import traceback
 # import pdb
-from signal import signal, SIGWINCH, SIGINT
+from signal import signal, SIGWINCH
 
-from actors import create, ActorSystem, Sig, Message, send, Send, Event
+from actors import create, ActorSystem, send, Send, Event
 from .services import API, Display, Files, Input, External, MediaDispatcher
 
 
-# signal(SIGINT, lambda signum, frame: send(to='Curses', what=Event(type='system', name='dirty-exit')))
 signal(SIGWINCH, lambda signum, frame: send(to=Display, what=Event(type='signal', name='resize')))
 
 

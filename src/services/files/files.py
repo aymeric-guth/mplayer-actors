@@ -2,7 +2,7 @@ from collections import defaultdict
 import re
 import logging
 
-from actors import Actor, Message, Sig, send, DispatchError, Event, Request, Response, SystemMessage
+from actors import Actor, Message, send, DispatchError, Event, Request, Response, SystemMessage
 from ...settings import extensions_all
 from . import helpers
 from ._types import CWD
