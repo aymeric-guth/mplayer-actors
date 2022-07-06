@@ -19,12 +19,12 @@ class Playlist(metaclass=SingletonMeta):
 
     def __len__(self) -> int:
         return len(self.container)
-    
+
     def prev(self) -> str:
         if self.p > 0:
             self.p -= 1
         return self.container[self.p]
-    
+
     def next(self) -> str | None:
         if self.p >= len(self.container) - 1:
             return None

@@ -4,101 +4,116 @@ from utils import SingletonMeta, clamp
 from ...strings import ERRORS
 
 
-def eval_cmd(cmd: str) -> tuple[str, Message|Response|Request|Event]:
-    match cmd.lstrip().rstrip().split(' '):
-        case ['..']:
+def eval_cmd(cmd: str) -> tuple[str, Message | Response | Request | Event]:
+    match cmd.lstrip().rstrip().split(" "):
+        case [".."]:
             # goes back 1 node
-            return 'Files', Request(type='files', name='cwd-change', args=0)
+            return "Files", Request(type="files", name="cwd-change", args=0)
 
-        case ['h' | 'hook', label]:
+        case ["h" | "hook", label]:
             # bookmarks
             # hooks cwd and maps it to label
-            return 'External', Request(type='cmd', name='hook', args=label)
+            return "External", Request(type="cmd", name="hook", args=label)
 
-        case ['j' | 'jump', label]:
+        case ["j" | "jump", label]:
             # bookmarks
             # jumps to corresponding directory
-            return 'External', Request(type='cmd', name='jump', args=label)
+            return "External", Request(type="cmd", name="jump", args=label)
 
-        case ['reindex']:
-            return 'API', Request(type='api', name='reindex')
+        case ["reindex"]:
+            return "API", Request(type="api", name="reindex")
 
-        case ['resume']:
+        case ["resume"]:
             ...
 
-        case['refresh' | 'r']:
+        case ["refresh" | "r"]:
             # refresh display, fallback
-            return 'Files', Request(type='files', name='cwd-change')
+            return "Files", Request(type="files", name="cwd-change")
 
-        case ['loop' | 'l', param] if param.isdigit():
+        case ["loop" | "l", param] if param.isdigit():
             # loop mode on / off
-            return 'MediaDispatcher', Request(type='player', name='playback-mode', args=int(param))
+            return "MediaDispatcher", Request(
+                type="player", name="playback-mode", args=int(param)
+            )
 
-        case ['quit' | 'q']:
-            return 'ActorSystem', Message(sig=Sig.SIGQUIT)
+        case ["quit" | "q"]:
+            return "ActorSystem", Message(sig=Sig.SIGQUIT)
 
-        case ['current']:
-            return 'ActorSystem', Message(sig=Sig.SIGQUIT)
+        case ["current"]:
+            return "ActorSystem", Message(sig=Sig.SIGQUIT)
 
         case [param] if param.isdigit():
             # basic digit selector
-            return 'Files', Request(type='files', name='cwd-change', args=int(param))
+            return "Files", Request(type="files", name="cwd-change", args=int(param))
 
-        case ['stop']:
-            return 'MediaDispatcher', Request(type='player', name='play-stop')
-            
-        case ['play' | 'p', *params]:
+        case ["stop"]:
+            return "MediaDispatcher", Request(type="player", name="play-stop")
+
+        case ["play" | "p", *params]:
             # play parameter
             match params:
                 case []:
-                    return 'MediaDispatcher', Request(type='player', name='play-selection')
+                    return "MediaDispatcher", Request(
+                        type="player", name="play-selection"
+                    )
 
                 case [param] if param.isdigit():
-                    return 'MediaDispatcher', Request(type='player', name='play-selection', args=[int(param)])
+                    return "MediaDispatcher", Request(
+                        type="player", name="play-selection", args=[int(param)]
+                    )
 
                 case [param1, param2] if param1.isdigit() and param2.isdigit():
-                    return 'MediaDispatcher', Request(type='player', name='play-selection', args=[int(param1), int(param2)])
+                    return "MediaDispatcher", Request(
+                        type="player",
+                        name="play-selection",
+                        args=[int(param1), int(param2)],
+                    )
 
                 case _:
                     ...
 
-        case ['volume' | 'v', value] if value.isdigit():
+        case ["volume" | "v", value] if value.isdigit():
             # set volume to value
-            return 'MediaDispatcher', Request(type='player', name='volume', args=value)
+            return "MediaDispatcher", Request(type="player", name="volume", args=value)
 
-        case ['depth' | 'd', value] if value.isdigit() and int(value) > 0:
-            # goes value nodes up
-            ...
+        case ["delete" | "d", value] if value.isdigit() and int(value) > 0:
+            return "API", Request(type="api", name="delete", args=[int(value)])
 
-        case ['open']:
-            return 'External', Request(type='os', name='open')
+        # case ['depth' | 'd', value] if value.isdigit() and int(value) > 0:
+        #     # goes value nodes up
+        #     ...
 
-        case ['?', p] if p:
-            return 'Files', Request(type='files', name='search', args=p)
+        case ["open"]:
+            return "External", Request(type="os", name="open")
 
-        case ['?*', p] if p:
-            return 'Files', Request(type='files', name='search-all', args=p)
+        case ["?", p] if p:
+            return "Files", Request(type="files", name="search", args=p)
 
-        case ['send', actor, *msg] if actor and msg:
-            return actor, Request(type='player', name='play-pause')
-        
-        case ['login']:
-            return 'API', Request(type='api', name='login')
+        case ["?*", p] if p:
+            return "Files", Request(type="files", name="search-all", args=p)
 
-        case ['logs', 'actors']:
-            return 'ActorSystem', Message(sig=Sig.PRINT_ALL)
+        case ["send", actor, *msg] if actor and msg:
+            return actor, Request(type="player", name="play-pause")
 
-        case ['logs', 'clear']:
-            return 'ActorSystem', Message(sig=Sig.CLEAR_SCREEN)
+        case ["login"]:
+            return "API", Request(type="api", name="login")
 
-        case ['log', pid, level] if pid.isdigit() and level.isdigit() and int(pid) >= 0:
+        case ["logs", "actors"]:
+            return "ActorSystem", Message(sig=Sig.PRINT_ALL)
+
+        case ["logs", "clear"]:
+            return "ActorSystem", Message(sig=Sig.CLEAR_SCREEN)
+
+        case ["log", pid, level] if pid.isdigit() and level.isdigit() and int(pid) >= 0:
             # CRITICAL 50 # ERROR 40 # WARNING 30 # INFO 20 # DEBUG 10 # NOTSET 0
             return int(pid), Message(sig=Sig.LOGGING, args=int(level) * 10)
 
         case _:
-            return 'Display', Event(type='error', name='bad-cmd', args=ERRORS.CMD.format(cmd))
+            return "Display", Event(
+                type="error", name="bad-cmd", args=ERRORS.CMD.format(cmd)
+            )
 
-    return ('ActorSystem', Message(sig=Sig.ERROR))
+    return ("ActorSystem", Message(sig=Sig.ERROR))
 
 
 class CmdCache(metaclass=SingletonMeta):
@@ -107,7 +122,7 @@ class CmdCache(metaclass=SingletonMeta):
         self._p = -1
 
     @property
-    def p(self) -> int:        
+    def p(self) -> int:
         return self._p
 
     @p.setter
@@ -156,8 +171,8 @@ class CmdBuffer(metaclass=SingletonMeta):
     def insert(self, value: str) -> None:
         self._container.insert(self.p, value)
         self.p += 1
-    
-    def delete(self, ofst: int=0) -> None:
+
+    def delete(self, ofst: int = 0) -> None:
         if not self._container:
             return
         if not ofst:
@@ -174,17 +189,17 @@ class CmdBuffer(metaclass=SingletonMeta):
         return self._container
 
     def to_str(self) -> str:
-        return ''.join(self._container)
+        return "".join(self._container)
 
     def init(self, value: list[str]) -> None:
         self._container = value
         self.p = len(self._container)
 
-    def mov(self, value: int=0) -> None:
+    def mov(self, value: int = 0) -> None:
         if value:
             self.p += 1
         else:
             self.p -= 1
 
     def serialize(self) -> tuple[str, int]:
-        return (''.join(self._container), self.p)
+        return ("".join(self._container), self.p)

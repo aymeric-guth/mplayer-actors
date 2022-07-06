@@ -6,12 +6,7 @@ from fxideo import FxIdeo
 from .constants import PROMPT, CMD_HEIGHT, PLAYBACK_HEIGHT
 
 
-def format_line(
-    string: str, 
-    indice: int, 
-    pad: int, 
-    display_width: int
-) -> str:
+def format_line(string: str, indice: int, pad: int, display_width: int) -> str:
     s = FxIdeo(fxenc.quickfix(string))
     idx = f"{indice:0{pad}}"
     size_cell_a = len(idx) + 5
@@ -25,9 +20,7 @@ def format_line(
 
 
 def string_format(
-    dir_list: list[Any], 
-    files_list: list[Any], 
-    display_width: int
+    dir_list: list[Any], files_list: list[Any], display_width: int
 ) -> list[str]:
     len_dir = len(dir_list)
     len_files = len(files_list)
@@ -35,13 +28,13 @@ def string_format(
     pad = 3 if (len_dir + len_files) // 10 > 10 else 2
 
     str_object: list[str] = []
-    str_object.append(format_line('DIRS', 0, pad, display_width))
+    str_object.append(format_line("DIRS", 0, pad, display_width))
     for i, v in enumerate(dir_list[1:]):
-        str_object.append(format_line(v, i+1, pad, display_width))
+        str_object.append(format_line(v, i + 1, pad, display_width))
 
-    str_object.append(format_line('FILES', 0, pad, display_width))
+    str_object.append(format_line("FILES", 0, pad, display_width))
     for i, v in enumerate(files_list[1:]):
-        str_object.append(format_line(v[0], i+1, pad, display_width))
+        str_object.append(format_line(v[0], i + 1, pad, display_width))
 
     return str_object
 
@@ -62,7 +55,7 @@ def set_dims(self) -> None:
     else:
         playback_width = 0
         playback_height = 0
-    # (files_width, files_height) = (max_width, (max_height - cmd_height - playback_height)) if self.files_overlay else (0, 0)    
+    # (files_width, files_height) = (max_width, (max_height - cmd_height - playback_height)) if self.files_overlay else (0, 0)
     if self.files_overlay:
         files_width = max_width
         files_height = max_height - cmd_height - playback_height
@@ -76,9 +69,13 @@ def set_dims(self) -> None:
 
     playback_x_ofst = 1
     playback_y_ofst = files_height
-    self.playback_dims = (playback_width, playback_height, playback_x_ofst, playback_y_ofst)
-       
+    self.playback_dims = (
+        playback_width,
+        playback_height,
+        playback_x_ofst,
+        playback_y_ofst,
+    )
+
     cmd_x_ofst = 1
     cmd_y_ofst = files_height + playback_height
     self.cmd_dims = (cmd_width, cmd_height, cmd_x_ofst, cmd_y_ofst)
-

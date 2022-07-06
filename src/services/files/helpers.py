@@ -2,7 +2,7 @@ from typing import Any
 from ._types import CWD
 
 
-def get_kwargs(self) -> dict[str, str|int|tuple[Any, ...]]:
+def get_kwargs(self) -> dict[str, str | int | tuple[Any, ...]]:
     return {
         "path": CWD().path,
         "path_full": CWD().realpath,
