@@ -1,5 +1,6 @@
 import sys
 import traceback
+
 # import pdb
 from signal import signal, SIGWINCH
 
@@ -7,7 +8,10 @@ from actors import create, ActorSystem, send, Send, Event
 from .services import API, Display, Files, Input, External, MediaDispatcher
 
 
-signal(SIGWINCH, lambda signum, frame: send(to=Display, what=Event(type='signal', name='resize')))
+signal(
+    SIGWINCH,
+    lambda signum, frame: send(to=Display, what=Event(type="signal", name="resize")),
+)
 
 
 def main():
@@ -30,5 +34,5 @@ def main():
         return 0
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     sys.exit(main())

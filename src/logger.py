@@ -5,10 +5,9 @@ import logging
 
 
 async def handle_client(
-    reader: asyncio.StreamReader,
-    writer: asyncio.StreamWriter
+    reader: asyncio.StreamReader, writer: asyncio.StreamWriter
 ) -> None:
-    print('New connection')
+    print("New connection")
     while 1:
         try:
             try:
@@ -16,24 +15,26 @@ async def handle_client(
             except asyncio.IncompleteReadError:
                 raise
 
-            size = int.from_bytes(header, byteorder='big')
+            size = int.from_bytes(header, byteorder="big")
             if not size:
                 raise Exception
 
             message = await reader.readexactly(size)
             record = logging.makeLogRecord(pickle.loads(message))
-            fmt = logging.Formatter(fmt='[%(asctime)s][%(levelname)s][%(actor)s][%(name)s:%(lineno)s]\n[%(message)s]\n')
+            fmt = logging.Formatter(
+                fmt="[%(asctime)s][%(levelname)s][%(actor)s][%(name)s:%(lineno)s]\n[%(message)s]\n"
+            )
             print(fmt.format(record))
 
         except Exception:
             writer.close()
             await writer.wait_closed()
-            print('Client terminated')
+            print("Client terminated")
             return
 
 
 async def main() -> None:
-#    server = await asyncio.start_server(handle_client, "192.168.1.100", 8080)
+    #    server = await asyncio.start_server(handle_client, "192.168.1.100", 8080)
     server = await asyncio.start_server(handle_client, "127.0.0.1", 8080)
     async with server:
         try:
@@ -42,5 +43,5 @@ async def main() -> None:
             ...
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     asyncio.run(main(), debug=True)
