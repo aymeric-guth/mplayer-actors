@@ -87,8 +87,7 @@ class Display(Actor):
                     )
 
             case Event(type="files", name="cwd-changed", args=args):
-                dir_list, files_list = args.get("dir_list"), args.get("files_list")
-                self.files_buff = [dir_list, files_list]
+                self.files_buff = args
 
             case Event(type="io", name="resize"):
                 (dir_list, files_list) = self.files_buff

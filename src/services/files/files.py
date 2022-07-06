@@ -15,7 +15,7 @@ from actors import (
 )
 from ...settings import extensions_all
 from . import helpers
-from ._types import CWD
+from ._types import CWD, File
 from actors.subsystems.observable_properties import Observable
 
 
@@ -54,19 +54,17 @@ class Files(Actor):
                 self.dir_tree.clear()
 
                 for r in args:
-                    ext: str = r.get("extension")
-                    if ext not in extensions_all:
+                    entry = File(**r)
+                    if entry.ext not in extensions_all:
                         continue
-                    path: str = r.get("path")
-                    filename: str = r.get("filename")
 
-                    formated_path = tuple(path.split("/")[1:-1])
-                    self.files_tree[formated_path].append((filename, ext))
-                    for i, v in enumerate(formated_path):
-                        key = formated_path[: i + 1]
+                    #######
+                    # self.files_tree[entry.key].append((entry.filename, entry.ext))
+                    self.files_tree[entry.key].append((entry))
+                    for i, v in enumerate(entry.key):
+                        key = entry.key[: i + 1]
                         self.dir_tree[key[:-1]].add(key[-1])
 
-                # send(to=self.pid, what=Event(type='files', name='cwd-changed'))
                 # initialisation apres modification globales de la structure de données
                 send(
                     to=self.pid,
@@ -81,10 +79,17 @@ class Files(Actor):
                     if pattern.search(i)
                 ]
                 self.files = [
-                    i
-                    for i in list(self.files_tree.get(CWD().path, []))
-                    if pattern.search(i[0])
+                    e.to_tuple()
+                    for e in self.files_tree.get(CWD().path, [])
+                    if pattern.search(e.filename)
                 ]
+
+                #######
+                # self.files = [
+                #     i
+                #     for i in list(self.files_tree.get(CWD().path, []))
+                #     if pattern.search(i[0])
+                # ]
                 send(to=self.pid, what=Event(type="files", name="content-reloaded"))
 
             case Request(type="files", name="cwd-change", args=param) if isinstance(
@@ -130,7 +135,9 @@ class Files(Actor):
 
             case Request(type="files", name="content-reload"):
                 self.dirs = list(self.dir_tree.get(CWD().path, []))
-                self.files = list(self.files_tree.get(CWD().path, []))
+                self.files = [e.to_tuple() for e in self.files_tree.get(CWD().path, [])]
+                #######
+                # self.files = list(self.files_tree.get(CWD().path, []))
                 send(to=self.pid, what=Event(type="files", name="content-changed"))
 
             case Event(type="files", name="content-changed"):
@@ -145,12 +152,12 @@ class Files(Actor):
                 self.files.sort()
                 self.dirs.insert(0, "..")
                 self.files.insert(0, ("", ""))
-                self.len_dir = len(self.dirs)
-                self.len_files = len(self.files)
                 send(
                     to="Display",
                     what=Event(
-                        type="files", name="cwd-changed", args=helpers.get_kwargs(self)
+                        type="files",
+                        name="cwd-changed",
+                        args=(tuple(self.dirs), tuple(self.files)),
                     ),
                 )
 
