@@ -83,14 +83,7 @@ class Files(Actor):
                     for e in self.files_tree.get(CWD().path, [])
                     if pattern.search(e.filename)
                 ]
-
-                #######
-                # self.files = [
-                #     i
-                #     for i in list(self.files_tree.get(CWD().path, []))
-                #     if pattern.search(i[0])
-                # ]
-                send(to=self.pid, what=Event(type="files", name="content-reloaded"))
+                send(to=self.pid, what=Event(type="files", name="content-changed"))
 
             case Request(type="files", name="cwd-change", args=param) if isinstance(
                 param, int

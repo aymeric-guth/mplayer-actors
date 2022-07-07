@@ -23,7 +23,7 @@ from .helpers import CmdCache, eval_cmd, CmdBuffer
 class Prompt(Actor):
     def __init__(self, pid: int, parent: int, name="", **kwargs) -> None:
         super().__init__(pid, parent, name, **kwargs)
-        self.log_lvl = logging.CRITICAL
+        self.log_lvl = logging.INFO
 
     def dispatch(self, sender: int, msg: Message) -> None:
         try:

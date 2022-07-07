@@ -44,7 +44,7 @@ class MediaDispatcher(Actor):
         self.playlist_pos = (0, 0)
         self.playback_mode = PlaybackMode.NORMAL
         # self.log_lvl = logging.INFO
-        self.log_lvl = logging.ERROR
+        self.log_lvl = logging.INFO
         self.subs = [
             # ('MPV', 'volume'),
             # ('MPV', 'time-pos'),
