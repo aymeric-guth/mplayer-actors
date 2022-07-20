@@ -10,7 +10,7 @@ from ctypes import (
     cast,
     create_string_buffer,
 )
-from typing import Callable
+from typing import Callable, Any
 import logging
 
 from ...external import _mpv
@@ -34,9 +34,11 @@ from .event_loop import MpvEvent, MPVEvent
 
 def volume_setter() -> Callable[[str], float]:
     _volume = 0.0
-    func = lambda x: clamp(0.0, 100.0)(x) if x is not None else 0.0
+    func: Callable[[float], float] = (
+        lambda x: clamp(0.0, 100.0)(x) if x is not None else 0.0
+    )
 
-    def inner(volume: str):
+    def inner(volume: str) -> float:
         nonlocal _volume
 
         if isinstance(volume, str) and (
@@ -58,7 +60,9 @@ class MPV(Actor):
     playtime_remaining = Observable()
     metadata = Observable()
 
-    def __init__(self, pid: int, parent: int, name="", **kwargs) -> None:
+    def __init__(
+        self, pid: int, parent: int, name: str = "", **kwargs: dict[Any, Any]
+    ) -> None:
         super().__init__(pid, parent, name, **kwargs)
         self.volume = "100"
         self.time_pos = 0.0

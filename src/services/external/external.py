@@ -41,7 +41,7 @@ class External(Actor):
             case Request(type="os", name="open"):
                 send(to="Files", what=Request(type="files", name="cwd-content"))
 
-            case Response(type="files", name="cwd", args=args):
+            case Response(type="files", name="cwd-content", args=args):
                 subprocess.run(["open", args.get("path_full")])
 
             case Request(type="smb", name="ping", args=args):
