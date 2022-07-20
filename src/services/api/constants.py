@@ -5,11 +5,14 @@ BASE_AUTH = f"{BASE_URL}/authentication"
 
 
 class AUTH:
-    LOGIN = f'{BASE_AUTH}/login'
-    REGISTER = f'{BASE_AUTH}/register'
+    LOGIN = f"{BASE_AUTH}/login"
+    REGISTER = f"{BASE_AUTH}/register"
 
 
 class NAS(object):
     FILES = f"{BASE_NAS}/files"
     PLAYBACK = f"{BASE_NAS}/playback"
     EXT = f"{BASE_NAS}/extensions"
+    PURGE_ONE = f"{BASE_NAS}/purge/file"
+    PURGE_MANY = f"{BASE_NAS}/purge/files"
+    PURGE_DIR = f"{BASE_NAS}/purge/dir"

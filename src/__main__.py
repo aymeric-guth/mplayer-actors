@@ -4,7 +4,7 @@ import traceback
 # import pdb
 from signal import signal, SIGWINCH
 
-from actors import create, ActorSystem, send, Send, Event
+from actors import create, ActorSystem, send, Event
 from .services import API, Display, Files, Input, External, MediaDispatcher
 
 
@@ -14,7 +14,7 @@ signal(
 )
 
 
-def main():
+def main() -> int:
     create(API)
     create(Display)
     create(Files)
