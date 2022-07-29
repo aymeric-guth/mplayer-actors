@@ -2,13 +2,6 @@ import locale
 from ctypes import (
     c_char_p,
     c_uint64,
-    c_int,
-    pointer,
-    POINTER,
-    c_void_p,
-    sizeof,
-    cast,
-    create_string_buffer,
 )
 from typing import Callable, Any
 import logging
@@ -21,15 +14,13 @@ from actors import (
     Message,
     send,
     create,
-    DispatchError,
     Event,
     Request,
-    ActorSystem,
     SystemMessage,
 )
 from actors.subsystems.observable_properties import Observable
 
-from .event_loop import MpvEvent, MPVEvent
+from .event_loop import MPVEvent
 
 
 def volume_setter() -> Callable[[str], float]:
@@ -159,15 +150,9 @@ class MPV(Actor):
 
     # @logger
     def terminate(self) -> None:
-        self.logger.error("terminate(self)")
         if self.player_state != 4:
-            self.logger.error("if self.player_state != 4:")
             send(to=self.pid, what=Request(type="player", name="play-stop"))
-        self.logger.error(
-            "send(to=self.pid, what=Request(type='player', name='play-stop'))"
-        )
         self.handle, handle = None, self.handle
-        self.logger.error("self.handle, handle = None, self.handle")
         # _mpv.mpv_terminate_destroy(handle)
         # _mpv.mpv_render_context_free(handle)
         raise SystemExit

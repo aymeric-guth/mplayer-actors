@@ -1,18 +1,16 @@
 import curses
 import logging
-from typing import Optional, Any
+from typing import Any
 
 from actors import (
     Actor,
     Message,
     Sig,
-    ActorIO,
     create,
     send,
     DispatchError,
     Event,
     Request,
-    Response,
     SystemMessage,
 )
 
@@ -101,6 +99,7 @@ class Input(Actor):
                 send(self.child, msg)
 
             case Event(type="io", name="keypress", args=args):
+                self.logger.error(f"New keypress event: {args} {chr(args)}")
                 match args:
                     case 0:
                         ...
@@ -120,12 +119,14 @@ class Input(Actor):
                         send(to=actor, what=message)
 
                     case Key.ALT_H:
+                        self.logger.error("Matched Key.ALT_H")
                         send(
                             "MediaDispatcher",
                             Request(type="player", name="play-previous"),
                         )
 
                     case Key.ALT_L:
+                        self.logger.error("Matched Key.ALT_L")
                         send(
                             "MediaDispatcher", Request(type="player", name="play-next")
                         )

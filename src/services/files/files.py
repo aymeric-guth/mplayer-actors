@@ -6,7 +6,6 @@ from actors import (
     Actor,
     Message,
     send,
-    DispatchError,
     Event,
     Request,
     Response,
@@ -159,6 +158,11 @@ class Files(Actor):
 
             # case Request(type="files", name="content-remote", args=args):
             #     forward(sender, self.pid, Request(type="files", name="content", args=args))
+            case Response(type="files", name="content", args=args):
+                send(
+                    to="MediaDispatcher",
+                    what=Response(type="files", name="content", args=args),
+                )
 
             case Request(type="files", name="content", args=args):
                 match args:

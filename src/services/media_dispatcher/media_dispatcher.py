@@ -16,7 +16,6 @@ from actors.subsystems.observable_properties import Observable
 from ..mpv import MPV
 from .playlist import Playlist
 
-from ...strings import ERRORS
 from ._types import PlaybackMode
 
 
@@ -43,8 +42,7 @@ class MediaDispatcher(Actor):
         self.current_item = ""
         self.playlist_pos = (0, 0)
         self.playback_mode = PlaybackMode.NORMAL
-        # self.log_lvl = logging.INFO
-        self.log_lvl = logging.INFO
+        self.log_lvl = logging.ERROR
         self.subs = [
             # ('MPV', 'volume'),
             # ('MPV', 'time-pos'),
@@ -125,7 +123,7 @@ class MediaDispatcher(Actor):
                 send(to="Display", what=event)
 
             case _:
-                self.logger.error(f"Unprocessable msg={msg}")
+                # self.logger.error(f"Unprocessable msg={msg}")
                 raise DispatchError
 
     def init(self) -> None:
