@@ -48,3 +48,4 @@ class Key:
     ENTER = 10
     BACKSPACE = 127
     DELETE = 330
+    QUERY = 63

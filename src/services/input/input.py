@@ -19,9 +19,10 @@ from .helpers import CmdCache, eval_cmd, CmdBuffer
 
 
 class Prompt(Actor):
-    def __init__(self, pid: int, parent: int, name="", **kwargs) -> None:
+    def __init__(self, pid: int, parent: int, name="", key: int = 0, **kwargs) -> None:
         super().__init__(pid, parent, name, **kwargs)
         self.log_lvl = logging.ERROR
+        self.key = key
 
     def dispatch(self, sender: int, msg: Message) -> None:
         try:
@@ -41,7 +42,9 @@ class Prompt(Actor):
                         send(
                             to=self.parent,
                             what=Event(
-                                type="io", name="prompt", args=CmdBuffer().to_str()
+                                type="io",
+                                name="prompt",
+                                args=(self.key, CmdBuffer().to_str()),
                             ),
                         )
                         CmdBuffer().clear()
@@ -92,8 +95,16 @@ class Input(Actor):
         args: Any
         match msg:
             case Event(type="io", name="prompt", args=args):
-                (actor, message) = eval_cmd(args)
-                send(to=actor, what=message)
+                (key, result) = args
+                match key:
+                    case Key.COLON:
+                        (actor, message) = eval_cmd(result)
+                        send(to=actor, what=message)
+                    case Key.QUERY:
+                        send(
+                            to="Files",
+                            what=Request(type="files", name="search", args=result),
+                        )
 
             case Event(type="io", name="keypress", args=args) as msg if self.child:
                 send(self.child, msg)
@@ -104,8 +115,8 @@ class Input(Actor):
                     case 0:
                         ...
 
-                    case Key.COLON:
-                        create(Prompt)
+                    case (Key.COLON | Key.QUERY) as key:
+                        create(Prompt, key=key)
 
                     case Key.q | Key.Q:
                         send(to="ActorSystem", what=Message(sig=Sig.SIGQUIT))
@@ -119,14 +130,12 @@ class Input(Actor):
                         send(to=actor, what=message)
 
                     case Key.ALT_H:
-                        self.logger.error("Matched Key.ALT_H")
                         send(
                             "MediaDispatcher",
                             Request(type="player", name="play-previous"),
                         )
 
                     case Key.ALT_L:
-                        self.logger.error("Matched Key.ALT_L")
                         send(
                             "MediaDispatcher", Request(type="player", name="play-next")
                         )
