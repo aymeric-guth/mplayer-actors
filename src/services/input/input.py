@@ -71,6 +71,16 @@ class Prompt(Actor):
 
                     case _:
                         CmdBuffer().insert(chr(args))
+                        if self.key != Key.QUERY:
+                            return
+                        send(
+                            to=self.parent,
+                            what=Event(
+                                type="io",
+                                name="prompt",
+                                args=(self.key, CmdBuffer().to_str()),
+                            ),
+                        )
 
                 send(
                     to="Display",

@@ -127,6 +127,8 @@ class Files(Actor):
 
             case Request(type="files", name="content-reload"):
                 self.dirs = list(self.dir_tree.get(CWD().path, []))
+                for i in self.dirs:
+                    self.logger.error(i)
                 self.files = [e.to_tuple() for e in self.files_tree.get(CWD().path, [])]
                 #######
                 # self.files = list(self.files_tree.get(CWD().path, []))
