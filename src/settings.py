@@ -127,6 +127,7 @@ _extensions_openmpt = {
     ".xpk",
     ".ppm",
     ".mmcmp",
+    ".mdat",
 }
 _extensions_gme = {
     ".vgm",
@@ -140,7 +141,9 @@ _extensions_gme = {
     ".hes",
     ".kss",
 }
-extensions_audio = _extensions_audio | _extensions_mod | _extensions_gme
+extensions_audio = (
+    _extensions_audio | _extensions_openmpt | _extensions_gme | _extensions_mod
+)
 extensions_video: set[str] = set()
 
 extensions_all = extensions_audio | extensions_video

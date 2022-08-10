@@ -62,7 +62,6 @@ class MediaDispatcher(Actor):
             #     with open(path, 'wb') as f:
             #         f.write(data)
             #     send(self.pid, Request(type='player', name='play-item', args=str(path)))
-
             case Request(type="player", name="play-selection", args=args):
                 send(to="Files", what=Request(type="files", name="content", args=args))
 

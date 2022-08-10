@@ -1,7 +1,11 @@
+import os
 import asyncio
-import socket
 import pickle
 import logging
+
+
+LOG_HOST = "127.0.0.1" if not os.getenv("LOG_HOST") else os.getenv("LOG_HOST")
+LOG_PORT = 8080 if not os.getenv("LOG_PORT") else os.getenv("LOG_PORT")
 
 
 async def handle_client(
@@ -35,11 +39,11 @@ async def handle_client(
 
 async def main() -> None:
     #    server = await asyncio.start_server(handle_client, "192.168.1.100", 8080)
-    server = await asyncio.start_server(handle_client, "127.0.0.1", 8080)
+    server = await asyncio.start_server(handle_client, LOG_HOST, LOG_PORT)
     async with server:
         try:
             await server.serve_forever()
-        except Exception as e:
+        except Exception:
             ...
 
 
