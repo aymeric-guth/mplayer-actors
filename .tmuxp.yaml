@@ -1,0 +1,27 @@
+session_name: $PROJECT_NAME
+start_directory: $WORKSPACE
+
+shell_command_before:
+  - '[ -f .func.sh ] && source .func.sh'
+
+windows:
+
+  - window_name: editor
+    start_directory: .
+    panes:
+      - shell_command:
+        - editor .
+
+  - window_name: runtime
+    start_directory: .
+    layout: even-horizontal
+    panes:
+      - shell_command:
+        - python -m src
+      - shell_command:
+        - python src/logger.py
+
+  - window_name: shell
+    start_directory: .
+    panes:
+      - null
