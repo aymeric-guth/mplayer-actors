@@ -1,0 +1,13 @@
+session_name: flX
+start_directory: $WORKSPACE
+
+shell_command_before:
+  - '[ -f .func.sh ] && source .func.sh'
+
+windows:
+
+  - window_name: flX
+    start_directory: .
+    panes:
+      - shell_command:
+        - python -m src
