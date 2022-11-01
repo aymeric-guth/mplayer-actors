@@ -1,8 +1,11 @@
 session_name: $PROJECT_NAME
 start_directory: $WORKSPACE
+environment:
+  WORKSPACE: $WORKSPACE
+  PROJECT_NAME: $PROJECT_NAME
 
 shell_command_before:
-  - '[ -f .func.sh ] && source .func.sh'
+  - '[ -f .func.sh ] && source .func.sh || return 0'
 
 windows:
 
