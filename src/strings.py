@@ -1,2 +1,2 @@
 class ERRORS:
-    CMD = 'Unrecognized command: {}'
+    CMD = 'Unrecognized command: "{}"'

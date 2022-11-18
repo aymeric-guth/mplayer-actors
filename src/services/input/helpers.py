@@ -79,6 +79,9 @@ def eval_cmd(cmd: str) -> tuple[str, Message | Response | Request | Event]:
         case ["delete" | "d", value] if value.isdigit() and int(value) > 0:
             return "API", Request(type="api", name="delete", args=[int(value)])
 
+        case ["disp", value] if value.isdigit() and int(value) > 0 and int(value) < 10:
+            return "Curses", Request(type="render", name="dispmode", args=int(value))
+
         # case ['depth' | 'd', value] if value.isdigit() and int(value) > 0:
         #     # goes value nodes up
         #     ...

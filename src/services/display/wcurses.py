@@ -100,6 +100,7 @@ class Curses(Actor):
         ]
         self.cmd_win = None
         self.log_lvl = logging.ERROR
+        self.buff: list[int] = []
 
     def dispatch(self, sender: int, msg: Message) -> None:
         try:
@@ -212,8 +213,11 @@ class Curses(Actor):
 
                 (dir_list, files_list) = files_buff
                 blocks = len(dir_list) + len(files_list)
-                display_mode = ceil(blocks / height)
-                display_mode = 1 if not display_mode else display_mode
+                if self.buff:
+                    display_mode = self.buff.pop()
+                else:
+                    display_mode = ceil(blocks / height)
+                    display_mode = 1 if not display_mode else display_mode
                 display_width = width // display_mode
 
                 win = curses.newwin(height + 1, width, y_ofst, x_ofst)
@@ -254,6 +258,10 @@ class Curses(Actor):
                 popup.refresh()
                 # defer(callback=lambda: popup.refresh(), timeout=2., logger=self.logger)
                 # send(self.pid, Event(type='rendered'))
+
+            case Request(type="render", name="dispmode", args=arg):
+                self.buff.append(arg)
+                send(to=self.parent, what=Event(type="signal", name="resize"))
 
             case _:
                 raise DispatchError(f"Unprocessable msg={msg}")
